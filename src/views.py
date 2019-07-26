@@ -140,42 +140,214 @@ class Current1D(PlotFrame):
             self.startUp(xReset, yReset)
 
     def shape(self):
+        """
+        Returns the shape of the data
+
+        Returns
+        -------
+        tuple:
+            The shape along each dimension
+        """
         return self.data1D.shape()
 
     def len(self, dim=-1):
+        """
+        Returns the length of a specific dimension of the data. By default
+        the last dimension (-1) is selected.
+
+        Parameters
+        ----------
+        dim (optional = -1): int
+            The dimension of which the length should be returned.
+
+        Returns
+        -------
+        int:
+            The length
+        """
         return self.shape()[dim]
     
     def ndim(self):
+        """
+        Returns the number of dimensions of the data.
+
+        Returns
+        -------
+        int:
+            The number of dimension
+        """
         return self.data1D.ndim()
 
     def freq(self, dim=-1):
+        """
+        Returns the spectrum frequency of a specified dimension 
+        (i.e. centre frequency) in hertz.
+        By default, the last dimension (-1) is selected.
+    
+        Parameters
+        ----------
+        dim (optional = -1): int
+            The dimension of which the frequency should be returned.
+
+        Returns
+        -------
+        float:
+            The frequency
+        """
         return self.data1D.freq[dim]
 
     def ref(self, dim=-1):
+        """
+        Returns the reference frequency in Hz for a selected dimension.
+        By default, the last dimension (-1) is selected.
+        If no reference is defined for the dimension, the centre frequency
+        is retuned instead.
+
+        Parameters
+        ----------
+        dim (optional = -1): int
+            The dimension of which the reference frequency should be returned.
+
+        Returns
+        -------
+        float:
+            The reference frequency of the dimension
+        """
         if self.data1D.ref[dim] is not None:
             return self.data1D.ref[dim]
         else:
             return self.data1D.freq[dim]
 
     def sw(self, dim=-1):
+        """
+        Returns the spectral width  (sweep width) in Hz for a selected dimension.
+        By default, the last dimension (-1) is selected.
+
+        Parameters
+        ----------
+        dim (optional = -1): int
+            The dimension of which the sw should be returned.
+
+        Returns
+        -------
+        float:
+            The spectral width of the dimension
+        """
         return self.data1D.sw[dim]
 
     def spec(self, dim=-1):
+        """
+        Returns the state of a specified dimension (spectrum or FID).
+        By default, the last dimension (-1) is selected.
+
+        Parameters
+        ----------
+        dim (optional = -1): int
+            The dimension of which the spec/fid state should be returned.
+
+        Returns
+        -------
+        bool:
+            True for spectrum, False for FID.
+        """
         return self.data1D.spec[dim]
 
     def xax(self, dim=-1):
+        """
+        Returns the x-axis for the selected dimension.
+        By default, the last dimension (-1) is selected.
+
+        Parameters
+        ----------
+        dim (optional = -1): int
+            The dimension of which the x-axis state should be returned.
+
+        Returns
+        -------
+        ndarray:
+            1D array with the x-axis.
+        """
         return self.data1D.xaxArray[dim]
 
     def wholeEcho(self, dim=-1):
+        """
+        Returns the whole Echo boolean for the selected dimension.
+        By default, the last dimension (-1) is selected.
+
+        Parameters
+        ----------
+        dim (optional = -1): int
+            The dimension of which the whole echo state should be returned.
+
+        Returns
+        -------
+        bool:
+            The whole echo state of the dimension.
+        """
         return self.data1D.wholeEcho[dim]
     
     def getCurrentAxMult(self, axis=-1):
+        """
+        Returns the axis multiplier (i.e. unit) for the selected dimension.
+        By default, the last dimension (-1) is selected.
+
+        Parameters
+        ----------
+        axis (optional = -1): int
+            The dimension of which the multiplier should be returned.
+
+        Returns
+        -------
+        float:
+            The multiplier for the dimension.
+        """
         return self.getAxMult(self.spec(axis), self.getAxType(), self.getppm(), self.freq(axis), self.ref(axis))
 
     def getAxType(self, num=-1):
+        """
+        Returns the axis type (i.e. unit) for the selected dimension.
+        By default, the last dimension (-1) is selected.
+
+        The type can be 0,1,2 or 3.
+        For a spectrum axis:
+            0: Hz
+            1: kHz
+            2: MHz
+            3: ppm
+
+        For an FID axis:
+            0: s
+            1: ms
+            2: us
+
+        Parameters
+        ----------
+        num (optional = -1): int
+            The dimension of which the type should be returned.
+
+        Returns
+        -------
+        int:
+            The type index for the dimension.
+        """
         return self.viewSettings["axType"][num]
 
     def getppm(self, num=-1):
+        """
+        Get the ppm boolean of the selected dimension.
+        By default, the last dimension (-1) is selected.
+        Is always False for FID axes.
+
+        Parameters
+        ----------
+        num (optional = -1): int
+            The dimension of which the ppm boolean should be returned.
+
+        Returns
+        -------
+        bool:
+            True if the axis is in ppm, False if not.
+        """
         if self.data1D.ref[num] == 0.0 or self.data1D.freq[num] == 0.0:
             return False
         else:
