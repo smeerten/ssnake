@@ -545,44 +545,91 @@ class Current1D(PlotFrame):
         self.root.addMacro(['reload'])
         
     def isComplex(self, *args):
+        """
+        Checks if an axis is complex. The last axis (direct dimension) is always complex.
+        """
         return self.data.isComplex(*args)
 
     def setNoUndo(self,val):
+        """
+        Sets the 'no undo' flag. When this flag is enabled
+        no undo information is saved.
+
+        Parameters
+        ----------
+        val: bool
+           The no undo flag 
+        """
         self.root.addMacro(['setNoUndo', (val,)])
         self.data.setNoUndo(val)
 
     def real(self, *args):
+        """
+        Takes the real value along the current axis.
+        """
         self.root.addMacro(['real', (self.axes[-1] - self.data.ndim(), )])
         self.data.real(self.axes[-1])
         self.upd()
         self.showFid()
     
     def imag(self, *args):
+        """
+        Takes the imaginary value along the current axis.
+        """
         self.root.addMacro(['imag', (self.axes[-1] - self.data.ndim(), )])
         self.data.imag(self.axes[-1])
         self.upd()
         self.showFid()
     
     def abs(self, *args):
+        """
+        Takes the absolute value along the current axis.
+        """
         self.root.addMacro(['abs', (self.axes[-1] - self.data.ndim(), )])
         self.data.abs(self.axes[-1])
         self.upd()
         self.showFid()
 
     def conj(self, *args):
+        """
+        Takes the complex conjugate value along the current axis.
+        """
         self.root.addMacro(['conj', (self.axes[-1] - self.data.ndim(), )])
         self.data.conj(self.axes[-1])
         self.upd()
         self.showFid()
     
-    def setPhaseInter(self, phase0in, phase1in):  # interactive changing the phase without editing the actual data
+    def setPhaseInter(self, phase0in, phase1in):
+        """
+        Interactive changing the phase without editing the actual data.
+
+        Parameters
+        ----------
+        phase0in: float
+            The 0th order phase
+        phase1in: float
+            The 1st order phase
+        """
         phase0 = float(phase0in)
         phase1 = float(phase1in)
         self.data1D.phase(phase0, phase1, -1)
         self.showFid()
         self.upd()
 
-    def applyPhase(self, phase0, phase1, select=False):  # apply the phase to the actual data
+    def applyPhase(self, phase0, phase1, select=False):
+        """
+        Phase the data.
+
+        Parameters
+        ----------
+        phase0in: float
+            The 0th order phase
+        phase1in: float
+            The 1st order phase
+        select (optional = False): bool
+            If true, apply only for current slice
+            
+        """
         phase0 = float(phase0)
         phase1 = float(phase1)
         if select:
@@ -595,13 +642,20 @@ class Current1D(PlotFrame):
         self.showFid()
 
     def correctDFilter(self):
-        #Corrects the digital filter via first order phasing
+        """
+        Corrects the digital filter via first order phasing.
+        The filter value (if any) is set upon loading the data.
+        """
         self.root.addMacro(['correctDFilter', (self.axes[-1] - self.data.ndim(),)])
         self.data.correctDFilter(self.axes[-1])
         self.upd()
         self.showFid()
 
-    def complexFourier(self):  # fourier the actual data and replot
+    def complexFourier(self):  
+        """
+        Complex Fourier transform along the current axis.
+        Redraw the plot.
+        """
         self.root.addMacro(['complexFourier', (self.axes[-1] - self.data.ndim(), )])
         self.data.complexFourier(self.axes[-1])
         self.upd()
@@ -610,7 +664,11 @@ class Current1D(PlotFrame):
         self.showFid()
         self.plotReset()
 
-    def realFourier(self):  # fourier the real data and replot
+    def realFourier(self):  
+        """
+        Real Fourier transform along the current axis.
+        Redraw the plot.
+        """
         self.root.addMacro(['realFourier', (self.axes[-1] - self.data.ndim(), )])
         self.data.realFourier(self.axes[-1])
         self.upd()
@@ -620,6 +678,15 @@ class Current1D(PlotFrame):
         self.plotReset()
 
     def fftshift(self, inv=False):  # fftshift the actual data and replot
+        """
+        fftshift along the current axis.
+        Redraw the plot.
+
+        Parameters
+        ----------
+        inv: bool
+            True if inverse shift, False if normal.
+        """
         self.root.addMacro(['fftshift', (self.axes[-1] - self.data.ndim(), inv)])
         self.data.fftshift(self.axes[-1], inv)
         self.upd()
