@@ -354,14 +354,52 @@ class Current1D(PlotFrame):
             return self.viewSettings["ppm"][num]
 
     def getDataType(self, data):
+        """
+        Returns the input data in the current representation
+        (real, imag, both, abs).
+        
+        Parameters
+        ----------
+        data: ndarray
+            The data that should be converted to the representation
+
+        Returns
+        -------
+        ndarray:
+            The changed data
+        """
+
         typeList = [np.real, np.imag, np.array, np.abs]
         return typeList[self.viewSettings["plotType"]](data)
     
     def startUp(self, xReset=True, yReset=True):
+        """
+        Plot the data, with optional resets of the x an y axis limits.
+
+        Parameters
+        ----------
+        xReset (optional = True): bool
+            Whether to reset the x-axis limits
+        yReset (optional = True): bool
+            Whether to reset the y-axis limits
+        """
         self.showFid()  # plot the data
         self.plotReset(xReset, yReset)  # reset the axes limits
 
     def fixAxes(self, axes):
+        """
+        Fixes the axes.
+
+        Parameters
+        ----------
+        axes: list
+            List of the axes indexes that should be changed.
+
+        Returns
+        -------
+        list:
+            The new axis list
+        """
         if len(axes) != self.NDIM_PLOT:
             fullAxes = np.arange(self.data.ndim())
             fullAxes = np.delete(fullAxes, axes)
@@ -371,6 +409,14 @@ class Current1D(PlotFrame):
             return axes
 
     def rename(self, name):
+        """
+        Rename the data set.
+
+        Parameters
+        ----------
+        name: str
+            The new name
+        """
         self.data.rename(name)
         if self.viewSettings['showTitle']:
             self.fig.suptitle(self.data.name)
@@ -379,9 +425,28 @@ class Current1D(PlotFrame):
         self.canvas.draw()
 
     def copyCurrent(self, root, fig, canvas, data):
+        """
+        Make a copy of the current data structure and the
+        associated canvas and axis information.
+
+        Parameters
+        ----------
+        root: main1d window class
+        fig: matplotlib figure
+        canvas: matplotlib figure canvas
+        data: spectrum class instance
+        """
         return Current1D(root, fig, canvas, data, self)
 
-    def upd(self):  # get new data from the data instance
+    def upd(self): 
+        """
+        Get new data from the data instance.
+
+        Returns
+        -------
+        bool:
+            True if update was OK
+        """
         if self.data.ndim() <= self.axes[-1]:
             self.axes = np.array([len(self.data.shape()) - 1])
         if len(self.locList) != self.data.ndim():
@@ -397,7 +462,19 @@ class Current1D(PlotFrame):
             self.viewSettings["ppm"][-1] = False
         return True
 
-    def setSlice(self, axes, locList):  # change the slice
+    def setSlice(self, axes, locList): 
+        """
+        Change the slice
+
+        Parameters
+        ----------
+        axes: ndarray
+            List of the axes along which the data is plot
+            (contains a single entry for this 1D plot)
+        locList: list
+            List with the location (i.e. data positions) of each dimension
+            of the data.
+        """
         axesSame = True
         if not np.array_equal(self.axes, axes):
             axesSame = False
@@ -409,17 +486,48 @@ class Current1D(PlotFrame):
             self.plotReset()
 
     def resetLocList(self):
+        """
+        Resets the locations (i.e. data positions) of all dimensions.
+        Default values are [0] for all dimensions.
+        """
         self.locList = [0] * self.data.ndim()
 
     def getSelect(self):
+        """
+        Get thew slice operator to construct the 1D data from the total
+        data.
+
+        Returns
+        -------
+        ndarray:
+            Object array with the slices for each dimension.
+        """
         tmp = np.array(self.locList, dtype=object)
         tmp[self.axes] = slice(None)
         return tmp
 
     def setGrids(self, grids):
+        """
+        Turn the plot grid along x and y axis on or off.
+
+        Parameters
+        ----------
+        grids: list of booleans
+            [xgrid,ygrid]
+        """
         self.viewSettings["grids"] = grids
 
     def setDiagonal(self, diagonalBool=None, diagonalMult=None):
+        """
+        Change the plotting of a diagonal line in a 2D plot.
+
+        Parameters
+        ----------
+        diagonalBool (optional = None): bool
+            True if diagonal should be plot
+        diagonalMult (optional = None): float
+            Multiplier of the diagonal.
+        """
         if diagonalBool is not None:
             self.viewSettings["diagonalBool"] = diagonalBool
         if diagonalMult is not None:
@@ -427,6 +535,9 @@ class Current1D(PlotFrame):
         self.showFid()
 
     def reload(self, *args):
+        """
+        Reloads the data, updates and resets the plot.
+        """
         self.data.reload()
         self.upd()
         self.showFid()
