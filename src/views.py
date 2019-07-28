@@ -692,7 +692,28 @@ class Current1D(PlotFrame):
         self.upd()
         self.showFid()
 
-    def apodPreview(self, lor=None, gauss=None, cos2= [None, None], hamming=None, shift=0.0, shifting=0.0, shiftingAxis=None):  # display the 1D data including the apodization function
+    def apodPreview(self, lor=None, gauss=None, cos2= [None, None], hamming=None, shift=0.0, shifting=0.0, shiftingAxis=None):  
+        """
+        Preview the effect of apodization without touching the data structure.
+
+        Parameters
+        ----------
+        lor (optional = None): float
+            Lorentzian broadening in Hz
+        gauss (optional = None): float
+            Gaussian broadening in Hz
+        cos2 (optional = [None, None]): list
+            List of floats. The first value is the frequency (two times the number of periods in the time domain).
+            The second value is the phase shift in degrees.
+        hamming (optional = None): float
+            Hamming apodization frequency
+        shift (optional = 0.0): float
+            The amount of time shift to the function (positive is to the right).
+        shifting (optional = 0.0): float
+            A shift in time of the function as a function of the x-axis values along shiftingAxis.
+        shiftingAxis (optional = None): int
+            The dimension for the shifting.
+        """
         y = self.data1D.data.copy()
         preview = True
         if shiftingAxis is None:
@@ -714,6 +735,29 @@ class Current1D(PlotFrame):
         self.upd()
     
     def applyApod(self, lor=None, gauss=None, cos2= [None,None], hamming=None, shift=0.0, shifting=0.0, shiftingAxis=0, select=False):  # apply the apodization to the actual data
+        """
+        Apply apodization effects.
+
+        Parameters
+        ----------
+        lor (optional = None): float
+            Lorentzian broadening in Hz
+        gauss (optional = None): float
+            Gaussian broadening in Hz
+        cos2 (optional = [None, None]): list
+            List of floats. The first value is the frequency (two times the number of periods in the time domain).
+            The second value is the phase shift in degrees.
+        hamming (optional = None): float
+            Hamming apodization frequency
+        shift (optional = 0.0): float
+            The amount of time shift to the function (positive is to the right).
+        shifting (optional = 0.0): float
+            A shift in time of the function as a function of the x-axis values along shiftingAxis.
+        shiftingAxis (optional = None): int
+            The dimension for the shifting.
+        select (optional = False): boolean
+            If True, apply only to the current slice.
+        """
         if select:
             selectSlice = self.getSelect()
         else:
@@ -724,18 +768,45 @@ class Current1D(PlotFrame):
         self.showFid()
 
     def setFreq(self, freq, sw):  # set the frequency of the actual data
+        """
+        Set the center frequency and spectral width (sweep width).
+
+        Parameters
+        ----------
+        freq: float
+            Center frequency in Hz
+        sw: float
+            Spectral width in Hz
+
+        """
         self.root.addMacro(['setFreq', (freq, sw, self.axes[-1] - self.data.ndim())])
         self.data.setFreq(freq, sw, self.axes[-1])
         self.upd()
         self.showFid()
 
     def scaleSw(self,scale):
+        """
+        Scale the spectral width (sweep width).
+
+        Parameters
+        ----------
+        scale: float
+            The multiplier
+        """
         self.root.addMacro(['scaleSw', (scale, self.axes[-1] - self.data.ndim())])
         self.data.scaleSw(scale, self.axes[-1])
         self.upd()
         self.showFid()
 
-    def setRef(self, ref):  # set the frequency of the actual data
+    def setRef(self, ref):  
+        """
+        Set the reference frequency (0 Hz position).
+
+        Parameters
+        ----------
+        ref: float
+            The reference frequency
+        """
         oldref = self.ref()
         self.root.addMacro(['setRef', (ref, self.axes[-1] - self.data.ndim())])
         self.data.setRef(ref, self.axes[-1])
@@ -753,6 +824,17 @@ class Current1D(PlotFrame):
         self.showFid()
 
     def regrid(self, limits, numPoints):
+        """
+        Regrind along the current dimension. This creates a new x-axis, and interpolates to 
+        construct the new y-values.
+
+        Parameters
+        ----------
+        limits: list
+            List with the minimum and maximum position of the new x-axis (in Hz).
+        numPoints: int
+            Number of points in the new x-axis
+        """
         self.root.addMacro(['regrid', (limits, numPoints, self.axes[-1] - self.data.ndim())])
         self.data.regrid(limits, numPoints, self.axes[-1])
         self.upd()
@@ -760,6 +842,25 @@ class Current1D(PlotFrame):
         self.plotReset()
 
     def SN(self, minNoise, maxNoise, minPeak, maxPeak):
+        """
+        Get the signal-to-noise ratio of a specific region.
+
+        Parameters
+        ----------
+        minNoise: int
+            Minimum position of the noise region.
+        maxNoise: int
+            Maximum position of the noise region.
+        minPeak: int
+            Minimum position of the region with the peak inside.
+        maxPeak: int
+            Maximum position of the region with the peak inside.
+
+        Returns
+        -------
+        float:
+            The SNR
+        """
         minN = min(minNoise, maxNoise)
         maxN = max(minNoise, maxNoise)
         minP = min(minPeak, maxPeak)
