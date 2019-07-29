@@ -871,6 +871,35 @@ class Current1D(PlotFrame):
         return (np.max(tmpData[minP:maxP]) / (np.std(tmpData[minN:maxN])))
 
     def fwhm(self, minPeak, maxPeak, level, unitType=None):
+        """
+        Get the Full Width at Half Maximum (FWHM) for a peak in
+        a specific region. The level can be pout in by the user,
+        so a level of 0.5 will give the FWHM, while other values
+        report the width at other heights.
+        
+        Parameters
+        ----------
+        minPeak: int
+            Minimum position of the region with the peak inside.
+        maxPeak: int
+            Maximum position of the region with the peak inside.
+        level: float
+            The level for which the width is to be calculated. For
+            the half width, this should be 0.5.
+        unitType (optional = None): int
+            The unit type, only needs to be supplied when the type should 
+            be different than in the current plot.
+            0: Hz
+            1: kHz
+            2: MHz
+            3: ppm
+
+        Returns
+        -------
+        float:
+            The width
+        """
+
         from scipy.interpolate import UnivariateSpline
         if unitType is None:
             axType = self.getAxType()
@@ -899,6 +928,29 @@ class Current1D(PlotFrame):
             return 0.0
 
     def COM(self, minPeak, maxPeak, unitType=None):  # Centre of Mass
+        """
+        Get the centre of mass (COM) for a peak in
+        a specific region. 
+        
+        Parameters
+        ----------
+        minPeak: int
+            Minimum position of the region with the peak inside.
+        maxPeak: int
+            Maximum position of the region with the peak inside.
+        unitType (optional = None): int
+            The unit type, only needs to be supplied when the type should 
+            be different than in the current plot.
+            0: Hz
+            1: kHz
+            2: MHz
+            3: ppm
+
+        Returns
+        -------
+        float:
+            The centre of mass
+        """
         dim = len(minPeak)
         ppm = []
         axType = []
@@ -936,6 +988,27 @@ class Current1D(PlotFrame):
         return COM
 
     def Integrals(self, minPeak, maxPeak):
+        """
+        Get the integral for a region. 
+        
+        Parameters
+        ----------
+        minPeak: int
+            Minimum position of the region.
+        maxPeak: int
+            Maximum position of the region.
+
+        Returns
+        -------
+        float:
+            Integral
+        ndarray:
+            The x-axis of the selected range
+        ndarray:
+            The cumulative sum of the y-values of the range
+        float:
+            The absolute maximum of y-values
+        """
         dim = len(minPeak)
         for i in range(dim): #Check max > min
             if minPeak[i] > maxPeak[i]:
@@ -966,6 +1039,23 @@ class Current1D(PlotFrame):
         return inte, tmpAxis, intSum, maxim
 
     def MaxMin(self, minPeak, maxPeak, type='max'):
+        """
+        Get the maximum or minimum value of a region.
+
+        Parameters
+        ----------
+        minPeak: int
+            Minimum position of the region.
+        maxPeak: int
+            Maximum position of the region.
+        type (optional = 'max'): str
+            'max' or 'min'
+
+        Returns
+        -------
+        float:
+            The min/max value of the region
+        """
         minP = min(minPeak, maxPeak)
         maxP = max(minPeak, maxPeak)
         tmpData = self.data1D.getHyperData(0)
@@ -977,6 +1067,19 @@ class Current1D(PlotFrame):
             return np.min(tmpData[minP:maxP])
 
     def integralsPreview(self, x, y, maxim):
+        """
+        Plot preview lines for the integrals tool.
+
+        Parameters
+        ----------
+        x: list of ndarrays
+            x-values of the extra lines
+        y: list of ndarrays
+            y-values of the extra lines
+        maxim: float
+            Maximum values the each integrated regions
+
+        """
         xNew = []
         yNew = []
         scale = 0
@@ -989,7 +1092,18 @@ class Current1D(PlotFrame):
             yNew[num] = yNew[num] / scale * maxim
         self.showFid(extraX=xNew, extraY=yNew, extraColor=['g'])
 
-    def resizePreview(self, size, pos):  # set size only on local data
+    def resizePreview(self, size, pos):
+        """
+        Preview a resizing (zero filling) operation on the data.
+
+        Parameters
+        ----------
+        size: int
+            The new number of data points
+        pos: int
+            The position where any data points should be inserted
+            or removed.
+        """
         self.data1D.resize(size, pos, -1)
         self.showFid()
         if not self.spec():
@@ -997,6 +1111,17 @@ class Current1D(PlotFrame):
         self.upd()
 
     def resize(self, size, pos):  # set size to the actual data
+        """
+        Apply a resizing (zero filling) operation on the data.
+
+        Parameters
+        ----------
+        size: int
+            The new number of data points
+        pos: int
+            The position where any data points should be inserted
+            or removed.
+        """
         self.root.addMacro(['resize', (size, pos, self.axes[-1] - self.data.ndim())])
         self.data.resize(size, pos, self.axes[-1])
         self.upd()
@@ -1005,6 +1130,21 @@ class Current1D(PlotFrame):
             self.plotReset(True, False)
 
     def lpsvd(self, nPredict, maxFreq, forward, numPoints):
+        """
+        Apply linear prediction on the data. Both forward and backwards predictions
+        are supported.
+
+        Parameters
+        ----------
+        nPredict : int
+            The number of datapoints to predict.
+        maxFreq : int
+            The maximum number of frequencies to take from the SVD.
+        forward : bool
+            If True, a forward prediction is performed, otherwise a backward prediction is performed.
+        numPoints : int, optional
+            The number of points to use for SVD.
+        """
         self.root.addMacro(['lpsvd', (nPredict, maxFreq, forward, numPoints, self.axes[-1] - self.data.ndim())])
         self.data.lpsvd(nPredict, maxFreq, forward, numPoints, self.axes[-1])
         self.upd()
@@ -1012,7 +1152,15 @@ class Current1D(PlotFrame):
         if not self.spec():
             self.plotReset(True, False)
 
-    def setSpec(self, val):  # change from time to freq domain of the actual data
+    def setSpec(self, val): 
+        """
+        Change the time/spectrum domain type of the current dimension.
+
+        Parameters
+        ----------
+        val: bool
+            True: spectrum, False: FID
+        """
         self.root.addMacro(['setSpec', (val, self.axes[-1] - self.data.ndim())])
         self.data.setSpec(val, self.axes[-1])
         self.upd()
@@ -1022,17 +1170,41 @@ class Current1D(PlotFrame):
         self.plotReset()
 
     def swapEcho(self, idx):
+        """
+        Apply a swap echo operation.
+
+        Parameters
+        ----------
+        idx: int
+            Position where the swap should occur.
+        """
         self.root.addMacro(['swapEcho', (idx, self.axes[-1] - self.data.ndim())])
         self.data.swapEcho(idx, self.axes[-1])
         self.upd()
         self.showFid()
 
     def swapEchoPreview(self, idx):
+        """
+        Preview a swap echo operation.
+
+        Parameters
+        ----------
+        idx: int
+            Position where the swap should occur.
+        """
         self.data1D.swapEcho(idx, -1)
         self.showFid()
         self.upd()
 
     def setWholeEcho(self, value):
+        """
+        Set the Whole Echo toggle for the current dimension.
+
+        Parameters
+        ----------
+        value: bool
+            The new Whole Echo value
+        """
         valBool = value != 0
         self.root.addMacro(['setWholeEcho', (valBool, self.axes[-1] - self.data.ndim())])
         self.data.setWholeEcho(valBool, self.axes[-1])
