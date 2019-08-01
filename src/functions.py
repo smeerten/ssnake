@@ -68,7 +68,7 @@ def apodize(t, shift=0.0, lor=None, gauss=None, cos2=[None,None], hamming=None, 
     if gauss is not None:
         x *= np.exp(-((np.pi * gauss * t2)**2) / (4 * np.log(2)))
     if cos2[0] is not None and cos2[1] is not None :
-        x *= (np.cos(np.radians(cos2[1]) + cos2[0] * (-0.5 * shift * np.pi * sw / axLen + np.linspace(0, 0.5 * np.pi, axLen))))
+        x *= (np.cos(np.radians(cos2[1]) + cos2[0] * (-0.5 * shift * np.pi * sw / axLen + np.linspace(0, 0.5 * np.pi, axLen)))**2)
     if hamming is not None:
         alpha = 0.53836  # constant for hamming window
         x *= (alpha + (1 - alpha) * np.cos(hamming * (-0.5 * shift * np.pi * sw / axLen + np.linspace(0, np.pi, axLen))))
