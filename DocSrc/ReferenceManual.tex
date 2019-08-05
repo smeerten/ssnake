@@ -1515,7 +1515,7 @@ solution. General values that need to be set are:
 \item The MAS method: static, finite or infinite
 \item The spinning speed in kHz (when MAS is on `finite').
 \item The number of sidebands (when MAS is on `finite'). This value must always be larger then the
-  expected number of spinning sidebands. Higher values take more time to simulate.
+  expected number of spinning sidebands. When too few sidebands are simulated, the sideband intensities will be off. Larger values take more time to simulate. For efficiency powers of two should be used.
 \item The rotor angle in radian (when MAS is not static). Default is the magic angle:
 	 $\text{arctan}(\sqrt{2})$
 \end{itemize}
@@ -1583,7 +1583,7 @@ be turned on or of. General values that need to be set are:
 \item The rotor angle in radian (when MAS is not `static'). Default is the magic angle:
 	 $\text{arctan}(\sqrt{2})$
 \item The number of sidebands (when MAS is on `finite'). This value must always be larger then the
-  expected number of spinning sidebands. Higher values take more time to simulate.
+  expected number of spinning sidebands. When too few sidebands are simulated, the sideband intensities will be off. Larger values take more time to simulate. For efficiency powers of two should be used.
 \item The spinning speed in kHz (when MAS is on `finite').
 \item The background (constant value added to all data points)
 \end{itemize}
