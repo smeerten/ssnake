@@ -561,7 +561,7 @@ class LegendWindow(QtWidgets.QWidget):
         try:
             self.father.legend.set_draggable(True)
         except AttributeError:
-            self.legend.draggable(True) # For older Matplotlib versions
+            self.father.legend.draggable(True) # For older Matplotlib versions
         self.father.canvas.draw()
 
     def closeEvent(self, *args):
