@@ -234,7 +234,10 @@ class SaveFigureWindow(QtWidgets.QWidget):
                 self.legendOrder = list(np.arange(0, len(self.legend.get_texts())))[::-1]
             else:
                 self.legendOrder = list(np.arange(0, len(self.legend.get_texts())))
-            self.legend.draggable(True)
+            try:
+                self.legend.set_draggable(True)
+            except AttributeError:
+                self.legend.draggable(True) # For older Matplotlib versions
             self.legendPos = 'best'
             self.legendTextList = []
             for line in self.legend.get_texts():
@@ -334,7 +337,11 @@ class SaveFigureWindow(QtWidgets.QWidget):
             else:
                 size = self.mainFontSizeEntry.value()
             self.legend = self.ax.legend(orderedLines, orderedLegendText, framealpha = 1.0, loc=self.legendPos, prop={'size': size })
-            self.legend.draggable(True)
+            try:
+                self.legend.set_draggable(True)
+            except AttributeError:
+                self.legend.draggable(True) # For older Matplotlib versions
+
         else:
             self.legend.set_visible(False)
 
@@ -551,7 +558,10 @@ class LegendWindow(QtWidgets.QWidget):
         orderedLines = [self.father.ax.lines[x] for x in order]
         orderedLegendText = [tmp[x] for x in order]
         self.father.ax.legend(orderedLines, orderedLegendText, loc=inp)
-        self.father.legend.draggable(True)
+        try:
+            self.father.legend.set_draggable(True)
+        except AttributeError:
+            self.legend.draggable(True) # For older Matplotlib versions
         self.father.canvas.draw()
 
     def closeEvent(self, *args):
