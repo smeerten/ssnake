@@ -7394,7 +7394,6 @@ class tempCalWindow(QtWidgets.QWidget):
                   lambda Delta: 466.5 - 102.00 * Delta,
                   lambda Temp: (Temp - 466.5) / -102.0,
                   'absShift',None,None,'Ammann et al., JMR, 46, 319 (1982)']
-
     PBNO3 = [143, 423,
              lambda Delta, Delta0, T0: (Delta0 - Delta) / 0.753 + T0 , 
              lambda T, Delta0, T0: (T0 - T) * 0.753 + Delta0 ,
@@ -7403,12 +7402,9 @@ class tempCalWindow(QtWidgets.QWidget):
              lambda Delta, Delta0, T0: (Delta0 - Delta) / 0.0250 + T0 , 
              lambda T, Delta0, T0: (T0 - T) * 0.0250 + Delta0 ,
              'relShift','0','293','Thurber et al., JMR, 196, 84 (2009)']
-
-
     DEFINITIONS = [METHANOL, ETH_GLYCOL, PBNO3 ,KBR]
     TEXTLIST = ['1H: Methanol (178 K < T < 330 K)', '1H: Ethylene Glycol (273 K < T < 416 K)',
             '207Pb: Lead Nitrate (143 K < T < 423 K)','79Br: KBr (170 K < T < 320 K)']
-
     T1_KBr = [20,296,
              lambda Relax: optimize.brentq(lambda T,T1: 0.0145 + 5330/T**2 + 1.42e7/T**4 + 2.48e9/T**6 - T1, 20, 296 ,args=(Relax,)),
              lambda T: 0.0145 + 5330/T**2 + 1.42e7/T**4 + 2.48e9/T**6,
@@ -7417,10 +7413,8 @@ class tempCalWindow(QtWidgets.QWidget):
               lambda Relax: optimize.brentq(lambda T,T1: -1.6e-3 + 1.52e3/T**2 + 0.387e6/T**4 + 0.121e9/T**6 - T1, 8, 104 ,args=(Relax,)),
               lambda T: -1.6e-3 + 1.52e3/T**2 + 0.387e6/T**4 + 0.121e9/T**6,
               'Sarkar et al., JMR, 212, 460 (2011)']
-
     T1_DEFINITIONS = [T1_KBr, T1_CsI]
     T1_TEXTLIST = ['79Br: KBr (20 K < T < 296 K, 9.4 T)','127I: CsI (8 K < T < 104 K, 9.4 T)']
-
 
     def __init__(self, parent):
         super(tempCalWindow, self).__init__(parent)
@@ -7432,13 +7426,11 @@ class tempCalWindow(QtWidgets.QWidget):
         tabWidget.addTab(tab1, "Chemical Shift Based")
         grid1 = QtWidgets.QGridLayout()
         tab1.setLayout(grid1)
-        
-        #Shift based
+        # Shift based
         self.typeDrop = QtWidgets.QComboBox()
         self.typeDrop.addItems(self.TEXTLIST)
         grid1.addWidget(self.typeDrop, 0, 0)
         self.typeDrop.currentIndexChanged.connect(self.changeType)
-
         self.RefGroup = QtWidgets.QGroupBox("Relative to:")
         self.RefFrame = QtWidgets.QGridLayout()
         self.Delta0Label = wc.QLabel(u'δ [ppm]')
@@ -7454,7 +7446,6 @@ class tempCalWindow(QtWidgets.QWidget):
         self.RefGroup.setLayout(self.RefFrame)
         grid1.addWidget(self.RefGroup, 1, 0)
         self.RefGroup.hide()
-
         self.DeltaGroup = QtWidgets.QGroupBox("Shift to Temperature:")
         self.DeltaFrame = QtWidgets.QGridLayout()
         self.DeltaLabel = wc.QLabel(u'Δδ [ppm]')
@@ -7467,7 +7458,6 @@ class tempCalWindow(QtWidgets.QWidget):
         self.DeltaFrame.addWidget(self.Delta, 1, 1)
         self.DeltaGroup.setLayout(self.DeltaFrame)
         grid1.addWidget(self.DeltaGroup, 2, 0)
-
         self.TempGroup = QtWidgets.QGroupBox("Temperature to Shift:")
         self.TempFrame = QtWidgets.QGridLayout()
         TempLabel = wc.QLabel(u'Temperature [K]')
@@ -7482,18 +7472,15 @@ class tempCalWindow(QtWidgets.QWidget):
         grid1.addWidget(self.TempGroup, 3, 0)
         self.refname = wc.QLabel(self.DEFINITIONS[0][7])
         grid1.addWidget(self.refname,4,0)
-
-        #T1 based
+        # T1 based
         tab2 = QtWidgets.QWidget()
         tabWidget.addTab(tab2, "T1 Based")
         grid2 = QtWidgets.QGridLayout()
         tab2.setLayout(grid2)
-
         self.T1typeDrop = QtWidgets.QComboBox()
         self.T1typeDrop.addItems(self.T1_TEXTLIST)
         grid2.addWidget(self.T1typeDrop, 0, 0)
         self.T1typeDrop.currentIndexChanged.connect(self.changeTypeT1)
-
         self.T1Group = QtWidgets.QGroupBox("T1 to Temperature:")
         self.T1Frame = QtWidgets.QGridLayout()
         self.T1Label = wc.QLabel(u'T1 [s]')
@@ -7506,7 +7493,6 @@ class tempCalWindow(QtWidgets.QWidget):
         self.T1Frame.addWidget(self.T1, 1, 1)
         self.T1Group.setLayout(self.T1Frame)
         grid2.addWidget(self.T1Group, 2, 0)
-
         self.TempT1Group = QtWidgets.QGroupBox("Temperature to T1:")
         self.TempT1Frame = QtWidgets.QGridLayout()
         TempT1Label = wc.QLabel(u'Temperature [K]')
@@ -7521,13 +7507,12 @@ class tempCalWindow(QtWidgets.QWidget):
         grid2.addWidget(self.TempT1Group, 3, 0)
         self.refnameT1 = wc.QLabel(self.T1_DEFINITIONS[0][4])
         grid2.addWidget(self.refnameT1,4,0)
-
         layout = QtWidgets.QGridLayout(self)
         layout.addWidget(tabWidget, 0, 0, 1, 4)
         cancelButton = QtWidgets.QPushButton("&Close")
         cancelButton.clicked.connect(self.closeEvent)
         box = QtWidgets.QDialogButtonBox()
-        box.addButton(cancelButton,QtWidgetsQ.DialogButtonBox.RejectRole)
+        box.addButton(cancelButton,QtWidgets.QDialogButtonBox.RejectRole)
         layout.addWidget(box, 1,0,1,4)
         layout.setColumnStretch(3, 1)
         self.show()
@@ -7536,7 +7521,6 @@ class tempCalWindow(QtWidgets.QWidget):
     def changeType(self,index):
         self.Temp.setText('')
         self.Delta.setText('')
-
         self.refname.setText(self.DEFINITIONS[index][7])
         if self.DEFINITIONS[self.typeDrop.currentIndex()][4] == 'absShift':
             self.DeltaLabel.setText(u'Δδ [ppm]')
@@ -7551,7 +7535,6 @@ class tempCalWindow(QtWidgets.QWidget):
 
     def changeTypeT1(self,index):
         self.refnameT1.setText(self.T1_DEFINITIONS[index][4])
-
 
     def tempToT1(self):
         Data = self.T1_DEFINITIONS[self.T1typeDrop.currentIndex()]
@@ -7574,7 +7557,6 @@ class tempCalWindow(QtWidgets.QWidget):
         except Exception:
             self.TempT1.setText('?')
             raise SsnakeException("Temperature Calibration: Invalid input in Temp value")
-
         try:
             Temp = Data[2](T1)
         except Exception:
@@ -7599,7 +7581,6 @@ class tempCalWindow(QtWidgets.QWidget):
             Temp = Data[2](Delta,Delta0,T0)
         else:
             Temp = Data[2](Delta)
-
         if Temp < Data[0] or Temp > Data[1]:
             self.Temp.setText('?')
             raise SsnakeException("Temperature Calibration: Temperature outside calibration range")
@@ -7628,8 +7609,6 @@ class tempCalWindow(QtWidgets.QWidget):
             raise SsnakeException("Temperature Calibration: Temperature outside calibration range")
         else:
             self.Delta.setText('%#.6g' % Delta)
-
-
 
     def closeEvent(self, *args):
         self.deleteLater()
