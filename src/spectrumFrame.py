@@ -21,7 +21,7 @@
 import numpy as np
 import matplotlib as mpl
 import matplotlib.gridspec as gridspec
-from ssNake import QtGui, QtCore, QtWidgets
+from ssNake import QtCore, QtWidgets
 
 TIMELABELLIST = [u'[s]', u'[ms]', u'[μs]']
 FREQLABELLIST = [u'[Hz]', u'[kHz]', u'[MHz]']
@@ -30,21 +30,21 @@ FREQLABELLIST = [u'[Hz]', u'[kHz]', u'[MHz]']
 # the class from which the 1d data is displayed, the operations which only edit the content of this class are for previewing
 
 
-class PlotFrame(object):
+class PlotFrame:
     """
     The frame used to display the plot.
     It handles the mouse actions applied to the figure.
     """
-    
+
     INVERT_X = True             # Invert the x-axis when spectrum
     INVERT_Y = False            # Invert the y-axis when spectrum
     GRID_PLOT = False           # Grid plot for contour
     ZERO_SCROLL_ALLOWED = True  # Scroll with respect to 0 on the y-axis
-    
+
     def __init__(self, root, fig, canvas):
         """
         Initializes the PlotFrame.
-        
+
         Parameters
         ----------
         root : Main1DWindow
@@ -78,7 +78,7 @@ class PlotFrame(object):
             self.x_ax.axes.get_xaxis().set_visible(False)
             self.x_ax.axes.get_yaxis().set_visible(False)
             self.y_ax.axes.get_xaxis().set_visible(False)
-            self.y_ax.axes.get_yaxis().set_visible(False)            
+            self.y_ax.axes.get_yaxis().set_visible(False)
         else:
             self.ax = self.fig.add_subplot(111)
         self.leftMouse = False  # is the left mouse button currently pressed
@@ -131,7 +131,7 @@ class PlotFrame(object):
         """
         Handles scrolling in the figure.
         The effect depends on the buttons that were held during scrolling.
-        
+
         Parameters
         ----------
         event : QEvent
@@ -192,7 +192,7 @@ class PlotFrame(object):
                         self.yminlim *= 0.9**event.step
                 self.ax.set_ylim(self.yminlim, self.ymaxlim)
                 if self.INVERT_Y:
-                    if self.spec(-2) > 0 :
+                    if self.spec(-2) > 0:
                         self.ax.set_ylim(self.ymaxlim, self.yminlim)
             self.canvas.update()
             self.canvas.draw_idle()
@@ -209,7 +209,7 @@ class PlotFrame(object):
         """
         Handles button presses in the figure.
         The effect depends on the buttons that were held during the button press and whether peak picking is enabled.
-        
+
         Parameters
         ----------
         event : QEvent
@@ -234,7 +234,7 @@ class PlotFrame(object):
         """
         Handles button release in the figure.
         The effect depends on the buttons that were held during the button release and whether peak picking is enabled.
-        
+
         Parameters
         ----------
         event : QEvent
@@ -296,13 +296,12 @@ class PlotFrame(object):
         """
         Handles panning in the figure.
         The effect depends on the buttons that were held during panning and whether peak picking is enabled.
-        
+
         Parameters
         ----------
         event : QEvent
             The event.
         """
-        modifiers = QtWidgets.QApplication.keyboardModifiers()
         if self.rightMouse and self.panX is not None and self.panY is not None:
             if self.logx or self.logy:
                 x = event.xdata
@@ -400,7 +399,7 @@ class PlotFrame(object):
     def getAxMult(self, spec, axType, ppm, freq, ref=None):
         """
         Calculates the x-axis multiplier to convert the xax to a given axis type.
-        
+
         Parameters
         ----------
         spec : bool
@@ -417,7 +416,7 @@ class PlotFrame(object):
             The reference frequency if None the spectrometer frequency is used.
             None by default.
             Only used when spec is True.
-        
+
         Returns
         -------
         float
@@ -438,7 +437,7 @@ class PlotFrame(object):
     def getLabel(self, spec, axis, axType, ppm):
         """
         Generates the axis label for a given axis type and dimension.
-        
+
         Parameters
         ----------
         spec : bool
@@ -449,7 +448,7 @@ class PlotFrame(object):
             0 for Hz/s, 1 for kHz/ms, 2 for MHz/us.
         ppm : bool
             True if the frequency axis is in ppm.
-        
+
         Returns
         -------
         str
@@ -461,8 +460,7 @@ class PlotFrame(object):
             tmpString = "Frequency D" + str(axis+1) + ' '
             if ppm:
                 return tmpString + '[ppm]'
-            else:
-                return tmpString + FREQLABELLIST[axType]
+            return tmpString + FREQLABELLIST[axType]
         else:
             return "Time D" + str(axis+1) + ' ' + TIMELABELLIST[axType]
 
@@ -475,7 +473,7 @@ class PlotFrame(object):
         logx : bool
             True for a logarithmic x-axis.
         logy : bool
-            True for a logarithmic y-axis.        
+            True for a logarithmic y-axis.
         """
         self.logx = logx
         self.logy = logy

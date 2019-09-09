@@ -17,10 +17,10 @@
 # You should have received a copy of the GNU General Public License
 # along with ssNake. If not, see <http://www.gnu.org/licenses/>.
 
-import numpy as np
 import re
-import hypercomplex as hc
+import numpy as np
 import scipy.special
+import hypercomplex as hc
 
 def safeEval(inp, length=None, Type='All', x=None):
     """
@@ -67,11 +67,11 @@ def safeEval(inp, length=None, Type='All', x=None):
             return None
         if Type == 'All':
             return val
-        elif Type == 'FI':  #single float/int type
+        if Type == 'FI':  #single float/int type
             if isinstance(val, (float, int)) and not np.isnan(val) and not np.isinf(val):
                 return val
             return None
-        elif Type == 'C': #single complex number
+        if Type == 'C': #single complex number
             if isinstance(val, (float, int, complex)) and not np.isnan(val) and not np.isinf(val):
                 return val
             return None

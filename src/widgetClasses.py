@@ -17,9 +17,9 @@
 # You should have received a copy of the GNU General Public License
 # along with ssNake. If not, see <http://www.gnu.org/licenses/>.
 
-from safeEval import safeEval
 import os
 import sys
+from safeEval import safeEval
 from ssNake import QtGui, QtCore, QtWidgets, QT
 
 class SsnakeTabs(QtWidgets.QTabWidget):
@@ -27,12 +27,12 @@ class SsnakeTabs(QtWidgets.QTabWidget):
     A reimplementation of the PyQt QTabWidget.
     A tab widget were tabs can be closed with the middle mouse button.
     """
-    
+
     def mousePressEvent(self, event):
         """
         Reimplementation from QTabWidget.
         Middle mousebutton closes the tab.
-        
+
         Parameters
         ----------
         event : QMouseEvent
@@ -87,25 +87,25 @@ class SsnakeTreeWidget(QtWidgets.QTreeView):
         Reimplementation from QTreeView.
         Middle mousebutton loads the data.
         Left mousebutton loads the data from a file.
-        
+
         Parameters
         ----------
         event : QMouseEvent
             The mouse event.
         """
         index = self.indexAt(event.pos())
-        path = self.dirmodel.filePath(index) 
+        path = self.dirmodel.filePath(index)
         if event.button() == QtCore.Qt.MidButton:
             self.father.loadData([path])
         elif event.button() == QtCore.Qt.LeftButton and not self.dirmodel.isDir(index):
             self.father.loadData([path])
         super(SsnakeTreeWidget, self).mouseDoubleClickEvent(event)
 
-    def mousePressEvent(self,event):
+    def mousePressEvent(self, event):
         """
         Reimplementation from QTreeView.
         Middle mousebutton loads the data.
-        
+
         Parameters
         ----------
         event : QMouseEvent
@@ -113,7 +113,7 @@ class SsnakeTreeWidget(QtWidgets.QTreeView):
         """
         if event.button() == QtCore.Qt.MidButton:
             index = self.indexAt(event.pos())
-            path = self.dirmodel.filePath(index) 
+            path = self.dirmodel.filePath(index)
             self.father.loadData([path])
         else: #If not, let the QTreeView handle the event
             super(SsnakeTreeWidget, self).mousePressEvent(event)
@@ -127,8 +127,7 @@ class SsnakeTreeWidget(QtWidgets.QTreeView):
         event : QModelIndex
             The index to which the folder should be expanded in the treeview.
         """
-        path = self.dirmodel.filePath(index) 
-        run = True
+        path = self.dirmodel.filePath(index)
         pathOld = '-1'
         while pathOld != path:
             self.setExpanded(self.dirmodel.index(path), True)
@@ -169,11 +168,11 @@ class SsnakeTreeWidget(QtWidgets.QTreeView):
             The first string from the list is used as a path to open externally.
         """
         fileName = fileNames[0]
-        if sys.platform.startswith( 'linux' ):
+        if sys.platform.startswith('linux'):
             os.system("xdg-open " + '"' + fileName + '"')
-        elif sys.platform.startswith( 'darwin' ):
+        elif sys.platform.startswith('darwin'):
             os.system("open " + '"' + fileName + '"')
-        elif sys.platform.startswith( 'win' ):
+        elif sys.platform.startswith('win'):
             os.startfile(fileName)
 
     def openBrowser(self, path):
@@ -187,11 +186,11 @@ class SsnakeTreeWidget(QtWidgets.QTreeView):
             The first string from the list is used as the path to open in a filebrowser.
         """
         path = os.path.dirname(path[0])
-        if sys.platform.startswith( 'linux' ):
+        if sys.platform.startswith('linux'):
             os.system("xdg-open " + '"' + path + '"')
-        elif sys.platform.startswith( 'darwin' ):
+        elif sys.platform.startswith('darwin'):
             os.system("open " + '"' + path + '"')
-        elif sys.platform.startswith( 'win' ):
+        elif sys.platform.startswith('win'):
             os.startfile(path)
 
 
@@ -200,14 +199,14 @@ class SsnakeSlider(QtWidgets.QSlider):
     A reimplementation of the PyQt QSlider.
     The behaviour is modified when the Control or Shift buttons are pressed.
     """
-    
+
     def wheelEvent(self, event):
         """
         Reimplementation from QSlider.
         When the Control button is held the stepsize is multiplied by 10.
         When the Shift button is held the stepsize is multiplied by 100.
         When both Control and Shift buttons are held the stepsize is multiplied by 1000.
-        
+
         Parameters
         ----------
         event : QMouseEvent
@@ -262,7 +261,7 @@ class SplitterEventFilter(QtCore.QObject):
             Not used.
         event : QEvent
             The event.
-        
+
         Returns
         -------
         bool
@@ -317,7 +316,7 @@ class SsnakeEventFilter(QtCore.QObject):
             Not used.
         event : QEvent
             The event.
-        
+
         Returns
         -------
         bool
@@ -328,7 +327,7 @@ class SsnakeEventFilter(QtCore.QObject):
                 if (event.modifiers() & QtCore.Qt.ControlModifier) and (event.modifiers() & QtCore.Qt.ShiftModifier):
                     self.root.redo()
                     return True
-                elif event.modifiers() == (QtCore.Qt.ControlModifier):
+                if event.modifiers() == (QtCore.Qt.ControlModifier):
                     self.root.undo()
                     return True
         return False
@@ -383,10 +382,10 @@ class ToolWindow(QtWidgets.QWidget):
         self.okButton = QtWidgets.QPushButton(self.OKNAME)
         self.okButton.clicked.connect(self.applyAndClose)
         self.okButton.setFocus()
-        self.box.addButton(self.cancelButton,QtWidgets.QDialogButtonBox.RejectRole)
-        self.box.addButton(self.okButton,QtWidgets.QDialogButtonBox.AcceptRole)
+        self.box.addButton(self.cancelButton, QtWidgets.QDialogButtonBox.RejectRole)
+        self.box.addButton(self.okButton, QtWidgets.QDialogButtonBox.AcceptRole)
         self.show()
-        self.layout.addWidget(self.box,3,0)
+        self.layout.addWidget(self.box, 3, 0)
         if not self.RESIZABLE:
             self.setFixedSize(self.size())
         if self.MENUDISABLE:
@@ -418,7 +417,7 @@ class ToolWindow(QtWidgets.QWidget):
     def closeEvent(self, *args):
         """
         Updates the view and closes the toolwindow.
-        
+
         Parameters
         ----------
         *args
@@ -448,7 +447,7 @@ class SliceValidator(QtGui.QValidator):
             String to be validated.
         position : int
             Position of the cursor.
-        
+
         Returns
         -------
         State
@@ -505,7 +504,7 @@ class SliceSpinBox(QtWidgets.QSpinBox):
         ----------
         text : str
             String to be parsed.
-        
+
         Returns
         -------
         int
@@ -524,7 +523,7 @@ class SliceSpinBox(QtWidgets.QSpinBox):
         ----------
         text : int or float
             Value to be parsed.
-        
+
         Returns
         -------
         int
@@ -545,7 +544,7 @@ class SliceSpinBox(QtWidgets.QSpinBox):
         Parameters
         ----------
         steps : int
-            The number of steps to increase the spinbox 
+            The number of steps to increase the spinbox
         """
         mod = 1
         if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier and QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
@@ -581,19 +580,19 @@ class SsnakeDoubleSpinBox(QtWidgets.QDoubleSpinBox):
     """
     A reimplementation of the QDoubleSpinBox.
     """
-    
+
     def stepBy(self, steps):
         """
         Increases or decreases the spinbox by a given value.
         When the Control button is held the stepsize is multiplied 10.
         When the Shift button is held the stepsize is multiplied 100.
         When both the Control and Shift buttons are held the stepsize is multiplied 1000.
-        When the Alt button is held the inverse 
+        When the Alt button is held the inverse
 
         Parameters
         ----------
         steps : int or float
-            The value to increase the spinbox 
+            The value to increase the spinbox
         """
         mod = 1
         if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier and QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
@@ -632,7 +631,7 @@ class SsnakeSpinBox(QtWidgets.QSpinBox):
     """
     A reimplementation of the QSpinBox.
     """
-    
+
     def stepBy(self, steps):
         """
         Increases or decreases the spinbox by a given value.
@@ -643,7 +642,7 @@ class SsnakeSpinBox(QtWidgets.QSpinBox):
         Parameters
         ----------
         steps : int
-            The value to increase the spinbox 
+            The value to increase the spinbox
         """
         mod = 1
         if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier and QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
@@ -743,7 +742,7 @@ class FitQLineEdit(QLineEdit):
     A reimplementation of the QLineEdit designed for the fitting parameter frame.
     Allows connecting parameters from the contextmenu.
     """
-    
+
     def __init__(self, fitParent, paramName, *args):
         """
         Initializes FitQLineEdit.
@@ -850,8 +849,8 @@ class ConnectParamsWindow(QtWidgets.QWidget):
         self.okButton.clicked.connect(self.applyAndClose)
         self.okButton.setFocus()
         self.box = QtWidgets.QDialogButtonBox()
-        self.box.addButton(self.cancelButton,QtWidgets.QDialogButtonBox.RejectRole)
-        self.box.addButton(self.okButton,QtWidgets.QDialogButtonBox.AcceptRole)
+        self.box.addButton(self.cancelButton, QtWidgets.QDialogButtonBox.RejectRole)
+        self.box.addButton(self.okButton, QtWidgets.QDialogButtonBox.AcceptRole)
         self.layout.addWidget(self.box, 2, 0)
         self.show()
 

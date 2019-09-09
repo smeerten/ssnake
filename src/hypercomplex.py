@@ -17,13 +17,13 @@
 # You should have received a copy of the GNU General Public License
 # along with ssNake. If not, see <http://www.gnu.org/licenses/>.
 
-import numpy as np
 import warnings
+import numpy as np
 
 def parity(x):
     # Find the parity of an integer
     parity = False
-    if x<0:
+    if x < 0:
         raise RuntimeError('Parity does not work for negative values')
     while x:
         parity = not parity
@@ -42,17 +42,17 @@ class HComplexData(object):
     """
     Data object for hypercomplex data.
     Methods which depend on the hypercomplex nature of the data are part of this class.
-    
+
     The first dimension of self.data contains the hypercomplex matrices.
     self.hyper has the same length as self.data and represents whether a matrix is imaginary along a certain dimension.
     self.hyper is encoded in a binary way (0 means real, 1 means imaginary) with the least significant bit representing the first dimension.
-    For example, when self.hyper = [0,1,2,3] this means self.data[0] is real in all dimensions, 
+    For example, when self.hyper = [0,1,2,3] this means self.data[0] is real in all dimensions,
     self.data[1] is imaginary in the first dimension and real in the second,
     self.data[2] is real in the first dimension and imaginary in the second,
     self.data[3] is imaginary in both first and second dimension.
     self.data contains complex values, the imaginary values are from the last dimension which is always complex and is not listed in self.hyper.
     """
-    
+
     def __init__(self, data=None, hyper=None):
         """
         Initializes the HComplexData
@@ -122,7 +122,7 @@ class HComplexData(object):
 
     def __repr__(self, *args):
         return self.__class__.__name__ + '(' + repr(self.data) + ', ' + repr(self.hyper) + ')'
-    
+
     def __len__(self):
         if len(self.data) > 0:
             return len(self.data[0])
@@ -131,17 +131,17 @@ class HComplexData(object):
         if isinstance(other, self.__class__):
             return np.all(other.data == self.data) and np.all(other.hyper == self.hyper)
         return False
-        
+
     def __ne__(self, other):
         if isinstance(other, self.__class__):
             return np.any(other.data != self.data) and np.any(other.hyper != self.hyper)
         return True
-        
+
     def __neg__(self):
         return HComplexData(-self.data, np.copy(self.hyper))
 
     def __pos__(self):
-        return HComplexData(+self.data, np.copy(self.hyper))
+        return HComplexData(self.data, np.copy(self.hyper))
 
     def __abs__(self):
         return HComplexData(np.abs(self.data), np.copy(self.hyper))
@@ -159,9 +159,9 @@ class HComplexData(object):
             tmpHyper.sort()
             tmpData = np.zeros((len(tmpHyper),) + np.broadcast(self.data[0], other.data[0]).shape, dtype=complex)
             for i in self.hyper:
-                tmpData[i==tmpHyper] = self.data[i==self.hyper]
+                tmpData[i == tmpHyper] = self.data[i == self.hyper]
             for i in other.hyper:
-                tmpData[i==tmpHyper] += other.data[i==other.hyper]
+                tmpData[i == tmpHyper] += other.data[i == other.hyper]
             self.data = tmpData
             self.hyper = tmpHyper
         else:
@@ -172,7 +172,7 @@ class HComplexData(object):
         if isinstance(other, list):
             other = np.asarray(other)
         return self.__add__(-other)
-    
+
     def __rsub__(self, other):
         return (-self).__add__(other)
 
@@ -180,7 +180,7 @@ class HComplexData(object):
         if isinstance(other, list):
             other = np.asarray(other)
         return self.__iadd__(-other)
-    
+
     def __mul__(self, other):
         tmpData = self.copy()
         return tmpData.__imul__(other)
@@ -212,7 +212,7 @@ class HComplexData(object):
     def __div__(self, other):
         tmpData = self.copy()
         return tmpData.__idiv__(other)
-    
+
     # TODO: implement inverse division
 
     def __idiv__(self, other):
@@ -240,7 +240,7 @@ class HComplexData(object):
     def __pow__(self, other):
         tmpData = self.copy()
         return tmpData.__ipow__(other)
-    
+
     def __rpow__(self, other):
         if len(self.hyper) > 1:
             raise HComplexException('Power with more than one complex axis is not permitted')
@@ -278,8 +278,8 @@ class HComplexData(object):
             self.hyper = np.insert(self.hyper, insertOrder, diffList)
             self.data[(np.in1d(self.hyper, value.hyper), ) + key] = value.data
         else:
-            self.data[(slice(0,1), ) + key] = value
-            self.data[(slice(1,None), ) + key] = 0
+            self.data[(slice(0, 1),) + key] = value
+            self.data[(slice(1, None),) + key] = 0
 
     def conj(self, axis):
         """
@@ -301,11 +301,10 @@ class HComplexData(object):
             axis = self.ndim() + axis
         if not self.isHyperComplex(axis) or axis == (self.ndim()-1):
             return HComplexData(np.conj(self.data), np.copy(self.hyper))
-        else:
-            tmpData = np.copy(self.data)
-            imagBool = np.array(self.hyper & (2**axis), dtype=bool)
-            tmpData[imagBool] = -tmpData[imagBool]
-            return HComplexData(tmpData, np.copy(self.hyper))
+        tmpData = np.copy(self.data)
+        imagBool = np.array(self.hyper & (2**axis), dtype=bool)
+        tmpData[imagBool] = -tmpData[imagBool]
+        return HComplexData(tmpData, np.copy(self.hyper))
 
     def conjAll(self):
         """
@@ -323,7 +322,7 @@ class HComplexData(object):
     def isAllReal(self):
         """
         Test if the data contains only real values
-        
+
         The data is allowed to have hypercomplex dimensions as long as they only contain zeros.
 
         Returns
@@ -341,7 +340,7 @@ class HComplexData(object):
         """
         Add a dimension in self.hyper.
         This should always be accompanied with a modification of self.data.
-        
+
         Parameters
         ----------
         axis : int
@@ -350,12 +349,12 @@ class HComplexData(object):
         watershedBits = 2**axis - 1
         lowBits = self.hyper & watershedBits
         self.hyper = (self.hyper - lowBits) * 2 + lowBits
-    
+
     def removeDim(self, axis):
         """
         Remove a dimension from self.hyper.
         This should always be accompanied with a modification of self.data.
-        
+
         Parameters
         ----------
         axis : int
@@ -376,11 +375,11 @@ class HComplexData(object):
         watershedBits = 2**axis - 1
         lowBits = self.hyper & watershedBits
         self.hyper = (self.hyper - lowBits) // 2 + lowBits
-            
+
     def isComplex(self, axis):
         """
         Test whether an axis is complex.
-        
+
         Parameters
         ----------
         axis : int
@@ -399,7 +398,7 @@ class HComplexData(object):
     def isHyperComplex(self, axis):
         """
         Test whether an axis is hypercomplex.
-        
+
         Parameters
         ----------
         axis : int
@@ -416,7 +415,7 @@ class HComplexData(object):
     def real(self, axis=-1):
         """
         Return the real part along axis.
-        
+
         Parameters
         ----------
         axis : int, optional
@@ -437,11 +436,11 @@ class HComplexData(object):
         bit = 2**axis
         select = np.logical_not(self.hyper & bit)
         return HComplexData(self.data[select], self.hyper[select])
-        
+
     def imag(self, axis=-1):
         """
         Return the imaginary part along axis.
-        
+
         Parameters
         ----------
         axis : int, optional
@@ -466,7 +465,7 @@ class HComplexData(object):
     def abs(self, axis=-1):
         """
         Return the absolute data along axis.
-        
+
         Parameters
         ----------
         axis : int, optional
@@ -492,18 +491,18 @@ class HComplexData(object):
         tmpData = np.zeros((len(tmpHyper),) + self.data[0].shape, dtype=complex)
         for i, idim in enumerate(tmpHyper):
             if idim in self.hyper and (idim+bit) in self.hyper:
-                tmpData[i] += np.sqrt(np.real(self.data[idim==self.hyper][0])**2 + np.real(self.data[(idim+bit)==self.hyper][0])**2)
-                tmpData[i] += 1j * np.sqrt(np.imag(self.data[idim==self.hyper][0])**2 + np.imag(self.data[(idim+bit)==self.hyper][0])**2)
+                tmpData[i] += np.sqrt(np.real(self.data[idim == self.hyper][0])**2 + np.real(self.data[(idim+bit) == self.hyper][0])**2)
+                tmpData[i] += 1j * np.sqrt(np.imag(self.data[idim == self.hyper][0])**2 + np.imag(self.data[(idim+bit) == self.hyper][0])**2)
             elif idim in self.hyper:
-                tmpData[i] = self.data[idim==self.hyper]
-            elif (idim+bit) in self.hyper:
-                tmpData[i] = self.data[idim==self.hyper]
+                tmpData[i] = self.data[idim == self.hyper]
+            elif idim + bit in self.hyper:
+                tmpData[i] = self.data[idim == self.hyper]
         return HComplexData(tmpData, tmpHyper)
 
     def complexReorder(self, axis=0):
         """
         Return data where the regular imaginary values are exchanged with those of axis.
-        
+
         Parameters
         ----------
         axis : int, optional
@@ -518,12 +517,12 @@ class HComplexData(object):
         """
         tmpData = self.copy()
         return tmpData.icomplexReorder(axis)
-    
+
     def icomplexReorder(self, axis=0):
         """
         Reorders data so that the regular imaginary values are exchanged with those of axis.
         The operation is applied in place for efficiency.
-        
+
         Parameters
         ----------
         axis : int, optional
@@ -579,7 +578,7 @@ class HComplexData(object):
         axis2[axis2 >= 0] += 1
         tmpData = np.moveaxis(self.data, axis1, axis2)
         return HComplexData(tmpData, np.copy(self.hyper))
-    
+
     def insert(self, pos, other, axis=-1):
         """
         Insert data along the given axis before the given position.
@@ -591,7 +590,7 @@ class HComplexData(object):
         pos : int
             Position where to insert the data.
         other : HComplexData or ndarray
-            Data to insert. 
+            Data to insert.
             Should have the same dimensions as self.data, except for dimension axis.
         axis : int, optional
             The axis along which to insert the data.
@@ -609,13 +608,13 @@ class HComplexData(object):
         tmpHyper = np.unique(np.concatenate((self.hyper, other.hyper)))
         tmpHyper.sort()
         tmpData = []
-        for i, idim in enumerate(tmpHyper):
+        for idim in tmpHyper:
             if idim in self.hyper and idim in other.hyper:
-                tmpData.append(np.insert(self.data[idim==self.hyper][0], [pos], other.data[idim==other.hyper][0], axis=axis))
+                tmpData.append(np.insert(self.data[idim == self.hyper][0], [pos], other.data[idim == other.hyper][0], axis=axis))
             elif idim in self.hyper:
-                tmpData.append(np.insert(self.data[idim==self.hyper][0], [pos], np.zeros_like(other.data[0]), axis=axis))
+                tmpData.append(np.insert(self.data[idim == self.hyper][0], [pos], np.zeros_like(other.data[0]), axis=axis))
             elif idim in other.hyper:
-                tmpData.append(np.insert(np.zeros_like(self.data[0]), [pos], other.data[idim==other.hyper][0], axis=axis))
+                tmpData.append(np.insert(np.zeros_like(self.data[0]), [pos], other.data[idim == other.hyper][0], axis=axis))
             else:
                 tmpData.append(np.insert(np.zeros_like(self.data[0]), [pos], np.zeros_like(other.data[0]), axis=axis))
         return HComplexData(np.array(tmpData), tmpHyper)
@@ -639,7 +638,7 @@ class HComplexData(object):
         if axis >= 0:
             axis += 1
         return HComplexData(np.delete(self.data, pos, axis), np.copy(self.hyper))
-    
+
     def concatenate(self, axis):
         """
         Return data with the data concatenated along axis.
@@ -841,7 +840,7 @@ class HComplexData(object):
 
         Returns
         -------
-        HComplexData 
+        HComplexData
             The positions of the maxima.
         """
         return HComplexData(np.argmax(self.data[0], axis=axis))
@@ -860,7 +859,7 @@ class HComplexData(object):
 
         Returns
         -------
-        HComplexData 
+        HComplexData
             The positions of the minima.
         """
         return HComplexData(np.argmin(self.data[0], axis=axis))
@@ -877,7 +876,7 @@ class HComplexData(object):
 
         Returns
         -------
-        HComplexData 
+        HComplexData
             A copy of the data with an additional dimension.
         """
         if axis >= 0:
@@ -906,8 +905,7 @@ class HComplexData(object):
         if isinstance(values, HComplexData):
             # Fix for unequal hyper
             return HComplexData(np.append(self.data, values.data, axis=axis), np.copy(self.hyper))
-        else:
-            return HComplexData(np.append(self.data, values, axis=axis), np.copy(self.hyper))
+        return HComplexData(np.append(self.data, values, axis=axis), np.copy(self.hyper))
 
     def reshape(self, shape):
         """
@@ -925,7 +923,7 @@ class HComplexData(object):
         """
         newShape = tuple(len(self.data)) + shape
         return HComplexData(self.data.reshape(newShape), np.copy(self.hyper))
-        
+
     def diff(self, axis=-1):
         """
         Calculate the discrete difference along the given axis.
@@ -1134,7 +1132,7 @@ class HComplexData(object):
         if axis >= 0:
             axis += 1
         return HComplexData(np.roll(self.data, shift, axis=axis), np.copy(self.hyper))
-    
+
     def fft(self, axis=-1):
         """
         Performs a Fast Fourier Transform on the data along a given axis.

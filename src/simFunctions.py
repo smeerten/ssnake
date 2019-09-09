@@ -17,15 +17,15 @@
 # You should have received a copy of the GNU General Public License
 # along with ssNake. If not, see <http://www.gnu.org/licenses/>.
 
-import numpy as np
 import tempfile
 import os
 import shutil
 import subprocess
+import numpy as np
 from safeEval import safeEval
 import functions as func
 import specIO as io
-import Czjzek as Czjzek
+import Czjzek
 
 class SimException(Exception):
     pass
@@ -33,7 +33,7 @@ class SimException(Exception):
 def d2tens(b):
     """
     Calculates the Wigner (small) d-matrices of rank 2 for an array of beta angles.
-        
+
     Parameters
     ----------
     b : ndarray
@@ -45,7 +45,6 @@ def d2tens(b):
         A 3-D matrix with the wigner d-matrices as a function of the beta angles.
     """
     cosb = np.cos(b)
-    sinb = np.sin(b)
     cosb2 = np.cos(b/2.0)
     sinb2 = np.sin(b/2.0)
     # -2
@@ -72,7 +71,7 @@ def d2tens(b):
 def D2tens(a, b, g):
     """
     Calculates the Wigner D-matrices of rank 2 for an array of alpha, beta, gamma angles.
-        
+
     Parameters
     ----------
     a : ndarray
@@ -91,14 +90,14 @@ def D2tens(a, b, g):
     """
     d = d2tens(b)
     m = np.arange(-2, 3)
-    atmp = np.exp(1j * m[:,np.newaxis] * a[:,np.newaxis,np.newaxis])
-    gtmp = np.exp(1j * m * g[:,np.newaxis,np.newaxis])
+    atmp = np.exp(1j * m[:, np.newaxis] * a[:, np.newaxis, np.newaxis])
+    gtmp = np.exp(1j * m * g[:, np.newaxis, np.newaxis])
     return atmp * gtmp * d
 
 def d4tens(b):
     """
     Calculates the Wigner (small) d-matrices of rank 4 for an array of beta angles.
-        
+
     Parameters
     ----------
     b : ndarray
@@ -110,7 +109,6 @@ def d4tens(b):
         A 3-D matrix with the wigner d-matrices as a function of the beta angles.
     """
     cosb = np.cos(b)
-    sinb = np.sin(b)
     sinb2 = np.sin(b/2.0)
     cosb2 = np.cos(b/2.0)
     # -4
@@ -147,10 +145,10 @@ def d4tens(b):
     d34 = -2 * np.sqrt(2) * sinb2 * cosb2**7
     # 4
     d44 = cosb2**8
-    d = np.array([[d44,  d34, d24, d14, d04, dm14, dm24, dm34, dm44],
+    d = np.array([[d44, d34, d24, d14, d04, dm14, dm24, dm34, dm44],
                   [-d34, d33, d23, d13, d03, dm13, dm23, dm33, dm34],
                   [d24, -d23, d22, d12, d02, dm12, dm22, dm23, dm24],
-                  [-d14, d13, -d12, d11,  d01, dm11, dm12, dm13, dm14],
+                  [-d14, d13, -d12, d11, d01, dm11, dm12, dm13, dm14],
                   [d04, -d03, d02, -d01, d00, d01, d02, d03, d04],
                   [-dm14, dm13, -dm12, dm11, -d01, d11, d12, d13, d14],
                   [dm24, -dm23, dm22, -dm12, d02, -d12, d22, d23, d24],
@@ -161,7 +159,7 @@ def d4tens(b):
 def D4tens(a, b, g):
     """
     Calculates the Wigner D-matrices of rank 4 for an array of alpha, beta, gamma angles.
-        
+
     Parameters
     ----------
     a : ndarray
@@ -180,14 +178,14 @@ def D4tens(a, b, g):
     """
     d = d4tens(b)
     m = np.arange(-4, 5)
-    atmp = np.exp(1j * m[:,np.newaxis] * a[:,np.newaxis,np.newaxis])
-    gtmp = np.exp(1j * m * g[:,np.newaxis,np.newaxis])
+    atmp = np.exp(1j * m[:, np.newaxis] * a[:, np.newaxis, np.newaxis])
+    gtmp = np.exp(1j * m * g[:, np.newaxis, np.newaxis])
     return atmp * gtmp * d
 
 def csaSpace(delta):
     """
     The space part of the CSA Hamiltonian defined in irreducible spherical tensor operator format.
-    
+
     Parameters
     ----------
     delta : ndarray
@@ -200,8 +198,8 @@ def csaSpace(delta):
     ndarray
         The V2n elements ordered as [V2-2, V2-1, V20, V21, V22].
     """
-    V00 = - np.sqrt(1.0/3.0) * (delta[0] + delta[1] + delta[2])
-    V20 =   np.sqrt(1.0/6.0) * (2*delta[2] - delta[0] - delta[1])
+    V00 = -np.sqrt(1.0/3.0) * (delta[0] + delta[1] + delta[2])
+    V20 = np.sqrt(1.0/6.0) * (2*delta[2] - delta[0] - delta[1])
     V2pm2 = 0.5 * (delta[1] - delta[0])
     return V00, np.array([V2pm2, 0, V20, 0, V2pm2])
 
@@ -209,7 +207,7 @@ def csaSpin():
     """
     The spin part of the CSA Hamiltonian defined in irreducible spherical tensor operator format.
     Does not include the spin operator Iz and the magnetic field B0.
-    
+
     Returns
     -------
     float
@@ -224,7 +222,7 @@ def csaSpin():
 def firstQuadSpace(eta):
     """
     The space part of the first order quadrupole Hamiltonian defined in irreducible spherical tensor operator format.
-    
+
     Parameters
     ----------
     eta : float
@@ -235,14 +233,14 @@ def firstQuadSpace(eta):
     ndarray
         The V2n elements ordered as [V2-2, V2-1, V20, V21, V22].
     """
-    V20 = 1.0 
+    V20 = 1.0
     V2pm2 = np.sqrt(1 / 6.0) * eta
     return np.array([V2pm2, 0, V20, 0, V2pm2])
 
 def firstQuadSpin(I, m1, m2):
     """
     The spin part of the first order quadrupole Hamiltonian defined in irreducible spherical tensor operator format.
-    
+
     Parameters
     ----------
     I : float
@@ -262,7 +260,7 @@ def firstQuadSpin(I, m1, m2):
 def secQuadSpace(eta):
     """
     The space part of the second order quadrupole Hamiltonian defined in irreducible spherical tensor operator format.
-    
+
     Parameters
     ----------
     eta : float
@@ -288,7 +286,7 @@ def secQuadSpace(eta):
 def secQuadSpin(I, m1, m2):
     """
     The spin part of the second order quadrupole Hamiltonian defined in irreducible spherical tensor operator format.
-    
+
     Parameters
     ----------
     I : float
@@ -372,7 +370,7 @@ def diffusionFunc(x, freq, sw, axMult, extra, amp, const, coeff, D):
     coeff : float
         The coefficient.
     D : float
-        The diffusion constant in m^2/s. 
+        The diffusion constant in m^2/s.
 
     Returns
     -------
@@ -441,8 +439,8 @@ def externalFitRunScript(x, freq, sw, axMult, extra, bgrnd, mult, *parameters):
     mult : float
         The value by which the output curve is multiplied.
     *parameters
-        The parameters used in the fit. 
-        The last three values are interpreted as [amp, lor, gauss] and are used as the amplitude, the Lorentzian apodization (Hz) and Gaussian apodization (Hz). 
+        The parameters used in the fit.
+        The last three values are interpreted as [amp, lor, gauss] and are used as the amplitude, the Lorentzian apodization (Hz) and Gaussian apodization (Hz).
         Should have be three longer than names.
 
     Returns
@@ -475,7 +473,7 @@ def externalFitRunScript(x, freq, sw, axMult, extra, bgrnd, mult, *parameters):
     outputFileName = fileList[0]
     masterData = io.autoLoad(os.path.join(directory_name, outputFileName))
     masterData.noUndo = True
-    masterData.apodize(lor, gauss, [None,None], 0, 0, 0, 0, 0)
+    masterData.apodize(lor, gauss, [None, None], 0, 0, 0, 0, 0)
     if masterData.spec[0] != spec:
         masterData.complexFourier(0)
     masterData.regrid([x[0], x[-1]], len(x), 0)
@@ -485,7 +483,7 @@ def externalFitRunScript(x, freq, sw, axMult, extra, bgrnd, mult, *parameters):
 def fib(n):
     """
     Calculates three Fibonacci numbers starting from a given point in the series.
-        
+
     Parameters
     ----------
     n : int
@@ -509,8 +507,8 @@ def fib(n):
 def zcw_angles(m, symm=0):
     """
     Calculates two angle sets for powder averaging based on the Zaremba, Conroy, and Wolfsberg (ZCW) method.
-    The number of orientations depends on the given Cheng number. 
-        
+    The number of orientations depends on the given Cheng number.
+
     Parameters
     ----------
     m : int
@@ -541,7 +539,7 @@ def zcw_angles(m, symm=0):
     theta = np.arccos(c[0] * (c[1] * np.mod(js, 1.0) - 1))
     weight = np.ones(samples) / samples
     return phi, theta, weight
-    
+
 def peakSim(x, freq, sw, axMult, extra, bgrnd, mult, pos, amp, lor, gauss):
     """
     Simulates an FID with Lorentzian and Gaussian broadening.
@@ -617,7 +615,7 @@ def makeSpectrum(x, sw, v, gauss, lor, weight):
     length = len(x)
     t = np.abs(np.fft.fftfreq(length, sw / float(length)))
     diff = (x[1] - x[0]) * 0.5
-    final, junk = np.histogram(v, length, range=[x[0]-diff, x[-1]+diff], weights=weight)
+    final, _ = np.histogram(v, length, range=[x[0]-diff, x[-1]+diff], weights=weight)
     apod = np.exp(-np.pi * np.abs(lor) * t - ((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
     inten = np.fft.ifft(final) * apod
     inten *= len(inten)  / sw
@@ -659,7 +657,7 @@ def makeMQMASSpectrum(x, sw, v, gauss, lor, weight):
     t2 = np.fft.fftfreq(length2, sw[-1]/float(length2))
     diff2 = (x[-1][1] - x[-1][0])*0.5
     t1 = t1[:, np.newaxis]
-    final, junk, junk = np.histogram2d(v[0], v[1], [length1, length2], range=[[x[-2][0]-diff1, x[-2][-1]+diff1], [x[-1][0]-diff2, x[-1][-1]+diff2]], weights=weight)
+    final, _, _ = np.histogram2d(v[0], v[1], [length1, length2], range=[[x[-2][0]-diff1, x[-2][-1]+diff1], [x[-1][0]-diff2, x[-1][-1]+diff2]], weights=weight)
     final = np.fft.ifftn(final)
     apod2 = np.exp(-np.pi * np.abs(lor[1] * t2) - ((np.pi * np.abs(gauss[1]) * t2)**2) / (4 * np.log(2)))
     apod1 = np.exp(-np.pi * np.abs(lor[0] * t1) - ((np.pi * np.abs(gauss[0]) * t1)**2) / (4 * np.log(2)))
@@ -693,10 +691,10 @@ def carouselAveraging(spinspeed, v, weight, vConstant):
     prod = np.exp(1j * np.cumsum(v * dt * 2 * np.pi, axis=1))
     tot = np.fft.fft(prod, axis=1)
     tot *= np.conj(tot)
-    weight2 = weight[:,np.newaxis] / numssb**2
+    weight2 = weight[:, np.newaxis] / numssb**2
     tot *= weight2
     v = np.fft.fftfreq(numssb, 1.0 / numssb) * spinspeed
-    return v + vConstant[:,np.newaxis], tot
+    return v + vConstant[:, np.newaxis], tot
 
 def csaFreqBase(angle, tensor, D2, spinspeed, numssb):
     """
@@ -723,7 +721,7 @@ def csaFreqBase(angle, tensor, D2, spinspeed, numssb):
     float
         The isotropic frequency.
     """
-    d2 = d2tens(np.array([angle]))[0,:,2]
+    d2 = d2tens(np.array([angle]))[0, :, 2]
     A0, A2 = csaSpace(tensor)
     T0, T2 = csaSpin()
     dat0 = A0 * T0
@@ -732,15 +730,15 @@ def csaFreqBase(angle, tensor, D2, spinspeed, numssb):
     factor2 = d2[2]
     vConstant = 0.0
     if spinspeed == np.inf:
-        v = np.real(dat2[:,2] * factor2 + dat0)
+        v = np.real(dat2[:, 2] * factor2 + dat0)
     elif spinspeed == 0.0:
-        v = np.real(dat2[:,2] + dat0)
+        v = np.real(dat2[:, 2] + dat0)
     else:
         gammastep = 2 * np.pi / numssb
         gval = np.arange(numssb) * gammastep
-        spinD2 = np.exp(1j * np.arange(-2, 3)[:,np.newaxis] * gval) * d2[:,np.newaxis]
-        vConstant = np.real(dat0 + dat2[:,2] * factor2) 
-        dat2[:,2] = 0
+        spinD2 = np.exp(1j * np.arange(-2, 3)[:, np.newaxis] * gval) * d2[:, np.newaxis]
+        vConstant = np.real(dat0 + dat2[:, 2] * factor2) 
+        dat2[:, 2] = 0
         v = np.matmul(dat2, spinD2)
     return v, vConstant
 
@@ -751,7 +749,7 @@ def csaFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, t11, t22, t33, a
     shiftdef, numssb, angle, D2, weight, MAStype = extra
     extra = [False, 0.5, numssb, angle, D2, None, weight, MAStype, shiftdef]
     return quadCSAFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, t11, t22, t33, 0.0, 0.0, 0.0, 0.0, 0.0, amp, lor, gauss)
-    
+
 def quadFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, pos, cq, eta, amp, lor, gauss):
     """
     Uses the quadCSAFunc function for the specific case where the CSA interaction is zero.
@@ -806,8 +804,8 @@ def quadFreqBase(I, m1, m2, cq, eta, freq, angle, D2, D4, numssb, spinspeed):
     secA0 *= pre2
     secA2 *= pre2
     secA4 *= pre2
-    d2 = d2tens(np.array([angle]))[0,:,2]
-    d4 = d4tens(np.array([angle]))[0,:,4]
+    d2 = d2tens(np.array([angle]))[0, :, 2]
+    d4 = d4tens(np.array([angle]))[0, :, 4]
     factor2 = d2[2]
     factor4 = d4[4]
     firstspin2 = firstQuadSpin(I, m1, m2)
@@ -819,17 +817,17 @@ def quadFreqBase(I, m1, m2, cq, eta, freq, angle, D2, D4, numssb, spinspeed):
     dat4 = np.matmul(dat4, D4)
     vConstant = 0
     if spinspeed == np.inf:
-        v = np.real(dat4[:,4] * factor4  + dat2[:,2] * factor2 + dat0)
+        v = np.real(dat4[:, 4] * factor4  + dat2[:, 2] * factor2 + dat0)
     elif spinspeed == 0.0:
-        v = np.real(dat4[:,4]  + dat2[:,2] + dat0)
+        v = np.real(dat4[:, 4]  + dat2[:, 2] + dat0)
     else:
         gammastep = 2 * np.pi / numssb
         gval = np.arange(numssb) * gammastep
-        spinD2 = np.exp(1j * np.arange(-2, 3)[:,np.newaxis] * gval) * d2[:,np.newaxis]
-        spinD4 = np.exp(1j * np.arange(-4, 5)[:,np.newaxis] * gval) * d4[:,np.newaxis]
-        vConstant = np.real(dat0 + dat2[:,2] * factor2 + dat4[:,4] * factor4) 
-        dat4[:,4] = 0
-        dat2[:,2] = 0
+        spinD2 = np.exp(1j * np.arange(-2, 3)[:, np.newaxis] * gval) * d2[:, np.newaxis]
+        spinD4 = np.exp(1j * np.arange(-4, 5)[:, np.newaxis] * gval) * d4[:, np.newaxis]
+        vConstant = np.real(dat0 + dat2[:, 2] * factor2 + dat4[:, 4] * factor4)
+        dat4[:, 4] = 0
+        dat2[:, 2] = 0
         v = np.matmul(dat2, spinD2) + np.matmul(dat4, spinD4)
     return v, vConstant
 
@@ -926,7 +924,7 @@ def quadCSAFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, t11, t22, t3
             v += vCSA
             vConstant += vConstantCSA
         tot = weight
-        if spinspeed != np.inf and spinspeed != 0.0:
+        if spinspeed not in (0.0, np.inf):
             v, tot = carouselAveraging(spinspeed, v, weight, vConstant)
         spectrum += eff * makeSpectrum(x, sw, v, gauss, lor, tot)
     return mult * amp * spectrum
@@ -1004,7 +1002,7 @@ def mqmasFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, pos, cq, eta, 
         A list of axes values for the simulation.
         As this is a 2-D method only the last two arrays in the list are used for the first and second dimension respectively.
     freq : list of float
-        The list of frequency per dimension in Hz. 
+        The list of frequency per dimension in Hz.
         The second last value is used for the first dimension and the last value is used for the second dimension.
     sw : list of float
         The list of spectral width per dimension in Hz.
@@ -1065,7 +1063,7 @@ def mqmasFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, pos, cq, eta, 
     tot = weight
     v2, vConstant2 = quadFreqBase(I, -0.5, 0.5, cq, eta, freq2, angle, D2, D4, numssb, spinspeed)
     v1, vConstant1 = quadFreqBase(I, -0.5*mq, 0.5*mq, cq, eta, freq2, angle, D2, D4, numssb, spinspeed)
-    if spinspeed != np.inf and spinspeed != 0.0:
+    if spinspeed not in (0.0, np.inf):
         v2, tot2 = carouselAveraging(spinspeed, v2, weight, vConstant2)
         v1, tot1 = carouselAveraging(spinspeed, v1, np.ones_like(weight), vConstant1)
         tot = tot1*tot2
@@ -1143,14 +1141,12 @@ def mqmasCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, mult, pos, sigma, sigmaCS
     sigma *= 1e6
     czjzek = Czjzek.czjzekIntensities(sigma, d, cq, eta, cq0, eta0)
     length2 = len(x[-1])
-    czjzek *= length2 / sw[-2] 
-    newLib = czjzek[...,np.newaxis]*lib
+    czjzek *= length2 / sw[-2]
+    newLib = czjzek[..., np.newaxis]*lib
     length1 = len(x[-2])
     t1 = np.fft.fftfreq(length1, sw[-2]/float(length1))
     t1 = t1[:, np.newaxis]
-    diff1 = (x[-2][1] - x[-2][0])*0.5
     t2 = np.fft.fftfreq(length2, sw[-1]/float(length2))
-    diff2 = (x[-1][1] - x[-1][0])*0.5
     apod2 = np.exp(-np.pi * np.abs(lor2 * t2) - ((np.pi * np.abs(gauss2) * t2)**2) / (4 * np.log(2)))
     apod1 = np.exp(-np.pi * np.abs(lor1 * t1) - ((np.pi * np.abs(gauss1) * t1)**2) / (4 * np.log(2)))
     V40 = 1.0 / 140 * (18  + eta**2)
@@ -1164,11 +1160,11 @@ def mqmasCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, mult, pos, sigma, sigmaCS
     offset *= scale
     ind = np.digitize(offset, x[-2]-(x[-2][1]-x[-2][0])/2.0)
     fid = np.zeros((length1, length2), dtype=complex)
-    for i in range(len(ind)):
+    for i, _ in enumerate(ind):
         fid[ind[i]-1] += newLib[i]
     fid = np.fft.ifft(fid, axis=0)
     posIndirect = pos * (mq - shearFactor) * scale
-    offsetMat = np.exp(2j * np.pi * ((posIndirect )*t1 + (pos - x[-1][length2//2])*t2))
+    offsetMat = np.exp(2j * np.pi * (posIndirect * t1 + (pos - x[-1][length2//2])*t2))
     shiftGauss = np.exp(-((np.pi * np.abs(sigmaCS) * (t2 + t1*(mq-shearFactor)*scale))**2) / (4 * np.log(2)))
     fid *= offsetMat * apod1 * apod2 * shiftGauss
     shearMat = np.exp((shearFactor-shear) * 2j * np.pi * t1 * x[-1])

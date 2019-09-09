@@ -23,7 +23,7 @@ from scipy.special import wofz
 import scipy.constants as SC
 import scipy.linalg
 
-def apodize(t, shift=0.0, lor=None, gauss=None, cos2=[None,None], hamming=None, wholeEcho=False):
+def apodize(t, shift=0.0, lor=None, gauss=None, cos2=[None, None], hamming=None, wholeEcho=False):
     """
     Calculates the window function for apodization.
 
@@ -32,7 +32,7 @@ def apodize(t, shift=0.0, lor=None, gauss=None, cos2=[None,None], hamming=None, 
     t : array_like
         The time values at which to calculate the apodization function.
     shift : float, optional
-        A shift in time of the function. 
+        A shift in time of the function.
         A positive value shift the curve to later times.
         By default a shift of 0.0 is used.
     lor : float, optional
@@ -42,7 +42,7 @@ def apodize(t, shift=0.0, lor=None, gauss=None, cos2=[None,None], hamming=None, 
         The Gaussian component of the apodization window.
         By default Gaussian apodization is not applied.
     cos2 : array_like, optional
-        Defines the squared cosine apodization component. 
+        Defines the squared cosine apodization component.
         Should have a length of at least two.
         The first value is the frequency (two times the number of periods in the time domain).
         The second value is the phase shift in degrees.
@@ -67,7 +67,7 @@ def apodize(t, shift=0.0, lor=None, gauss=None, cos2=[None,None], hamming=None, 
         x *= np.exp(-np.pi * lor * abs(t2))
     if gauss is not None:
         x *= np.exp(-((np.pi * gauss * t2)**2) / (4 * np.log(2)))
-    if cos2[0] is not None and cos2[1] is not None :
+    if cos2[0] is not None and cos2[1] is not None:
         x *= (np.cos(np.radians(cos2[1]) + cos2[0] * (-0.5 * shift * np.pi * sw / axLen + np.linspace(0, 0.5 * np.pi, axLen)))**2)
     if hamming is not None:
         alpha = 0.53836  # constant for hamming window
@@ -108,22 +108,22 @@ def lpsvd(fullFid, nPredict, maxFreq, forward=False, L=None):
     M = int(np.floor(N * 3 / 4.0))
     H = scipy.linalg.hankel(fid[1:N-M+1], fid[N-M:])
     U, S, Vh = np.linalg.svd(H, full_matrices=1)
-    sigVal = len(S[S>(S[0]*1e-6)]) # Number of significant singular values
+    sigVal = len(S[S > (S[0]*1e-6)]) # Number of significant singular values
     if sigVal > maxFreq:
         sigVal = maxFreq
     bias = np.mean(S[sigVal:])
     S = S[:sigVal] - bias
-    U = U[:,:sigVal]
+    U = U[:, :sigVal]
     Sinv = np.diag(1.0/S)
     Vh = Vh[:sigVal]
     q = np.dot(np.dot(np.conj(Vh.T), np.dot(Sinv, np.conj(U.T))), fid[:(N-M)])
     s = np.roots(np.append(-q[::-1], 1)) # Find the roots of the polynomial
-    s = s[np.abs(s)<1.0] # Accept only values within the unit circle
+    s = s[np.abs(s) < 1.0] # Accept only values within the unit circle
     sLog = np.log(s)
     freq = np.imag(sLog)
     lb = np.real(sLog)
     Nfull = len(fullFid)
-    Z = s**np.arange(Nfull)[:,np.newaxis]
+    Z = s**np.arange(Nfull)[:, np.newaxis]
     a = np.linalg.lstsq(Z, fullFid)[0]
     amp = np.abs(a)
     phase = np.angle(a)
@@ -132,7 +132,7 @@ def lpsvd(fullFid, nPredict, maxFreq, forward=False, L=None):
     else:
         xpredict = np.arange(-nPredict, 0)
     if len(amp) > 0:
-        reconstructed = amp * np.exp(xpredict[:,np.newaxis] * (1j * freq + lb) + 1j * phase)
+        reconstructed = amp * np.exp(xpredict[:, np.newaxis] * (1j * freq + lb) + 1j * phase)
         reconstructed = np.sum(reconstructed, axis=1)
     else:
         reconstructed = np.zeros_like(xpredict)
@@ -193,7 +193,7 @@ def shiftConversion(Values, Type):
         The chemical shift values defined in a specific definition.
         Should have a length of 3.
     Type : int
-        The definition in which Values is defined. 
+        The definition in which Values is defined.
         0=standard, 1=xyz, 2=Haeberlen, 3=Hertzfeld-Berger.
 
     Returns
@@ -270,7 +270,7 @@ def quadConversion(Values, I, Type, Q=None):
     I : float
         Spin quantum number.
     Type : int
-        The definition in which Values is defined. 
+        The definition in which Values is defined.
         0=Cq/eta, 1=Wq/eta, 2=Vxx/Vyy/Vzz.
     Q : float, optional
         Quadrupole moment in fm^2.
@@ -299,7 +299,7 @@ def quadConversion(Values, I, Type, Q=None):
             Eta = 0.0
         Cxx = Czz * (Eta - 1) / 2
         Cyy = -Cxx - Czz
-        Values = [ Cxx, Cyy, Czz]
+        Values = [Cxx, Cyy, Czz]
     if Type == 1:
         # Wq, eta
         Vmax = Values[0]
@@ -311,7 +311,7 @@ def quadConversion(Values, I, Type, Q=None):
         Czz = Vmax * (2.0 * I * (2 * I - 1)) / 3.0
         Cxx = Czz * (Eta - 1) / 2
         Cyy = -Cxx - Czz
-        Values = [ Cxx, Cyy, Czz]
+        Values = [Cxx, Cyy, Czz]
     if Type == 2:
         #Vxx, Vyy, Vzz
         if Q is None:
@@ -329,7 +329,7 @@ def quadConversion(Values, I, Type, Q=None):
         Czz = Vzz * Scaling / 1e6  # scale for Cq definition in MHz
         Cxx = Vxx * Scaling / 1e6
         Cyy = Vyy * Scaling / 1e6
-        Values = [ Cxx, Cyy, Czz]
+        Values = [Cxx, Cyy, Czz]
     #Conversion
     CArray = np.array(Values)
     Cindex = np.argsort(np.abs(CArray))
@@ -342,7 +342,7 @@ def quadConversion(Values, I, Type, Q=None):
     else:
         EtaNew = np.abs((Csort[0] - Csort[1]) / Csort[2])  # Abs to avoid -0.0 rounding error
     WqNew = CqNew * 3.0 / (2.0 * I * (2 * I - 1))
-    if Q != None:
+    if Q is not None:
         Scaling = SC.elementary_charge * Q / SC.Planck
         Vxx = Csort[0] / Scaling * 1e6
         Vyy = Csort[1] / Scaling * 1e6
@@ -389,6 +389,6 @@ def ACMEentropy(phaseIn, data, x, firstOrder=True):
     Pfun = 0.0
     as1 = s2 - np.abs(s2)
     sumas = sum(as1)
-    if (np.real(sumas) < 0):
+    if np.real(sumas) < 0:
         Pfun = Pfun + sum(as1**2) / 4 / L**2
     return H1 + 1000 * Pfun

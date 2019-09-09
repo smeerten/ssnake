@@ -28,7 +28,7 @@ if sys.version_info >= (3, 0):
 else:
     from urllib import urlopen, urlretrieve
 import ssNake as sc
-from ssNake import QtGui, QtCore, QtWidgets
+from ssNake import QtCore, QtWidgets
 
 
 class UpdateWindow(QtWidgets.QWidget):
@@ -39,7 +39,7 @@ class UpdateWindow(QtWidgets.QWidget):
     def __init__(self, parent):
         """
         Initializes the update window.
-        
+
         Parameters
         ----------
         parent : MainProgram
@@ -57,7 +57,7 @@ class UpdateWindow(QtWidgets.QWidget):
             req.close()
             self.nameList = [u'develop']
             self.urlList = [u'https://api.github.com/repos/smeerten/ssnake/zipball/develop']
-            for i in range(len(info)):
+            for i, _ in enumerate(info):
                 self.nameList.append(info[i]['name'])
                 self.urlList.append(info[i]['zipball_url'])
         except Exception:
@@ -77,8 +77,8 @@ class UpdateWindow(QtWidgets.QWidget):
         okButton = QtWidgets.QPushButton("&Ok")
         okButton.clicked.connect(self.applyAndClose)
         box = QtWidgets.QDialogButtonBox()
-        box.addButton(cancelButton,QtWidgets.QDialogButtonBox.RejectRole)
-        box.addButton(okButton,QtWidgets.QDialogButtonBox.AcceptRole)
+        box.addButton(cancelButton, QtWidgets.QDialogButtonBox.RejectRole)
+        box.addButton(okButton, QtWidgets.QDialogButtonBox.AcceptRole)
         layout.addWidget(box, 2, 0)
         layout.setColumnStretch(1, 1)
         self.show()

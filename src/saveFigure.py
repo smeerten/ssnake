@@ -17,14 +17,14 @@
 # You should have received a copy of the GNU General Public License
 # along with ssNake. If not, see <http://www.gnu.org/licenses/>.
 
+import numpy as np
+import os
+import copy
 import matplotlib
 matplotlib.rc('svg', fonttype='none')
 from matplotlib.colors import colorConverter
 import widgetClasses as wc
 from safeEval import safeEval
-import numpy as np
-import os
-import copy
 from ssNake import QtGui, QtCore, QtWidgets, FigureCanvas
 
 #####################################################################################
@@ -207,7 +207,7 @@ class SaveFigureWindow(QtWidgets.QWidget):
         self.fontFrame.addWidget(self.ytickFontSizeEntry, 6, 1)
         self.legend = self.ax.legend()
         if self.legend is not None:              # Fix for matplotlib 2.0, were for contour self.legend becomes None
-            if len(self.legend.get_texts()) == 0:
+            if not self.legend.get_texts():
                 self.legend.set_visible(False)
                 self.legend = None
             else:
@@ -269,8 +269,8 @@ class SaveFigureWindow(QtWidgets.QWidget):
         okButton.clicked.connect(self.save)
         box = QtWidgets.QDialogButtonBox()
         box.setOrientation(QtCore.Qt.Horizontal)
-        box.addButton(cancelButton,QtWidgets.QDialogButtonBox.RejectRole)
-        box.addButton(okButton,QtWidgets.QDialogButtonBox.AcceptRole)
+        box.addButton(cancelButton, QtWidgets.QDialogButtonBox.RejectRole)
+        box.addButton(okButton, QtWidgets.QDialogButtonBox.AcceptRole)
         self.inFrame.addWidget(box, 2, 0)
         grid.setColumnStretch(0, 1)
         grid.setRowStretch(0, 1)
@@ -283,7 +283,7 @@ class SaveFigureWindow(QtWidgets.QWidget):
     def fontCheckChanged(self, val):
         """
         Shows or hides the details of the font settings.
-        
+
         Parameters
         ----------
         val : bool
@@ -336,12 +336,11 @@ class SaveFigureWindow(QtWidgets.QWidget):
                 size = self.legendFontSizeEntry.value()
             else:
                 size = self.mainFontSizeEntry.value()
-            self.legend = self.ax.legend(orderedLines, orderedLegendText, framealpha = 1.0, loc=self.legendPos, prop={'size': size })
+            self.legend = self.ax.legend(orderedLines, orderedLegendText, framealpha=1.0, loc=self.legendPos, prop={'size': size})
             try:
                 self.legend.set_draggable(True)
             except AttributeError:
                 self.legend.draggable(True) # For older Matplotlib versions
-
         else:
             self.legend.set_visible(False)
 
@@ -379,7 +378,7 @@ class SaveFigureWindow(QtWidgets.QWidget):
     def pickHandler(self, pickEvent):
         """
         The handler for the peak picking in the save figure window.
-        
+
         Parameters
         ----------
         pickEvent : QEvent
@@ -486,7 +485,7 @@ class LegendWindow(QtWidgets.QWidget):
     def __init__(self, parent):
         """
         Initializes the legend window.
-        
+
         Parameters
         ----------
         parent : SaveFigureWindow
@@ -598,7 +597,7 @@ class EditLineWindow(QtWidgets.QWidget):
     def __init__(self, parent, line=None):
         """
         Initializes the line edit window.
-        
+
         Parameters
         ----------
         parent : SaveFigureWindow
@@ -690,7 +689,7 @@ class EditLineWindow(QtWidgets.QWidget):
     def setIndex(self, val):
         """
         Changes the line of which the information is shown.
-        
+
         Parameters
         ----------
         val : int
@@ -739,7 +738,7 @@ class EditLineWindow(QtWidgets.QWidget):
     def setLineWidth(self, val):
         """
         Sets the linewidth of the selected line.
-        
+
         Parameters
         ----------
         val : float
@@ -751,7 +750,7 @@ class EditLineWindow(QtWidgets.QWidget):
     def setLineStyle(self, val):
         """
         Sets the line style of the selected line.
-        
+
         Parameters
         ----------
         val : {'-', '--', '-.', ':', '', (offset, on-off-seq), ...}
@@ -763,7 +762,7 @@ class EditLineWindow(QtWidgets.QWidget):
     def setMarker(self, val):
         """
         Sets the marker of the selected line.
-        
+
         Parameters
         ----------
         val : str
@@ -775,7 +774,7 @@ class EditLineWindow(QtWidgets.QWidget):
     def setMarkerSize(self, val):
         """
         Sets the marker size of the selected line.
-        
+
         Parameters
         ----------
         val : float

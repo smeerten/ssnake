@@ -25,7 +25,7 @@ import scipy.signal
 def ent_ffm(missingPoints, fid, posArray):
     """
     Performs FFM NUS reconstruction of a 1D FID.
-    
+
     Parameters
     ----------
     missingPoints: ndarray
@@ -48,7 +48,7 @@ def ent_ffm(missingPoints, fid, posArray):
 def ffm(inp):
     """
     Performs FFM NUS reconstruction of a 1D FID.
-    
+
     Parameters
     ----------
     inp: list with paramyters:
@@ -73,7 +73,7 @@ def ffm(inp):
 def clean(inp):
     """
     Performs CLEAN NUS reconstruction of a 1D spectrum.
-    
+
     Parameters
     ----------
     inp: list with parameters:
@@ -110,7 +110,7 @@ def clean(inp):
 def ist(inp):  # Iterative soft thresholding
     """
     Performs Iterative Soft Thresholding of a 1D FID
-    
+
     Parameters
     ----------
     inp: list with paramyters:
@@ -134,7 +134,7 @@ def ist(inp):  # Iterative soft thresholding
     NDmax = inp[5]  # max of ND data. Needed for stopping limit.
     result = np.zeros_like(data, dtype=complex)
     data[0] = data[0] * 0.5
-    for itt in range(0, ittnum):
+    for itt in range(ittnum):
         spectrum = np.real(np.fft.fft(data, axis=0))
         signmatrix = np.sign(spectrum)
         height = np.max(np.abs(spectrum))
@@ -148,8 +148,6 @@ def ist(inp):  # Iterative soft thresholding
         spectrum = np.conj(scipy.signal.hilbert(spectrum, axis=0))
         data = np.fft.ifft(spectrum, axis=0)
         data[posList] = 0
-        
     result = np.real(result + spectrum)
-
-    result = np.fft.fftshift(result,axes=0)
+    result = np.fft.fftshift(result, axes=0)
     return result
