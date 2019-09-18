@@ -314,7 +314,7 @@ class TabFittingWindow(QtWidgets.QWidget):
         for n, _ in enumerate(args):
             args_out.append([args[n][0]])
         self.mainFitWindow.paramframe.setResults(fitVal[0], args_out)
-        for i, _ in enumerat(self.subFitWindows):
+        for i, _ in enumerate(self.subFitWindows):
             args_out = []
             for n, _ in enumerate(args):
                 args_out.append([args[n][i + 1]])
