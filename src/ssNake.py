@@ -2164,7 +2164,7 @@ class SideFrame(QtWidgets.QScrollArea):
                     self.entries[num].setValue(current.locList[num])
                 if self.FITTING and num in current.axes:
                     self.entries[num].setDisabled(True)
-                self.entries[num].valueChanged.connect(lambda num=num: self.getSlice(num))
+                self.entries[num].valueChanged.connect(lambda event, num=num: self.getSlice(num))
             if type(current) is views.CurrentStacked or type(current) is views.CurrentArrayed:
                 if current.viewSettings["stackBegin"] is not None:
                     from2D = current.viewSettings["stackBegin"]
@@ -2467,7 +2467,7 @@ class SideFrame(QtWidgets.QScrollArea):
                         entries[-1].setToolTip(TOOLTIPS['sideFrameDimensionSlice'])
                         frame.addWidget(entries[num], num * 3 + 6, 1)
                         entries[num].setValue(current.viewSettings["extraLoc"][i][num])
-                        entries[num].valueChanged.connect(lambda num=num, i=i: self.getExtraSlice(num, i))
+                        entries[num].valueChanged.connect(lambda event, num=num, i=i: self.getExtraSlice(num, i))
                     self.extraButtons1Group[i].button(current.viewSettings["extraAxes"][i][-1]).toggle()
                 iter1 += 1
             addButton = QtWidgets.QPushButton("Add plot", self)
