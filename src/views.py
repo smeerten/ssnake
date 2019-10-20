@@ -1209,6 +1209,18 @@ class Current1D(PlotFrame):
         self.upd()
 
     def shift(self, shift, select=False):
+        """
+        Shifts the data along the current dimension.
+        Shifting is always done in the time domain (i.e. is the current data is a spectrum
+        it is Fourier transformed back and forward to do the shift).
+
+        Parameters
+        ----------
+        shift: int
+            The amount of data points to shift (negative is left shift, positive right shift)
+        select (optional = False): boolean
+            If True, apply only to the current slice.
+        """
         if select:
             selectSlice = self.getSelect()
         else:
@@ -1219,11 +1231,29 @@ class Current1D(PlotFrame):
         self.showFid()
 
     def shiftPreview(self, shift):
+        """
+        Shows a preview of the shift data operation.
+
+        Parameters
+        ----------
+        shift: int
+            The amount of data points to shift (negative is left shift, positive right shift)
+        """
         self.data1D.shift(shift, -1)
         self.showFid()
         self.upd()
 
     def roll(self, shift, select=False):
+        """
+        Circularly rolls the data along the current dimension. Non-integer shift values are allowed.
+
+        Parameters
+        ----------
+        shift: float
+            The amount of data points to roll (negative is left roll, positive right roll)
+        select (optional = False): boolean
+            If True, apply only to the current slice.
+        """
         if select:
             selectSlice = self.getSelect()
         else:
@@ -1234,17 +1264,51 @@ class Current1D(PlotFrame):
         self.showFid()
 
     def rollPreview(self, shift):
+        """
+        Shows a preview of the roll data operation.
+
+        Parameters
+        ----------
+        shift: float
+            The amount of data points to roll (negative is left roll, positive right roll)
+        """
         self.data1D.roll(shift, -1)
         self.showFid()
         self.upd()
 
     def align(self, pos1, pos2):
+        """
+        Aligns the maximum of each slice along this dimension, within the pos1-pos2 region.
+
+
+        Parameters
+        ----------
+        pos1: int
+            First data position.
+        pos2: int
+            Second data position.
+        """
         self.root.addMacro(['align', (pos1, pos2, self.axes[-1] - self.data.ndim())])
         self.data.align(pos1, pos2, self.axes[-1])
         self.upd()
         self.showFid()
 
     def getdcOffset(self, pos1, pos2):
+        """
+        Gets the average (i.e. DC offset) of a selected region.
+
+        Parameters
+        ----------
+        pos1: int
+            First data position.
+        pos2: int
+            Second data position.
+
+        Returns
+        -------
+        complex value:
+            The offset value
+        """
         minPos = int(min(pos1, pos2))
         maxPos = int(max(pos1, pos2))
         if minPos != maxPos:
@@ -1253,16 +1317,55 @@ class Current1D(PlotFrame):
         return 0
 
     def dcOffset(self, offset):
+        """
+        Corrects the DC offset (i.e. subtracts the offset value from all data points).
+
+        Parameters
+        ----------
+        offset: complex value
+            The amount of offset that is to be subtracted.
+        """
         self.data1D.subtract([offset])
         self.showFid()
         self.upd()
 
     def baselinePolyFit(self, x, data, bArray, degree):
+        """
+        Fit a polynomial through the selected data.
+
+        Parameters
+        ----------
+        x: ndarray
+            The x-axis
+        data: ndarray
+            The data along this slice
+        bArray: ndarray, boolian
+            The points that should be used
+        degree: int
+            Number of polynomial orders
+
+        Returns
+        -------
+        ndarray:
+            The fitted polynomial
+        """
         import numpy.polynomial.polynomial as poly
         polyCoeff = poly.polyfit(x[bArray], data[bArray], degree)
         return poly.polyval(x, polyCoeff)
 
-    def baselineCorrectionAll(self, degree, removeList, select=False, invert=False):
+    def baselineCorrectionAll(self, degree, removeList,invert=False):
+        """
+        Correct baseline of a series of data
+
+        Parameters
+        ----------
+        degree: int
+            Polynomial degree
+        removeList: list
+            Indexes of points not include in polyfit
+        invert (optional = False): boolean
+            If True, the removeList is treated as an include list (i.e. inverting the selection)           
+        """
         tmpAx = np.arange(self.len())
         bArray = np.array([True] * self.len())
         for i in range(int(np.floor(len(removeList) / 2.0))):
@@ -1277,6 +1380,20 @@ class Current1D(PlotFrame):
         self.data.subtract(y)
 
     def baselineCorrection(self, degree, removeList, select=False, invert=False):
+        """
+        Correct baseline of spectrum/fid.
+
+        Parameters
+        ----------
+        degree: int
+            Polynomial degree
+        removeList: list
+            Indexes of points not include in polyfit
+        select (optional = False): boolean
+            If True, apply only to the current slice.
+        invert (optional = False): boolean
+            If True, the removeList is treated as an include list (i.e. inverting the selection)           
+        """
         if select:
             selectSlice = self.getSelect()
         else:
@@ -1297,6 +1414,18 @@ class Current1D(PlotFrame):
         self.data.baselineCorrection(y, self.axes[-1], select=selectSlice)
 
     def previewBaselineCorrection(self, degree, removeList, invert=False):
+        """
+        Preview the baseline correction of a spectrum/fid.
+
+        Parameters
+        ----------
+        degree: int
+            Polynomial degree
+        removeList: list
+            Indexes of points not include in polyfit
+        invert (optional = False): boolean
+            If True, the removeList is treated as an include list (i.e. inverting the selection)           
+        """
         tmpData = self.data1D.getHyperData(0)
         tmpData = tmpData[(0,)*(self.ndim()-1) + (slice(None), )]
         tmpAx = np.arange(self.len())
@@ -1321,6 +1450,16 @@ class Current1D(PlotFrame):
         self.upd()
 
     def previewRemoveList(self, removeList, invert=False):
+        """
+        Preview the removelist of a baseline correction.
+
+        Parameters
+        ----------
+        removeList: list
+            Indexes of points not include in polyfit
+        invert (optional = False): boolean
+            If True, the removeList is treated as an include list (i.e. inverting the selection)           
+        """
         axMult = self.getAxMult(self.spec(), self.getAxType(), self.getppm(), self.freq(), self.ref())
         self.resetPreviewRemoveList()
         lineColor = 'r'
@@ -1334,30 +1473,59 @@ class Current1D(PlotFrame):
         self.canvas.draw()
 
     def resetPreviewRemoveList(self):
+        """
+        Resets the preview remove list of the baseline correction.
+        """"
         if hasattr(self, 'removeListLines'):
             for i in self.removeListLines:
                 i.remove()
         self.removeListLines = []
 
     def states(self):
+        """
+        Performs a States data conversion along the current dimension.
+        """
         self.root.addMacro(['states', (self.axes[-1] - self.data.ndim(), )])
         self.data.states(self.axes[-1])
         self.upd()
         self.showFid()
 
     def statesTPPI(self):
+        """
+        Performs a States-TPPI data conversion along the current dimension.
+        """
         self.root.addMacro(['statesTPPI', (self.axes[-1] - self.data.ndim(), )])
         self.data.statesTPPI(self.axes[-1])
         self.upd()
         self.showFid()
 
     def echoAntiEcho(self):
+        """
+        Performs an Echo-Antiecho data conversion along the current dimension.
+        """
         self.root.addMacro(['echoAntiEcho', (self.axes[-1] - self.data.ndim(), )])
         self.data.echoAntiEcho(self.axes[-1])
         self.upd()
         self.showFid()
 
     def matrixFuncs(self, func, name, pos1, pos2, newSpec=False):
+        """
+        Function that handles multiple matrix operations.
+
+        name: str
+            Name of operation: integrate, sum, max, min, argmax, argmin, averge
+        pos1: int
+            First data point limit of the selected region.
+        pos2: int
+            Second data point limit of the selected region.
+        newSpec (optional = False): boolean
+            If True, a new spectrum class is returned, holding the output of the matrix function.
+
+        Returns
+        -------
+        Spectrum object:
+            If newSpec is True, a new spectrum object is returned.
+        """
         if newSpec:
             tmpData = copy.deepcopy(self.data)
             func(tmpData, pos1, pos2, self.axes[-1])
@@ -1369,33 +1537,147 @@ class Current1D(PlotFrame):
             self.plotReset()
 
     def integrate(self, pos1, pos2, newSpec=False):
+        """
+        Integrate all slices over the selected region.
+
+        Parameters
+        ----------
+        pos1: int
+            First data point limit of the selected region.
+        pos2: int
+            Second data point limit of the selected region.
+        newSpec (optional = False): boolean
+            If True, a new spectrum class is returned, holding the output of the matrix function.
+
+        Returns
+        -------
+        Spectrum object:
+            If newSpec is True, a new spectrum object is returned. Else, 'None' is returned.
+        """
         return self.matrixFuncs(lambda obj, *args: obj.integrate(*args), 'integrate', pos1, pos2, newSpec)
 
     def sum(self, pos1, pos2, newSpec=False):
         return self.matrixFuncs(lambda obj, *args: obj.sum(*args), 'sum', pos1, pos2, newSpec)
 
     def max(self, pos1, pos2, newSpec=False):
+        """
+        Get the maximum of all slices over the selected region.
+
+        Parameters
+        ----------
+        pos1: int
+            First data point limit of the selected region.
+        pos2: int
+            Second data point limit of the selected region.
+        newSpec (optional = False): boolean
+            If True, a new spectrum class is returned, holding the output of the matrix function.
+
+        Returns
+        -------
+        Spectrum object:
+            If newSpec is True, a new spectrum object is returned. Else, 'None' is returned.
+        """
         return self.matrixFuncs(lambda obj, *args: obj.max(*args), 'max', pos1, pos2, newSpec)
 
     def min(self, pos1, pos2, newSpec=False):
+        """
+        Get the minimum of all slices over the selected region.
+
+        Parameters
+        ----------
+        pos1: int
+            First data point limit of the selected region.
+        pos2: int
+            Second data point limit of the selected region.
+        newSpec (optional = False): boolean
+            If True, a new spectrum class is returned, holding the output of the matrix function.
+
+        Returns
+        -------
+        Spectrum object:
+            If newSpec is True, a new spectrum object is returned. Else, 'None' is returned.
+        """
         return self.matrixFuncs(lambda obj, *args: obj.min(*args), 'min', pos1, pos2, newSpec)
 
     def argmax(self, pos1, pos2, newSpec=False):
+        """
+        Get the arg maxmimum of all slices over the selected region.
+
+        Parameters
+        ----------
+        pos1: int
+            First data point limit of the selected region.
+        pos2: int
+            Second data point limit of the selected region.
+        newSpec (optional = False): boolean
+            If True, a new spectrum class is returned, holding the output of the matrix function.
+
+        Returns
+        -------
+        Spectrum object:
+            If newSpec is True, a new spectrum object is returned. Else, 'None' is returned.
+        """
         return self.matrixFuncs(lambda obj, *args: obj.argmax(*args), 'argmax', pos1, pos2, newSpec)
 
     def argmin(self, pos1, pos2, newSpec=False):
+        """
+        Get the arg minimum of all slices over the selected region.
+
+        Parameters
+        ----------
+        pos1: int
+            First data point limit of the selected region.
+        pos2: int
+            Second data point limit of the selected region.
+        newSpec (optional = False): boolean
+            If True, a new spectrum class is returned, holding the output of the matrix function.
+
+        Returns
+        -------
+        Spectrum object:
+            If newSpec is True, a new spectrum object is returned. Else, 'None' is returned.
+        """
         return self.matrixFuncs(lambda obj, *args: obj.argmin(*args), 'argmin', pos1, pos2, newSpec)
 
     def average(self, pos1, pos2, newSpec=False):
+        """
+        Get the average of all slices over the selected region.
+
+        Parameters
+        ----------
+        pos1: int
+            First data point limit of the selected region.
+        pos2: int
+            Second data point limit of the selected region.
+        newSpec (optional = False): boolean
+            If True, a new spectrum class is returned, holding the output of the matrix function.
+
+        Returns
+        -------
+        Spectrum object:
+            If newSpec is True, a new spectrum object is returned. Else, 'None' is returned.
+        """
         return self.matrixFuncs(lambda obj, *args: obj.average(*args), 'average', pos1, pos2, newSpec)
 
     def flipLR(self):
+        """
+        Flip (i.e. mirror) the data over the x-axis.
+        """
         self.data.flipLR(self.axes[-1])
         self.upd()
         self.showFid()
         self.root.addMacro(['flipLR', (self.axes[-1] - self.data.ndim(), )])
 
     def concatenate(self, axes):
+        """
+        Concatenate the data along an input axis.
+
+        Parameters
+        ----------
+        axes: int
+            The concatenation axis
+
+        """
         self.data.concatenate(axes)
         self.upd()
         self.showFid()
@@ -1403,6 +1685,14 @@ class Current1D(PlotFrame):
         self.root.addMacro(['concatenate', (axes - self.data.ndim() - 1, )])
 
     def split(self, sections):
+        """
+        Split the data long the current dimension in part
+
+        Parameters
+        ----------
+        sections: int
+            Split in this number of sections.
+        """
         self.data.split(sections, self.axes[-1])
         self.upd()
         self.showFid()
@@ -1410,12 +1700,25 @@ class Current1D(PlotFrame):
         self.root.addMacro(['split', (sections, self.axes[-1] - self.data.ndim() + 1)])
 
     def diff(self):
+        """
+        Get the difference between data points along the current dimension.
+        This reduces the size of the data along this dimension by 1.
+
+        Diff is taken from left to right in the fid, but from right to left in the spectrum (i.e. the spectrum is
+        displayed in a mirrored way).
+        """
         self.data.diff(self.axes[-1])
         self.upd()
         self.showFid()
         self.root.addMacro(['diff', (self.axes[-1] - self.data.ndim(), )])
 
     def cumsum(self):
+        """
+        Get the cumulative sum of the data points along the current dimension.
+
+        Cumsum is taken from left to right in the fid, but from right to left in the spectrum (i.e. the spectrum is
+        displayed in a mirrored way).
+        """
         self.data.cumsum(self.axes[-1])
         self.upd()
         self.showFid()
