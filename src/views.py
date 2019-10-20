@@ -1475,7 +1475,7 @@ class Current1D(PlotFrame):
     def resetPreviewRemoveList(self):
         """
         Resets the preview remove list of the baseline correction.
-        """"
+        """
         if hasattr(self, 'removeListLines'):
             for i in self.removeListLines:
                 i.remove()
@@ -1725,6 +1725,17 @@ class Current1D(PlotFrame):
         self.root.addMacro(['cumsum', (self.axes[-1] - self.data.ndim(), )])
 
     def insert(self, data, pos):
+        """
+        Insert data at a position along the current dimension.
+
+        Parameters
+        ----------
+        data: hypercomplex data class
+            The data to be inserted
+        pos: int
+            Position where the data should be inserted            
+        """
+
         self.root.addMacro(['insert', (data, pos, self.axes[-1] - self.data.ndim())])
         self.data.insert(data, pos, self.axes[-1])
         self.upd()
@@ -1732,17 +1743,43 @@ class Current1D(PlotFrame):
         self.plotReset()
 
     def delete(self, pos):
+        """
+        Delete the data from specified positions along the current dimension.
+
+        Parameters
+        ----------
+        pos: int or array_like
+            The indices to remove.
+        """
         self.data.delete(pos, self.axes[-1])
         self.upd()
         self.showFid()
         self.root.addMacro(['delete', (pos, self.axes[-1] - self.data.ndim())])
 
     def deletePreview(self, pos):
+        """
+        Preview the delete operation.
+
+        Parameters
+        ----------
+        pos: int or array_like
+            The indices to remove.
+        """
         self.data1D.delete(pos, -1)
         self.showFid()
         self.upd()
 
     def add(self, data, select=False):
+        """
+        Adds (sums) data to the current data.
+
+        Parameters
+        ----------
+        data: hypercomplex data class
+            The data to be added.
+        select (optional = False): boolean
+            If True, apply only to the current slice.
+        """
         if select:
             selectSlice = self.getSelect()
         else:
@@ -1753,6 +1790,16 @@ class Current1D(PlotFrame):
         self.showFid()
 
     def subtract(self, data, select=False):
+        """
+        Subtract data from to the current data.
+
+        Parameters
+        ----------
+        data: hypercomplex data class
+            The data to be subtracted.
+        select (optional = False): boolean
+            If True, apply only to the current slice.
+        """
         if select:
             selectSlice = self.getSelect()
         else:
@@ -1763,6 +1810,17 @@ class Current1D(PlotFrame):
         self.showFid()
 
     def multiply(self, data, select=False):
+        """
+        Multiply the current data with extra data. Note that a complex data
+        multiplication is used.
+
+        Parameters
+        ----------
+        data: hypercomplex data class
+            The data to be multiplied with.
+        select (optional = False): boolean
+            If True, apply only to the current slice.
+        """
         if select:
             selectSlice = self.getSelect()
         else:
@@ -1773,11 +1831,30 @@ class Current1D(PlotFrame):
         self.showFid()
 
     def multiplyPreview(self, data):
+        """
+        Preview the multiplication of data to the current data.
+
+        Parameters
+        ----------
+        data: hypercomplex data class
+            The data to be multiplied with.
+        """
         self.data1D.multiply(data, -1)
         self.showFid()
         self.upd()
 
     def divide(self, data, select=False):
+        """
+        Divide the current data with extra data. Note that a complex data
+        division is used.
+
+        Parameters
+        ----------
+        data: hypercomplex data class
+            The data to be divided with.
+        select (optional = False): boolean
+            If True, apply only to the current slice.
+        """
         if select:
             selectSlice = self.getSelect()
         else:
