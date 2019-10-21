@@ -2338,7 +2338,7 @@ class Spectrum:
         maxIter : int
             Maximum number of iterations.
         tracelimit : float
-            Stopping limit (0 < x < 1) (stop if residual intesity below this point).
+            Stopping limit (0 < x < 1) (stop if residual intensity below this point).
         """
         axis = self.checkAxis(axis)
         if not self.noUndo:

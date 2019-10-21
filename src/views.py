@@ -1865,6 +1865,21 @@ class Current1D(PlotFrame):
         self.showFid()
 
     def normalize(self, value, scale, type, select=False):
+        """
+        Normalize the data, relative to a selected region.
+        Different types are supported: maximum, minimum, and integral.
+
+        Parameters
+        ----------
+        value: float
+            Value necessary to scale the selected region to 1.
+        scale: float
+            Extra scaling to get to this value
+        type: int
+            0:, integral. 1: max. 2: min
+        select (optional = False): boolean
+            If True, apply only to the current slice.
+        """
         if select:
             selectSlice = self.getSelect()
         else:
@@ -1875,17 +1890,56 @@ class Current1D(PlotFrame):
         self.showFid()
 
     def subtractAvg(self, pos1, pos2):
+        """
+        Subtract the average of a region off all slices from that slice. This can be used
+        to correct an offset, for example.
+
+        Parameters
+        ----------
+        pos1: int
+            First data point limit of the selected region.
+        pos2: int
+            Second data point limit of the selected region.
+        """
         self.root.addMacro(['subtractAvg', (pos1, pos2, self.axes[-1] - self.data.ndim())])
         self.data.subtractAvg(pos1, pos2, self.axes[-1])
         self.upd()
         self.showFid()
 
     def subtractAvgPreview(self, pos1, pos2):
+        """
+        Preview of the effect of the "subtractAvg" function.
+
+        Parameters
+        ----------
+        pos1: int
+            First data point limit of the selected region.
+        pos2: int
+            Second data point limit of the selected region.
+        """
         self.data1D.subtractAvg(pos1, pos2, -1)
         self.showFid()
         self.upd()
 
     def extract(self, pos1, pos2, newSpec=False):
+        """
+        Extract a region from the data (i.e. remove data outside the region.
+        Can return a new data class if newSpec==True.
+
+        Parameters
+        ----------
+        pos1: int
+            First data point limit of the selected region.
+        pos2: int
+            Second data point limit of the selected region.
+        newSpec (optional = False): boolean
+            Return a new data class object
+
+        Returns
+        -------
+        Spectrum object:
+            If newSpec is True, a new spectrum object is returned. Else, 'None' is returned.
+        """
         if newSpec:
             tmpData = copy.deepcopy(self.data)
             tmpData.extract(pos1, pos2, self.axes[-1])
@@ -1897,6 +1951,18 @@ class Current1D(PlotFrame):
         self.plotReset()
 
     def fiddle(self, pos1, pos2, lb):
+        """
+        Do a reference deconvolution using the fiddle algorithm.
+
+        Parameters
+        ----------
+        pos1: int
+            First data point limit of the selected region.
+        pos2: int
+            Second data point limit of the selected region.
+        lb: float
+            Added line broadening (Lorentzian) in Hz. This is needed to avoid artifacts. 
+        """
         minPos = min(pos1, pos2)
         maxPos = max(pos1, pos2)
         tmpData = self.data1D.getHyperData(0)
@@ -1909,30 +1975,102 @@ class Current1D(PlotFrame):
         self.showFid()
 
     def shearing(self, shear, axes, axes2, toRef=False):
+        """
+        Apply a shearing transform to the data.
+
+        Parameters
+        ----------
+        shear: float
+            Shearing constant
+        axes: int
+            The axis number over which the amount of shearing differs.
+        axes2: int
+            The axis over which the data must be rolled.
+        toRef (optional = False): boolean
+            Whether shearing should be relative to the reference (otherwise to the centre of the spectrum)
+        """
         self.root.addMacro(['shear', (shear, axes - self.data.ndim(), axes2 - self.data.ndim()), toRef])
         self.data.shear(shear, axes, axes2, toRef)
         self.upd()
         self.showFid()
 
     def reorder(self, pos, newLength):
+        """
+        Reorder the current data to the new positions. Missing points are set to zero, and 
+        zeroes are appended to reach 'newLength'.
+
+        Parameters
+        ----------
+        pos: list of ints
+            List with the new positions of each data point
+        newLength: int
+            The new length of the data
+        """
         self.root.addMacro(['reorder', (pos, newLength, self.axes[-1] - self.data.ndim())])
         self.data.reorder(pos, newLength, self.axes[-1])
         self.upd()
         self.showFid()
 
     def ffm(self, posList, typeVal):
+        """
+        Apply the Fast Forward Maximum Entropy reconstruction method (for NUS data).
+
+        Parameters
+        ----------
+        pos: list of ints
+            List with the measured (non-zero) positions
+        typeVal : {0, 1, 2}
+            The type of data to be reconstructed.
+            0=complex, 1=States or States-TPPI, 2=TPPI.
+        """
         self.root.addMacro(['ffm', (posList, typeVal, self.axes[-1] - self.data.ndim())])
         self.data.ffm(posList, typeVal, self.axes[-1])
         self.upd()
         self.showFid()
 
     def clean(self, posList, typeVal, gamma, threshold, maxIter):
+        """
+        Apply the CLEAN reconstruction method (for NUS data).
+
+        Parameters
+        ----------
+        posList : array_like
+            A list of indices that are recorded datapoints.
+            All other datapoints will be reconstructed.
+        typeVal : {0, 1, 2}
+            The type of data to be reconstructed.
+            0=complex, 1=States or States-TPPI, 2=TPPI.
+        gamma : float
+            Gamma value of the CLEAN calculation.
+        threshold : float
+            Stopping limit (0 < x < 1) (stop if residual intensity below this point).
+        maxIter : int
+            Maximum number of iterations.
+        """
         self.root.addMacro(['clean', (posList, typeVal, self.axes[-1] - self.data.ndim(), gamma, threshold, maxIter)])
         self.data.clean(posList, typeVal, self.axes[-1], gamma, threshold, maxIter)
         self.upd()
         self.showFid()
 
     def ist(self, posList, typeVal, threshold, maxIter, tracelimit):
+        """
+        Apply the IST (Iterative Soft Thresholding) reconstruction method (for NUS data).
+
+        Parameters
+        ----------
+        posList : array_like
+            A list of indices that are recorded datapoints.
+            All other datapoints will be reconstructed.
+        typeVal : {0, 1, 2}
+            The type of data to be reconstructed.
+            0=complex, 1=States or States-TPPI, 2=TPPI.
+        threshold : float
+            threshold. The level (0 < x < 1) at which the data is cut every iteration.
+        maxIter : int
+            Maximum number of iterations.
+        tracelimit : float
+            Stopping limit (0 < x < 1) (stop if residual intensity below this point).
+        """
         self.root.addMacro(['ist', (posList, typeVal, self.axes[-1] - self.data.ndim(), threshold, maxIter, tracelimit)])
         self.data.ist(posList, typeVal, self.axes[-1], threshold, maxIter, tracelimit)
         self.upd()
