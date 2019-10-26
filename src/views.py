@@ -2077,11 +2077,36 @@ class Current1D(PlotFrame):
         self.showFid()
 
     def autoPhase(self, phaseNum):
+        """
+        Automatically phase the data along the current dimension.
+        This function returns the phasing answers, but does not execute the phasing yet.
+
+        Parameters
+        ----------
+        phaseNum: int
+            Order up to which to perform the autophasing.
+            For 0 only zero order phasing is performed, for 1 both zero and first order phasing is performed.
+
+        Returns
+        -------
+        list:
+            List with 0th and 1st order phase.
+        """
         phases = self.data1D.autoPhase(phaseNum, -1, [0]*self.ndim(), returnPhases=True)
         self.upd()
         return phases
 
     def directAutoPhase(self, phaseNum):
+        """
+        Automatically phase the data along the current dimension.
+        This function applies the phasing directly to the data.
+
+        Parameters
+        ----------
+        phaseNum: int
+            Order up to which to perform the autophasing.
+            For 0 only zero order phasing is performed, for 1 both zero and first order phasing is performed.
+        """
         tmpLocList = copy.copy(self.locList)
         if self.ndim() > 1:
             tmpLocList[self.axes[:-1]] = self.viewSettings["stackBegin"]
@@ -2091,18 +2116,46 @@ class Current1D(PlotFrame):
         self.showFid()
 
     def autoPhaseAll(self, phaseNum):
+        """
+        Automatically phase the data along the current dimension, for
+        each trace individually.
+
+        Parameters
+        ----------
+        phaseNum: int
+            Order up to which to perform the autophasing.
+            For 0 only zero order phasing is performed, for 1 both zero and first order phasing is performed.
+        """
         self.root.addMacro(['autoPhaseAll', (phaseNum, self.axes[-1] - self.data.ndim())])
         self.data.autoPhaseAll(phaseNum, self.axes[-1])
         self.upd()
         self.showFid()
 
     def setXaxPreview(self, xax):
+        """
+        Preview the plot with a new x-axis.
+
+        Parameters
+        ----------
+        xax : array_like
+            The x-axis.
+            It should have the same length as the size of the data along dimension axis.
+        """
         self.data1D.setXax(xax, -1)
         self.showFid()
         self.plotReset()
         self.upd()
 
     def setXax(self, xax):
+        """
+        Change the x-axis of the data.
+
+        Parameters
+        ----------
+        xax : array_like
+            The x-axis.
+            It should have the same length as the size of the data along dimension axis.
+        """
         self.root.addMacro(['setXax', (xax, self.axes[-1] - self.data.ndim())])
         self.data.setXax(xax, self.axes[-1])
         self.upd()
@@ -2110,6 +2163,30 @@ class Current1D(PlotFrame):
         self.plotReset()
 
     def setAxType(self, val, update=True, num=-1):
+        """
+        Change the axis type if the x-axis.
+
+        The type can be 0,1,2 or 3.
+        For a spectrum axis:
+            0: Hz
+            1: kHz
+            2: MHz
+            3: ppm
+
+        For an FID axis:
+            0: s
+            1: ms
+            2: us
+
+        Parameters
+        ----------
+        val: int
+            The new axis type
+        update (optional = True): boolean
+            If True, update the displays with the new axis.
+        num (optional = -1): int
+            Which axis to change (default -1 is the x-axis, -2 would be the y axis, etc.)
+        """
         oldAxMult = self.getAxMult(self.spec(num), self.getAxType(num), self.getppm(num), self.freq(num), self.ref(num))
         if val == 3:
             self.viewSettings["ppm"][num] = True
@@ -2127,46 +2204,140 @@ class Current1D(PlotFrame):
             self.showFid()
 
     def hilbert(self):
+        """
+        Apply a Hilbert transform along the current dimension.
+        This reconstructs the imaginary part based on the real part of the data.
+        """
         self.root.addMacro(['hilbert', (self.axes[-1] - self.data.ndim(), )])
         self.data.hilbert(self.axes[-1])
         self.upd()
         self.showFid()
 
     def getColorMap(self):
+        """
+        Get the current color map
+
+        Returns
+        -------
+        colormap object
+        """
         return COLORMAPLIST.index(self.viewSettings["colorMap"])
 
     def setColorMap(self, num):
+        """
+        Set the color map to an input number.
+
+        Parameters
+        ----------
+        num: int
+            The number of the color map.
+        """
         self.viewSettings["colorMap"] = COLORMAPLIST[num]
 
     def getColorRange(self):
+        """
+        Returns the name of the current color range.
+        """
         return COLORRANGELIST.index(self.viewSettings["colorRange"])
 
     def setColorRange(self, num):
+        """
+        Set the color range to an input number.
+
+        Parameters
+        ----------
+        num: int
+            The number of the color range.
+        """
         self.viewSettings["colorRange"] = COLORRANGELIST[num]
 
     def setColor(self, color):
+        """
+        Set line color.
+
+        Parameters
+        ----------
+        color: string
+            Color string like '#1F77B4'
+        """
         self.viewSettings["color"] = color
 
     def setLw(self, lw):
+        """
+        Set the line width of the plot line.
+
+        Parameters
+        lw: float:
+            The new line width
+        """
         self.viewSettings["linewidth"] = lw
 
     def setTickNum(self, x, y):
+        """
+        Set suggested minimum number of ticks for the x and y axis.
+
+        Parameters
+        ----------
+        x: int
+            Number of x ticks
+        y: int
+            Number of y ticks
+        """
         self.viewSettings["minXTicks"] = x
         self.viewSettings["minYTicks"] = y
 
     def setContourColors(self, colors):
+        """
+        Sets the positive/negative colors for the contour plot.
+
+        Parameters
+        ----------
+        colors: list of color strings
+            The positive/negative color string
+        """
         self.viewSettings["contourColors"] = colors
 
     def setContourConst(self, constant):
+        """
+        Parameters
+        ----------
+        constant: bool
+            If True, use constant colors for negative/positive contours. 
+            If False, use the color gradient
+        """
         self.viewSettings["contourConst"] = constant
 
     def getOOM(self):
+        """
+        Get order of magnitude for the intensity of the current data.
+
+        Returns
+        -------
+        int:
+            Order of magnitude
+        """
         absVal = np.max(np.abs(self.data.getHyperData(0)))
         if absVal == 0.0:
             return 1
         return int(np.floor(np.log10(absVal)))
 
-    def showFid(self, oldData=None, extraX=None, extraY=None, extraColor=None):  # display the 1D data
+    def showFid(self, oldData=None, extraX=None, extraY=None, extraColor=None):
+        """
+        Display the data
+        
+        Parameters
+        ----------
+        oldData (optional = None): hypercomplex data type
+            The old data, to display under the current (i.e. during apodization).
+        extraX (optional = None): list of ndarrays
+            List of extra x-axes for 1D data curves
+        extray (optional = None): list of ndarrays
+            List of extra intensity data for 1D data curves
+        extraColor (optional = None): list of color strings
+            List of color strings for the extra data
+        """
+        if extraX is not None:
+            print(type(extraX[0]))
         self.peakPickReset()
         tmpdata = self.data1D.getHyperData(0)
         self.ax.cla()
@@ -2227,13 +2398,33 @@ class Current1D(PlotFrame):
         self.canvas.draw()
 
     def setTicks(self, Xset=True, Yset=True):
+        """
+        Set ticks for the current plot.
+
+        Parameters
+        ----------
+        Xset (optional = True): boolean
+            If False, do not draw x-ticks
+        Yset (optional = True): boolean
+            If False, do not draw y-ticks
+        """
         if  matplotlib.__version__[0] > '1':
             if Xset:
                 self.ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins='auto', steps=[1, 2, 2.5, 5, 10], min_n_ticks=self.viewSettings["minXTicks"]))
             if Yset:
                 self.ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins='auto', steps=[1, 2, 2.5, 5, 10], min_n_ticks=self.viewSettings["minYTicks"]))
 
-    def plotReset(self, xReset=True, yReset=True):  # set the plot limits to min and max values
+    def plotReset(self, xReset=True, yReset=True):  
+        """
+        Reset plot limits.
+
+        Parameters
+        ----------
+        xReset (optional = True): boolean
+            If True, reset the x-axis limits
+        yReset (optional = True): boolean
+            If True, reset the y-axis limits
+        """
         miny = np.min(self.line_ydata)
         maxy = np.max(self.line_ydata)
         for line in self.line_ydata_extra:
