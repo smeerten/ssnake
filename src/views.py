@@ -2336,8 +2336,6 @@ class Current1D(PlotFrame):
         extraColor (optional = None): list of color strings
             List of color strings for the extra data
         """
-        if extraX is not None:
-            print(type(extraX[0]))
         self.peakPickReset()
         tmpdata = self.data1D.getHyperData(0)
         self.ax.cla()

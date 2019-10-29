@@ -1319,7 +1319,7 @@ def loadBrukerImaging(filePath):
     SIZE = [Im_pars['IM_SIZ'], Im_pars['IM_SIY'], Im_pars['IM_SIX']]
     FREQ = [0]*len(SIZE)  
     ByteOrder = ['l', 'b'][pars[0]['BYTORDP']] #The byte orders that is used
-    SPEC = [True,True,True]
+    SPEC = [False,True,True]
     SW = SIZE
     
     totsize = np.prod(SIZE)
