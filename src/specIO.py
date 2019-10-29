@@ -192,6 +192,8 @@ def loadFile(filePath, realpath=False, asciiInfo=None):
         masterData = loadBrukerWinNMR(filePath)
     elif num == 16:
         masterData = loadMestreC(filePath)
+    elif num == 17:
+        masterData = loadBrukerImaging(filePath)
     masterData.rename(name)
     return masterData
 
@@ -256,6 +258,8 @@ def fileTypeCheck(filePath):
         return 1, direc
     elif os.path.exists(direc + os.path.sep + 'procs') and (os.path.exists(direc + os.path.sep + '1r') or os.path.exists(direc + os.path.sep + '2rr') or os.path.exists(direc + os.path.sep + '3rrr')):
         return 7, direc
+    elif os.path.exists(direc + os.path.sep + 'procs') and os.path.exists(direc + os.path.sep + 'd3proc') and os.path.exists(direc + os.path.sep + '2dseq'):
+        return 17, direc
     elif os.path.exists(direc + os.path.sep + 'acq') and os.path.exists(direc + os.path.sep + 'data'):
         return 2, direc
     elif os.path.exists(direc + os.path.sep + 'acqu.par'):
@@ -1011,7 +1015,7 @@ def brukerTopspinGetPars(file):
             elif val[0] == '(': #If list of values (always int/floats)
                 pos += 1
                 val = []
-                while not data[pos].startswith('##$'):
+                while not data[pos].startswith('##$') and not data[pos].startswith('$$'):
                     try:
                         val = val + [float(x) for x in data[pos].strip('<>').split()]
                     except Exception:
@@ -1290,6 +1294,46 @@ def loadBrukerSpectrum(filePath):
         masterData.metaData['Recycle Delay [s]'] = str(parsExtra['D'][1])
     except Exception:
         pass #Do nothing on error
+    return masterData
+
+def loadBrukerImaging(filePath):
+    """
+    Load bruker topspin/paravision processed data.
+    Experimental at the moment.
+    """
+    if os.path.isfile(filePath):
+        Dir = os.path.dirname(filePath)
+    else:
+        Dir = filePath
+    
+    File = 'd3proc'
+    if os.path.exists(Dir + os.path.sep + File):
+        Im_pars = brukerTopspinGetPars(Dir + os.path.sep + File)
+    
+    pars = []
+    for File in ['procs', 'proc2s', 'proc3s']:
+        if os.path.exists(Dir + os.path.sep + File):
+            pars.append(brukerTopspinGetPars(Dir + os.path.sep + File))
+                
+      
+    SIZE = [Im_pars['IM_SIZ'], Im_pars['IM_SIY'], Im_pars['IM_SIX']]
+    FREQ = [0]*len(SIZE)  
+    ByteOrder = ['l', 'b'][pars[0]['BYTORDP']] #The byte orders that is used
+    SPEC = [True,True,True]
+    SW = SIZE
+    
+    totsize = np.prod(SIZE)
+    
+    file = '2dseq'
+    
+    with open(Dir + os.path.sep + file, "rb") as f:
+        raw = np.fromfile(f, np.int16, totsize)
+        raw = raw.newbyteorder(ByteOrder) # Set right byteorder
+#        DATA = np.flipud(raw)
+    
+    DATA = raw.reshape(SIZE)
+    print(DATA.shape)
+    masterData = sc.Spectrum(DATA, (filePath, None), FREQ, SW, SPEC)
     return masterData
 
 def chemGetPars(folder):
