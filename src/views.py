@@ -2769,14 +2769,47 @@ class CurrentStacked(Current1D):
     NDIM_PLOT = 2
 
     def startUp(self, xReset=True, yReset=True):
+        """
+        Run when starting this plot.
+
+        Parameters
+        ----------
+        xReset (optional = True): boolean
+            Reset the x-axis if True
+
+        yReset (optional = True): boolean
+            Reset the y-axis if True
+        """
         self.resetSpacing()
         self.showFid()
         self.plotReset(xReset, yReset)
 
     def copyCurrent(self, root, fig, canvas, data):
+        """
+        Make a copy of the current data structure and the
+        associated canvas and axis information.
+
+        Parameters
+        ----------
+        root: main1Dwindow
+            The basic window
+        fig: matplotib figure
+            The figure
+        canvas: matplotlib canvas
+            The plot canvas
+        data: spectrum class instance
+            The data class
+
+        Returns
+        -------
+        CurrentStacked view class
+        """
         return CurrentStacked(root, fig, canvas, data, self)
 
-    def upd(self):  # get new data from the data instance
+    def upd(self):  
+        """
+        Get new data from the data instance
+        """
         if self.data.ndim() < 2:
             self.root.rescue()
             return False
@@ -2799,6 +2832,20 @@ class CurrentStacked(Current1D):
         return True
 
     def stackSelect(self, stackBegin, stackEnd, stackStep):
+        """
+        Select which data to plot in the stack plot.
+        The data indexes go from stackBegin to stackEnd with stackStep as
+        step size.
+
+        Parameters
+        ----------
+        stackBegin: int
+            Bgin value of the series
+        stackEnd: int
+            End value of the series. Note that in python, this value is not inluded (0:2 gives 0,1)
+        stackStep: int
+            Step size
+        """
         self.viewSettings["stackBegin"] = stackBegin
         self.viewSettings["stackEnd"] = stackEnd
         self.viewSettings["stackStep"] = stackStep
@@ -2807,11 +2854,27 @@ class CurrentStacked(Current1D):
         self.plotReset(self.X_RESIZE, self.Y_RESIZE)
 
     def setSpacing(self, spacing):
+        """
+        Sets the vertical spacing between the different traces.
+
+        Parameters
+        ----------
+        spacing: float
+            The new spacing
+        """
         self.viewSettings["spacing"] = spacing
         self.showFid()
         self.plotReset(self.X_RESIZE, self.Y_RESIZE)
 
     def resetSpacing(self, zlims=True):
+        """
+        Reset plot spacing
+
+        Parameters
+        ----------
+        zlims:
+            Not used
+        """
         difference = np.diff(self.data1D.getHyperData(0), axis=0)
         if difference.size == 0:
             self.viewSettings["spacing"] = 0
@@ -2823,16 +2886,40 @@ class CurrentStacked(Current1D):
             self.viewSettings["spacing"] = np.abs(difference) + 0.1 * amp
 
     def altScroll(self, event):
+        """
+        Scroll spacing
+
+        Parameters
+        ----------
+        event: mouse event            
+        """
         self.viewSettings["spacing"] = self.viewSettings["spacing"] * 1.1**event.step
         self.root.sideframe.scrollSpacing(self.viewSettings["spacing"])
         self.showFid()
 
     def altReset(self):
+        """
+        Reset the spacing.
+        """
         self.resetSpacing()
         self.root.sideframe.scrollSpacing(self.viewSettings["spacing"])
         self.showFid()
 
-    def showFid(self, oldData=None, extraX=None, extraY=None, extraColor=None):  # display the 1D data
+    def showFid(self, oldData=None, extraX=None, extraY=None, extraColor=None):
+        """
+        Plot the data.
+
+        Parameters
+        ----------
+        oldData (optional = None): hypercomplex data type
+            The old data, to display under the current (i.e. during apodization).
+        extraX (optional = None): list of ndarrays
+            List of extra x-axes for 1D data curves
+        extray (optional = None): list of ndarrays
+            List of extra intensity data for 1D data curves
+        extraColor (optional = None): list of color strings
+            List of color strings for the extra data
+        """
         self.peakPickReset()
         tmpdata = self.data1D.getHyperData(0)
         self.ax.cla()
