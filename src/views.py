@@ -2480,14 +2480,58 @@ class CurrentMulti(Current1D):
     X_RESIZE = False
     Y_RESIZE = True
 
-    def setExtraSlice(self, extraNum, axes, locList):  # change the slice
+    def setExtraSlice(self, extraNum, axes, locList):
+        """
+        Change the slice of one of the extra data sets
+
+        Parameters
+        ----------
+        extraNum: int
+            Index of the extra data
+        axes: 1darray
+            The new axis
+        locList: list
+            New slice information for this data
+        """
         self.viewSettings["extraAxes"][extraNum] = axes
         self.viewSettings["extraLoc"][extraNum] = locList
 
     def copyCurrent(self, root, fig, canvas, data):
+        """
+        Make a copy of the current data structure and the
+        associated canvas and axis information.
+
+        Parameters
+        ----------
+        root: main1Dwindow
+            The basic window
+        fig: matplotib figure
+            The figure
+        canvas: matplotlib canvas
+            The plot canvas
+        data: spectrum class instance
+            The data class
+
+        Returns
+        -------
+        CurrentMulti view class
+        """
+        print(type(fig))
+        print(type(canvas))
+        print(type(data))
         return CurrentMulti(root, fig, canvas, data, self)
 
     def addExtraData(self, data, name):
+        """
+        Add extra data to the multiview
+
+        Parameters
+        ----------
+        data: spectrum class data
+            The extra data
+        name: str
+            The name of the extra data
+        """
         self.viewSettings["extraName"].append(name)
         self.viewSettings["extraData"].append(data)
         self.viewSettings["extraLoc"].append([0] * (len(self.viewSettings["extraData"][-1].shape())))
@@ -2499,6 +2543,14 @@ class CurrentMulti(Current1D):
         self.showFid()
 
     def delExtraData(self, num):
+        """
+        Delete extra data
+
+        Parameters
+        ----------
+        num: int
+            Index of the data to be removed.
+        """
         del self.viewSettings["extraData"][num]
         del self.viewSettings["extraLoc"][num]
         del self.viewSettings["extraColor"][num]
@@ -2510,36 +2562,117 @@ class CurrentMulti(Current1D):
         self.showFid()
 
     def setExtraColor(self, num, color):
+        """
+        Set the color of a specified extra data set
+
+        Parameters
+        ----------
+        num: int
+            Index of the extra data
+        color: tuple
+            Color tuple (R,G,B,Alpha) of the new color
+        """
+        print(color)
         self.viewSettings["extraColor"][num] = color
         self.showFid()
 
     def getExtraColor(self, num):
+        """
+        Returns the colour tuple for a specified extra data
+
+        Parameters
+        ----------
+        num: int
+            Index of the extra data
+
+        Returns
+        -------
+        tuple:
+            The colour tuple
+        """
         return tuple(np.array(255 * np.array(self.viewSettings["extraColor"][num]), dtype=int))
 
     def resetLocList(self):
+        """
+        Resets the location list (slices) of all data.
+        """
         super(CurrentMulti, self).resetLocList()
         self.resetExtraLocList()
 
     def setExtraScale(self, num, scale):
+        """
+        Set the vertical scaling of additional plotted data.
+
+        Parameters
+        ----------
+        num: int
+            Index of the extra data
+        scale: float
+            The new scaling factor
+        """
+        print(scale,num)
         self.viewSettings["extraScale"][num] = scale
         self.showFid()
 
     def setExtraOffset(self, num, offset):
+        """
+        Set the vertical offset of additional plotted data.
+
+        Parameters
+        ----------
+        num: int
+            Index of the extra data
+        offset: float
+            The new offset
+        """
         self.viewSettings["extraOffset"][num] = offset
         self.showFid()
 
     def setExtraShift(self, num, shift):
+        """
+        Set the horizontal offset of additional plotted data.
+
+        Parameters
+        ----------
+        num: int
+            Index of the extra data
+        shift: float
+            The new shift in units of the current axis
+        """
         self.viewSettings["extraShift"][num] = shift
         self.showFid()
 
     def resetExtraLocList(self, num=None):
+        """
+        Resets the location list (active slice) of all extra data or
+        a specific data set.
+
+        Parameters
+        ----------
+        num (optional = None): int
+            Index of the data to be adjusted. If None, reset all.
+        """
         if num is None:
             for i in range(len(self.viewSettings["extraLoc"])):
                 self.viewSettings["extraLoc"][i] = [0] * (len(self.viewSettings["extraData"][i].shape()))
         else:
             self.viewSettings["extraLoc"][num] = [0] * (len(self.viewSettings["extraData"][num].shape()))
 
-    def showFid(self, oldData=None, extraX=None, extraY=None, extraColor=None):  # display the 1D data
+    def showFid(self, oldData=None, extraX=None, extraY=None, extraColor=None):
+        """
+        Plot all data.
+
+        Parameters
+        ----------
+        oldData (optional = None): hypercomplex data type
+            The old data, to display under the current (i.e. during apodization).
+        extraX (optional = None): list of ndarrays
+            List of extra x-axes for 1D data curves
+        extray (optional = None): list of ndarrays
+            List of extra intensity data for 1D data curves
+        extraColor (optional = None): list of color strings
+            List of color strings for the extra data
+        """
         self.peakPickReset()
         tmpdata = self.data1D.getHyperData(0)
         self.ax.cla()
