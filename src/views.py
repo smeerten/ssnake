@@ -3011,15 +3011,69 @@ class CurrentArrayed(CurrentStacked):
         super(CurrentArrayed, self).__init__(root, fig, canvas, data, duplicateCurrent)
 
     def startUp(self, xReset=True, yReset=True):
+        """
+        Run when starting this plot.
+
+        Parameters
+        ----------
+        xReset (optional = True): boolean
+            Reset the x-axis if True
+
+        yReset (optional = True): boolean
+            Reset the y-axis if True
+        """
         self.resetSpacing(False)
         self.showFid()
         self.plotReset(xReset, yReset)
 
     def copyCurrent(self, root, fig, canvas, data):
+        """
+        Make a copy of the current data structure and the
+        associated canvas and axis information.
+
+        Parameters
+        ----------
+        root: main1Dwindow
+            The basic window
+        fig: matplotib figure
+            The figure
+        canvas: matplotlib canvas
+            The plot canvas
+        data: spectrum class instance
+            The data class
+
+        Returns
+        -------
+        CurrentArrayed view class
+        """
         return CurrentArrayed(root, fig, canvas, data, self)
 
     def setAxType(self, val, update=True, num=-1):
         #Reimplement of base function. Prevent change of yaxis limits
+        """
+        Change the axis type if the x-axis.
+
+        The type can be 0,1,2 or 3.
+        For a spectrum axis:
+            0: Hz
+            1: kHz
+            2: MHz
+            3: ppm
+
+        For an FID axis:
+            0: s
+            1: ms
+            2: us
+
+        Parameters
+        ----------
+        val: int
+            The new axis type
+        update (optional = True): boolean
+            If True, update the displays with the new axis.
+        num (optional = -1): int
+            Which axis to change (default -1 is the x-axis, -2 would be the y axis, etc.)
+        """
         yminlimBack = self.yminlim
         ymaxlimBack = self.ymaxlim
         super(CurrentArrayed, self).setAxType(val, False, num)
@@ -3029,13 +3083,35 @@ class CurrentArrayed(CurrentStacked):
             self.showFid()
 
     def resetSpacing(self, zlims=True):
+        """
+        Reset spacing
+
+        Parameters
+        ----------
+        zlims (optional = True): boolean
+            If True, reset the limits of the individual x-axes too.
+        """
         if zlims:
             self.zminlim = min(self.xax())
             self.zmaxlim = max(self.xax())
         xaxZlims = (self.xax() > self.zminlim) & (self.xax() < self.zmaxlim)
         self.viewSettings["spacing"] = (self.xax()[xaxZlims][-1] - self.xax()[xaxZlims][0]) * 1.1
 
-    def showFid(self, oldData=None, extraX=None, extraY=None, extraColor=None):  # display the 1D data
+    def showFid(self, oldData=None, extraX=None, extraY=None, extraColor=None):
+        """
+        Plot the data.
+
+        Parameters
+        ----------
+        oldData (optional = None): hypercomplex data type
+            The old data, to display under the current (i.e. during apodization).
+        extraX (optional = None): list of ndarrays
+            List of extra x-axes for 1D data curves
+        extray (optional = None): list of ndarrays
+            List of extra intensity data for 1D data curves
+        extraColor (optional = None): list of color strings
+            List of color strings for the extra data
+        """
         self.peakPickReset()
         tmpdata = self.data1D.getHyperData(0)
         self.ax.cla()
@@ -3109,6 +3185,14 @@ class CurrentArrayed(CurrentStacked):
 
 
 def add_diagonal(axes, mult, *line_args, **line_kwargs):
+    """
+    Add a diagonal to the plot.
+
+    Parameters
+    ----------
+    axes: matplotlib axes
+    mult: diagonal multiplier (1 is true diagonal).
+    """
     identity, = axes.plot([], [], *line_args, **line_kwargs)
 
     def callback(axes):
@@ -3141,10 +3225,28 @@ class CurrentContour(CurrentStacked):
     ZERO_SCROLL_ALLOWED = False
 
     def startUp(self, xReset=True, yReset=True):
+        """
+        Run when starting this plot.
+
+        Parameters
+        ----------
+        xReset (optional = True): boolean
+            Reset the x-axis if True
+
+        yReset (optional = True): boolean
+            Reset the y-axis if True
+        """
         self.showFid()
         self.plotReset(xReset, yReset)
 
-    def altScroll(self, event):  # Shift scroll scrolls contour limits
+    def altScroll(self, event):
+        """
+        Scroll contour level limit.
+
+        Parameters
+        ----------
+        event: mouse event            
+        """
         minLevels = self.viewSettings["minLevels"] / 1.1**event.step
         if minLevels > 1:
             minLevels = 1
@@ -3156,9 +3258,49 @@ class CurrentContour(CurrentStacked):
         self.showFid()
 
     def copyCurrent(self, root, fig, canvas, data):
+        """
+        Make a copy of the current data structure and the
+        associated canvas and axis information.
+
+        Parameters
+        ----------
+        root: main1Dwindow
+            The basic window
+        fig: matplotib figure
+            The figure
+        canvas: matplotlib canvas
+            The plot canvas
+        data: spectrum class instance
+            The data class
+
+        Returns
+        -------
+        CurrenContour view class
+        """
         return CurrentContour(root, fig, canvas, data, self)
 
     def setLevels(self, numLevels, maxLevels, minLevels, limitType, contourSign, contourType, multiValue):
+        """
+        Sets the contour settings
+
+        Parameters
+        ----------
+        numLevels: int
+            Number of contours
+        maxLevels: float
+            Maximum value (1 is max) of the contours
+        minLevels: float
+            Minimum level of the contours
+        limitType: int
+            0: relative to current 2D slice 1: relative to full data
+        contourSign: int
+            0: both, 1: + only 2: - only
+        contourType: int
+            0: linear 1: multiplier
+        multiValue: float
+            Value of the multiplier
+        """
+        print(maxLevels)
         self.viewSettings["numLevels"] = numLevels
         self.viewSettings["maxLevels"] = maxLevels
         self.viewSettings["minLevels"] = minLevels
@@ -3169,22 +3311,75 @@ class CurrentContour(CurrentStacked):
         self.showFid()
 
     def setProjLimits(self, ProjBool, Limits):
+        """
+        Set projection limits (i.e. ranges).
+
+        Parameters
+        ----------
+        ProjBool: boolean
+            If True, projection ranges are taken into account.
+        Limits: list of 4 ints
+            Slice positions that limit the projections
+        """
         self.viewSettings["projLimits"] = Limits
         self.viewSettings["projLimitsBool"] = ProjBool
 
     def setProjPos(self, pos):
+        """
+        Sets the projection slice, if a specific slice is plot as the projection.
+
+        Parameters
+        ----------
+        pos: list of ints
+            The slices to be taken
+        """
         self.viewSettings["projPos"] = pos
 
     def setProjType(self, val, direc):
+        """
+        Set the type of projection
+
+        Parameters
+        ----------
+        val: int
+            The type. 0: sum 1: max 2: min 3: off 4: slice 5: diagonal
+        direct: int
+            1: top 2: right
+        """
         if direc == 1:
             self.viewSettings["projTop"] = val
         if direc == 2:
             self.viewSettings["projRight"] = val
 
     def setProjTraces(self, val, direc):
+        """
+        Set a specific trace for a projection.
+
+        Parameters
+        ----------
+        val: int
+            The trace index
+        direct: int
+            1: top 2: right
+        """
         self.viewSettings["projPos"][direc] = val
 
     def integralsPreview(self, xMin, xMax, yMin, yMax):
+        """
+        Draw different rectanglur patches, for a preview of 
+        the intergral selection tool.
+
+        Parameters
+        ----------
+        xMin: list of int
+            Minimum x positions of the rectangles
+        xMax: list of int
+            Maximum x positions of the rectangles
+        yMin: list of int
+            Minimum y positions of the rectangles
+        yMax: list of int
+            Maximum y positions of the rectangles
+        """
         nPatches = min(len(xMin), len(xMax), len(yMin), len(yMax))
         self.resetPreviewRemoveList()
         xax = self.xax()
@@ -3200,38 +3395,57 @@ class CurrentContour(CurrentStacked):
             self.removeListLines.append(self.ax.fill([xminTmp, xminTmp, xmaxTmp, xmaxTmp], [yminTmp, ymaxTmp, ymaxTmp, yminTmp],color=color, fill=False, linestyle='--')[0])
         self.canvas.draw()
 
-    def updateAxes(self, oldAx, newAx, axis):
-        scale = newAx / oldAx
-        # Scale the path vertices, so no new contours need to be calculated
-        cols = self.ax.collections
-        for col in cols:
-            paths = col.get_paths()
-            for path in paths:
-                tmp = path.vertices
-                tmp[:, axis] = tmp[:, axis] * scale
-                path.vertices = tmp
-        # Scale the projections
-        if axis == 1: # Yaxis
-            line = self.y_ax.lines
-            line[0].set_ydata(line[0].get_ydata() * scale)
-        else:
-            line = self.x_ax.lines
-            line[0].set_xdata(line[0].get_xdata() * scale)
-        # Set the labels
-        self.ax.set_xlabel(self.getLabel(self.spec(), self.axes[-1], self.getAxType(), self.getppm()))
-        self.ax.set_ylabel(self.getLabel(self.spec(-2), self.axes[-2], self.getAxType(-2), self.getppm(-2)))
-        # Set the zoom
-        if axis == 1:
-            ylim = self.ax.get_ylim()
-            self.ax.set_ylim(ylim[0] * scale, ylim[1] * scale)
-            self.line_ydata = [item*scale for item in self.line_ydata]
-        else:
-            xlim = self.ax.get_xlim()
-            self.ax.set_xlim(xlim[0] * scale, xlim[1] * scale)
-            self.line_xdata = [item*scale for item in self.line_xdata]
-        self.canvas.draw()
+    #def updateAxes(self, oldAx, newAx, axis):
+    #    """
+    #    Update the axis without recalculating the contours.
+    #    """
+    #    scale = newAx / oldAx
+    #    # Scale the path vertices, so no new contours need to be calculated
+    #    cols = self.ax.collections
+    #    for col in cols:
+    #        paths = col.get_paths()
+    #        for path in paths:
+    #            tmp = path.vertices
+    #            tmp[:, axis] = tmp[:, axis] * scale
+    #            path.vertices = tmp
+    #    # Scale the projections
+    #    if axis == 1: # Yaxis
+    #        line = self.y_ax.lines
+    #        line[0].set_ydata(line[0].get_ydata() * scale)
+    #    else:
+    #        line = self.x_ax.lines
+    #        line[0].set_xdata(line[0].get_xdata() * scale)
+    #    # Set the labels
+    #    self.ax.set_xlabel(self.getLabel(self.spec(), self.axes[-1], self.getAxType(), self.getppm()))
+    #    self.ax.set_ylabel(self.getLabel(self.spec(-2), self.axes[-2], self.getAxType(-2), self.getppm(-2)))
+    #    # Set the zoom
+    #    if axis == 1:
+    #        ylim = self.ax.get_ylim()
+    #        self.ax.set_ylim(ylim[0] * scale, ylim[1] * scale)
+    #        self.line_ydata = [item*scale for item in self.line_ydata]
+    #    else:
+    #        xlim = self.ax.get_xlim()
+    #        self.ax.set_xlim(xlim[0] * scale, xlim[1] * scale)
+    #        self.line_xdata = [item*scale for item in self.line_xdata]
+    #    self.canvas.draw()
 
     def showFid(self, oldData=None, extraX=None, extraY=None, extraZ=None, extraColor=None):
+        """
+        Plot the data.
+
+        Parameters
+        ----------
+        oldData (optional = None): hypercomplex data type
+            The old data, to display under the current (i.e. during apodization).
+        extraX (optional = None): list of ndarrays
+            List of extra x-axes for data curves
+        extraY (optional = None): list of ndarrays
+            List of extra y-axes for data curves
+        extraZ (optional = None): list of ndarrays
+            List of extra intensity data for 1D data curves
+        extraColor (optional = None): list of color strings
+            List of color strings for the extra data
+        """
         # The oldData and extra plots are not displayed in the contourplot for now
         self.line_xdata_extra = []
         self.line_ydata_extra = []
@@ -3295,7 +3509,25 @@ class CurrentContour(CurrentStacked):
         self.setTicks()
         self.canvas.draw()
 
-    def plotContour(self, line_xdata, line_ydata, line_zdata, color=None, alpha=1, updateOnly=False):  # Plots the contour plot
+    def plotContour(self, line_xdata, line_ydata, line_zdata, color=None, alpha=1, updateOnly=False):  
+        """
+        Make the contour plot
+
+        Parameters
+        ----------
+        line_xdata: 1darray
+            xaxis
+        line_ydata: 1darray
+            yaxis
+        line_zdata: 2darray
+            Intensity (z) data
+        color (optional = None): list of colors
+            If not None, positive and negative contour colors should be in here
+        alpha (optional = 1): float
+            Opacity of the lines (1 is solid)
+        updateOnly (optional = False): booleans
+            If True, update only the contour plot
+        """
         if color is None and self.viewSettings["contourConst"]:
             color = self.viewSettings["contourColors"]
         X, Y = np.meshgrid(line_xdata, line_ydata)
@@ -3351,10 +3583,28 @@ class CurrentContour(CurrentStacked):
             self.canvas.draw()
 
     def clearProj(self):
+        """
+        Clear the projections.
+        """
         self.x_ax.cla()
         self.y_ax.cla()
 
     def showProj(self, line_xdata=None, line_ydata=None, line_zdata=None, color=None):
+        """
+        Show the projections
+
+
+        Parameters
+        ----------
+        line_xdata (optional = None): 1darray
+            xaxis
+        line_ydata (optional = None): 1darray
+            yaxis
+        line_zdata (optional = None): 2darray
+            Intensity (z) data
+        color  (optional = None): color string
+            Colour of the projection lines
+        """
         xLimOld = self.x_ax.get_xlim()
         if line_xdata is None:
             x = self.line_xdata[-1]
