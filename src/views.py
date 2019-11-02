@@ -3745,3 +3745,43 @@ class CurrentContour(CurrentStacked):
         elif event.button == 3:
             self.rightMouse = False
         self.canvas.draw()
+
+
+
+class CurrentMesh(CurrentContour):
+    """
+    Mesh plot class. Currently a child of CurrentContour. Probably a lower level 2D class
+    should be made.
+    """
+
+    X_RESIZE = False
+    Y_RESIZE = True
+    GRID_PLOT = True
+    INVERT_Y = True
+    ZERO_SCROLL_ALLOWED = False
+    def plotContour(self, line_xdata, line_ydata, line_zdata, color=None, alpha=1, updateOnly=False):  
+        """
+        Make the contour plot
+
+        Parameters
+        ----------
+        line_xdata: 1darray
+            xaxis
+        line_ydata: 1darray
+            yaxis
+        line_zdata: 2darray
+            Intensity (z) data
+        color (optional = None): list of colors
+            If not None, positive and negative contour colors should be in here
+        alpha (optional = 1): float
+            Opacity of the lines (1 is solid)
+        updateOnly (optional = False): booleans
+            If True, update only the contour plot
+        """
+        if updateOnly:  # Set some extra stuff if only the contour plot needs updating
+            del self.ax.collections[:]  # Clear all plot collections
+
+        self.ax.imshow(np.flipud(line_zdata),extent = [line_xdata[0],line_xdata[-1],line_ydata[0],line_ydata[-1]],aspect='auto')
+        self.setTicks()
+        if updateOnly:
+            self.canvas.draw()
