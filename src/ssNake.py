@@ -7514,7 +7514,7 @@ class tempCalWindow(QtWidgets.QWidget):
         cancelButton = QtWidgets.QPushButton("&Close")
         cancelButton.clicked.connect(self.closeEvent)
         box = QtWidgets.QDialogButtonBox()
-        box.addButton(cancelButton,QtWidgetsQ.DialogButtonBox.RejectRole)
+        box.addButton(cancelButton,QtWidgets.QDialogButtonBox.RejectRole)
         layout.addWidget(box, 1,0,1,4)
         layout.setColumnStretch(3, 1)
         self.show()
