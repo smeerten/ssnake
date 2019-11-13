@@ -851,7 +851,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.contourplotAct.setToolTip('Contour Plot')
         self.multiDActions.append(self.contourplotAct)
 
-        self.colour2DplotAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'contour.png'), "2D Colour Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotColour2D()))
+        self.colour2DplotAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + '2DColour.png'), "2D Colour Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotColour2D()))
         self.colour2DplotAct.setToolTip('2D Colour Plot')
         self.multiDActions.append(self.colour2DplotAct)
         self.multiplotAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'multi.png'), "&Multi Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotMulti()))
