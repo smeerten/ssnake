@@ -508,7 +508,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                    ['Plot --> Stack Plot', self.stackplotAct],
                                    ['Plot --> Array Plot', self.arrayplotAct],
                                    ['Plot --> Contour Plot', self.contourplotAct],
-                                   ['Plot --> Mesh Plot', self.meshplotAct],
+                                   ['Plot --> 2D Colour Plot', self.colour2DplotAct],
                                    ['Plot --> Multi Plot', self.multiplotAct],
                                    ['Plot --> Set Reference', self.setrefAct],
                                    ['Plot --> Clear Current Reference', self.delrefAct],
@@ -851,9 +851,9 @@ class MainProgram(QtWidgets.QMainWindow):
         self.contourplotAct.setToolTip('Contour Plot')
         self.multiDActions.append(self.contourplotAct)
 
-        self.meshplotAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'contour.png'), "Mesh Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotMesh()))
-        self.meshplotAct.setToolTip('Mesh Plot')
-        self.multiDActions.append(self.meshplotAct)
+        self.colour2DplotAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'contour.png'), "2D Colour Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotColour2D()))
+        self.colour2DplotAct.setToolTip('2D Colour Plot')
+        self.multiDActions.append(self.colour2DplotAct)
         self.multiplotAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'multi.png'), "&Multi Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotMulti()))
         self.multiplotAct.setToolTip('Multi Plot')
         #==========
@@ -862,7 +862,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.plotprefAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'preferences.png'), "&Plot Settings", lambda: self.mainWindowCheck(lambda mainWindow: PlotSettingsWindow(mainWindow)))
         self.plotprefAct.setToolTip('Plot Settings')
         self.plotActList = [self.onedplotAct, self.scatterplotAct, self.stackplotAct,
-                            self.arrayplotAct, self.contourplotAct,self.meshplotAct, self.multiplotAct,
+                            self.arrayplotAct, self.contourplotAct,self.colour2DplotAct, self.multiplotAct,
                             self.setrefAct, self.delrefAct, self.userxAct, self.plotprefAct]
         # the history drop down menu
         self.historyMenu = QtWidgets.QMenu("&History", self)
@@ -2041,10 +2041,10 @@ class Main1DWindow(QtWidgets.QWidget):
         self.updAllFrames()
         self.menuCheck()
 
-    def plotMesh(self):
+    def plotColour2D(self):
         if len(self.masterData.shape()) < 2:
             raise SsnakeException("Data does not have enough dimensions")
-        tmpcurrent = views.CurrentMesh(self, self.fig, self.canvas, self.masterData, self.current)
+        tmpcurrent = views.CurrentColour2D(self, self.fig, self.canvas, self.masterData, self.current)
         self.current.kill()
         del self.current
         self.current = tmpcurrent

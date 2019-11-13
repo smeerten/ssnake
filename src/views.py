@@ -3748,9 +3748,9 @@ class CurrentContour(CurrentStacked):
 
 
 
-class CurrentMesh(CurrentContour):
+class CurrentColour2D(CurrentContour):
     """
-    Mesh plot class. Currently a child of CurrentContour. Probably a lower level 2D class
+    2D colour plot class. Currently a child of CurrentContour. Probably a lower level 2D class
     should be made.
     """
 

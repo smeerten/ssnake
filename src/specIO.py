@@ -1332,7 +1332,6 @@ def loadBrukerImaging(filePath):
 #        DATA = np.flipud(raw)
     
     DATA = raw.reshape(SIZE)
-    print(DATA.shape)
     masterData = sc.Spectrum(DATA, (filePath, None), FREQ, SW, SPEC)
     return masterData
 
