@@ -2516,9 +2516,6 @@ class CurrentMulti(Current1D):
         -------
         CurrentMulti view class
         """
-        print(type(fig))
-        print(type(canvas))
-        print(type(data))
         return CurrentMulti(root, fig, canvas, data, self)
 
     def addExtraData(self, data, name):
@@ -2572,7 +2569,6 @@ class CurrentMulti(Current1D):
         color: tuple
             Color tuple (R,G,B,Alpha) of the new color
         """
-        print(color)
         self.viewSettings["extraColor"][num] = color
         self.showFid()
 
@@ -2610,7 +2606,6 @@ class CurrentMulti(Current1D):
         scale: float
             The new scaling factor
         """
-        print(scale,num)
         self.viewSettings["extraScale"][num] = scale
         self.showFid()
 
@@ -3300,7 +3295,6 @@ class CurrentContour(CurrentStacked):
         multiValue: float
             Value of the multiplier
         """
-        print(maxLevels)
         self.viewSettings["numLevels"] = numLevels
         self.viewSettings["maxLevels"] = maxLevels
         self.viewSettings["minLevels"] = minLevels
