@@ -7455,6 +7455,7 @@ class tempCalWindow(QtWidgets.QWidget):
         box.addButton(cancelButton, QtWidgets.QDialogButtonBox.RejectRole)
         layout.addWidget(box, 1, 0, 1, 4)
         layout.setColumnStretch(3, 1)
+#        layout.setRowStretch(3, 1)
         self.show()
         self.setFixedSize(self.size())
 
@@ -7472,9 +7473,13 @@ class tempCalWindow(QtWidgets.QWidget):
             self.RefGroup.show()
             self.Delta0.setText(self.DEFINITIONS[self.typeDrop.currentIndex()][5])
             self.T0.setText(self.DEFINITIONS[self.typeDrop.currentIndex()][6])
+        self.father.root.processEvents()
+        self.setFixedSize(self.sizeHint())
 
     def changeTypeT1(self, index):
         self.refnameT1.setText(self.T1_DEFINITIONS[index][4])
+        self.father.root.processEvents()
+        self.setFixedSize(self.sizeHint())
 
     def tempToT1(self):
         Data = self.T1_DEFINITIONS[self.T1typeDrop.currentIndex()]
