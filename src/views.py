@@ -1353,7 +1353,7 @@ class Current1D(PlotFrame):
         polyCoeff = poly.polyfit(x[bArray], data[bArray], degree)
         return poly.polyval(x, polyCoeff)
 
-    def baselineCorrectionAll(self, degree, removeList,invert=False):
+    def baselineCorrectionAll(self, degree, removeList, invert=False):
         """
         Correct baseline of a series of data
 

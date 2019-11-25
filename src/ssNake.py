@@ -4295,7 +4295,7 @@ class BaselineWindow(wc.ToolWindow):
     def applyFunc(self):
         inp = self.degreeEntry.value()
         if self.allFitButton.isChecked():
-            self.father.current.baselineCorrectionAll(inp, self.removeList, self.singleSlice.isChecked(), invert=self.invertButton.isChecked())
+            self.father.current.baselineCorrectionAll(inp, self.removeList, invert=self.invertButton.isChecked())
         else:
             self.father.current.baselineCorrection(inp, self.removeList, self.singleSlice.isChecked(), invert=self.invertButton.isChecked())
         self.father.current.peakPickReset()
