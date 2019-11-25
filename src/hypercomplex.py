@@ -368,7 +368,7 @@ class HComplexData(object):
             tmpdata = self.real(axis)
             self.data = tmpdata.data
             self.hyper = tmpdata.hyper
-        if axis == self.ndim():
+        if axis == self.ndim() and self.isHyperComplex(axis-1):
             tmpdata = self.real(axis-1)
             self.data = tmpdata.data
             self.hyper = tmpdata.hyper
