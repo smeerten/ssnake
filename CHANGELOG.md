@@ -3,7 +3,7 @@ Changelog
 
 All notable changes to this project will be documented in this file.
 
-## [1.2] - 2019-??-??
+## [1.2] - 2019-12-06
 ### Added
 - New plot type: 2D Colour Plot
 - Added experimental support for Bruker ParaVision imaging data
