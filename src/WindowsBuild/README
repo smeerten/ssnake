@@ -4,7 +4,7 @@ This describes how to compile ssNake on windows 7, and make an installer.
    Requirements
 ==================
 Python with all relevant libraries
-pyinstaller (can be get via pip)
+pyinstaller (can be installed via pip)
 NSIS installer maker (https://nsis.sourceforge.io/)
 
 ==================

@@ -21,7 +21,7 @@
 import numpy as np
 import matplotlib as mpl
 import matplotlib.gridspec as gridspec
-from ssNake import QtGui, QtCore, QtWidgets
+from ssNake import QtCore, QtWidgets
 
 TIMELABELLIST = [u'[s]', u'[ms]', u'[μs]']
 FREQLABELLIST = [u'[Hz]', u'[kHz]', u'[MHz]']
@@ -30,14 +30,30 @@ FREQLABELLIST = [u'[Hz]', u'[kHz]', u'[MHz]']
 # the class from which the 1d data is displayed, the operations which only edit the content of this class are for previewing
 
 
-class PlotFrame(object):
+class PlotFrame:
+    """
+    The frame used to display the plot.
+    It handles the mouse actions applied to the figure.
+    """
 
-    INVERT_X = True # Invert the x-axis when spectrum
-    INVERT_Y = False # Invert the y-axis when spectrum
-    GRID_PLOT = False # Grid plot for contour
-    ZERO_SCROLL_ALLOWED = True # Scroll with respect to 0 on the y-axis
-    
+    INVERT_X = True             # Invert the x-axis when spectrum
+    INVERT_Y = False            # Invert the y-axis when spectrum
+    GRID_PLOT = False           # Grid plot for contour
+    ZERO_SCROLL_ALLOWED = True  # Scroll with respect to 0 on the y-axis
+
     def __init__(self, root, fig, canvas):
+        """
+        Initializes the PlotFrame.
+
+        Parameters
+        ----------
+        root : Main1DWindow
+            The window that contains the figure.
+        fig : Figure
+            The figure used in this frame.
+        canvas : FigureCanvas
+            The canvas of fig.
+        """
         self.root = root
         self.fig = fig
         self.canvas = canvas
@@ -62,7 +78,7 @@ class PlotFrame(object):
             self.x_ax.axes.get_xaxis().set_visible(False)
             self.x_ax.axes.get_yaxis().set_visible(False)
             self.y_ax.axes.get_xaxis().set_visible(False)
-            self.y_ax.axes.get_yaxis().set_visible(False)            
+            self.y_ax.axes.get_yaxis().set_visible(False)
         else:
             self.ax = self.fig.add_subplot(111)
         self.leftMouse = False  # is the left mouse button currently pressed
@@ -79,9 +95,11 @@ class PlotFrame(object):
         # variables to be initialized
 
     def kill(self):
+        """Dummy method"""
         pass
 
-    def plotReset(self):  # this function needs to be overriden by the classes who inherit from PlotFrame
+    def plotReset(self):
+        """Dummy method"""
         pass
 
     ################
@@ -89,6 +107,10 @@ class PlotFrame(object):
     ################
 
     def peakPickReset(self):
+        """
+        Resets the figure after peak picking.
+        It removes any lines created by peak peaking still in the figure.
+        """
         if self.rect[0] is not None:
             try:
                 self.rect[0].remove()
@@ -106,8 +128,17 @@ class PlotFrame(object):
         self.peakPickFunc = None
 
     def scroll(self, event):
+        """
+        Handles scrolling in the figure.
+        The effect depends on the buttons that were held during scrolling.
+
+        Parameters
+        ----------
+        event : QEvent
+            The event.
+        """
         zoomStep = self.root.father.defaultZoomStep
-        event.step = event.step * zoomStep #Apply zoom sensitivity
+        event.step = event.step * zoomStep          # Apply zoom sensitivity
         modifiers = QtWidgets.QApplication.keyboardModifiers()
         if modifiers == QtCore.Qt.ShiftModifier:
             self.altScroll(event)
@@ -161,18 +192,29 @@ class PlotFrame(object):
                         self.yminlim *= 0.9**event.step
                 self.ax.set_ylim(self.yminlim, self.ymaxlim)
                 if self.INVERT_Y:
-                    if self.spec(-2) > 0 :
+                    if self.spec(-2) > 0:
                         self.ax.set_ylim(self.ymaxlim, self.yminlim)
             self.canvas.update()
             self.canvas.draw_idle()
 
     def altScroll(self, event):
+        """Dummy method"""
         pass
 
     def altReset(self):
+        """Dummy method"""
         pass
 
     def buttonPress(self, event):
+        """
+        Handles button presses in the figure.
+        The effect depends on the buttons that were held during the button press and whether peak picking is enabled.
+
+        Parameters
+        ----------
+        event : QEvent
+            The event.
+        """
         if event.button == 1 and not self.peakPick:
             self.leftMouse = True
             self.zoomX1 = event.xdata
@@ -189,6 +231,15 @@ class PlotFrame(object):
             self.panY = event.ydata
 
     def buttonRelease(self, event):
+        """
+        Handles button release in the figure.
+        The effect depends on the buttons that were held during the button release and whether peak picking is enabled.
+
+        Parameters
+        ----------
+        event : QEvent
+            The event.
+        """
         if event.button == 1:
             if self.peakPick:
                 if self.rect[0] is not None:
@@ -242,7 +293,15 @@ class PlotFrame(object):
         self.canvas.draw_idle()
 
     def pan(self, event):
-        modifiers = QtWidgets.QApplication.keyboardModifiers()
+        """
+        Handles panning in the figure.
+        The effect depends on the buttons that were held during panning and whether peak picking is enabled.
+
+        Parameters
+        ----------
+        event : QEvent
+            The event.
+        """
         if self.rightMouse and self.panX is not None and self.panY is not None:
             if self.logx or self.logy:
                 x = event.xdata
@@ -338,7 +397,32 @@ class PlotFrame(object):
             self.canvas.draw_idle()
 
     def getAxMult(self, spec, axType, ppm, freq, ref=None):
-        if spec == 1:
+        """
+        Calculates the x-axis multiplier to convert the xax to a given axis type.
+
+        Parameters
+        ----------
+        spec : bool
+            True if the axis is for a spectrum, False it is for an FID.
+        axType : int
+            The multiplier defined as 1000^axType for spectra and 1000^-axType for FIDs.
+            When ppm is True this is not applied.
+        ppm : bool
+            If True the multiplier is calculated to convert to a ppm axis.
+            This is only used when spec is True.
+        freq : float
+            The spectrometer frequency (only used when spec is True).
+        ref : float, optional
+            The reference frequency if None the spectrometer frequency is used.
+            None by default.
+            Only used when spec is True.
+
+        Returns
+        -------
+        float
+            The x-axis multiplier.
+        """
+        if spec:
             if ppm:
                 if ref is not None:
                     axMult = 1e6 / ref
@@ -346,24 +430,51 @@ class PlotFrame(object):
                     axMult = 1e6 / freq
             else:
                 axMult = 1.0 / (1000.0**axType)
-        elif spec == 0:
+        else:
             axMult = 1000.0**axType
         return axMult
 
     def getLabel(self, spec, axis, axType, ppm):
+        """
+        Generates the axis label for a given axis type and dimension.
+
+        Parameters
+        ----------
+        spec : bool
+            True if the axis is for a spectrum, False it is for an FID.
+        axis : int
+            The dimension of the axis.
+        axType : int
+            0 for Hz/s, 1 for kHz/ms, 2 for MHz/us.
+        ppm : bool
+            True if the frequency axis is in ppm.
+
+        Returns
+        -------
+        str
+            The axis label.
+        """
         if not axType in range(3):
             return 'User defined D' + str(axis+1)
         if spec:
             tmpString = "Frequency D" + str(axis+1) + ' '
             if ppm:
                 return tmpString + '[ppm]'
-            else:
-                return tmpString + FREQLABELLIST[axType]
+            return tmpString + FREQLABELLIST[axType]
         else:
-            
             return "Time D" + str(axis+1) + ' ' + TIMELABELLIST[axType]
 
     def setLog(self, logx, logy):
+        """
+        Sets the x and y axis to logarithmic or linear.
+
+        Parameters
+        ----------
+        logx : bool
+            True for a logarithmic x-axis.
+        logy : bool
+            True for a logarithmic y-axis.
+        """
         self.logx = logx
         self.logy = logy
         self.ax.set_xlim(self.xminlim, self.xmaxlim)

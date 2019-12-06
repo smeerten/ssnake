@@ -19,6 +19,20 @@
 
 
 def floatSlice(*args):
+    """
+    Function to create Slice objects with float input values.
+
+    Parameters
+    ----------
+    *args
+        All arguments that aren't None are converted to int.
+        The arguments are then used to create the Slice object.
+
+    Returns
+    -------
+    Slice
+        The output Slice object.
+    """
     tmp = ()
     for arg in args:
         if arg is None:

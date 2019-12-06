@@ -17,12 +17,35 @@
 # You should have received a copy of the GNU General Public License
 # along with ssNake. If not, see <http://www.gnu.org/licenses/>.
 
-import numpy as np
 import re
-import hypercomplex as hc
+import numpy as np
 import scipy.special
+import hypercomplex as hc
 
-def safeEval(inp, length=None, keywords=[], type='All', x=None):
+def safeEval(inp, length=None, Type='All', x=None):
+    """
+    Creates a more restricted eval environment.
+    Note that this method is still not acceptable to process strings from untrusted sources.
+
+    Parameters
+    ----------
+    inp : str
+        String to evaluate.
+    length : int or float, optional
+        The variable length will be set to this value.
+        By default the variable length is not set.
+    Type : {'All', 'FI', 'C'}, optional
+        Type of expected output. 'All' will return all types, 'FI' will return a float or int, and 'C' will return a complex number.
+        By default Type is set to 'All'
+    x : array_like, optional
+        The variable x is set to this variable,
+        By default the variable x is not used.
+
+    Returns
+    -------
+    Object
+        The result of the evaluated string.
+    """
     env = vars(np).copy()
     env.update(vars(hc).copy())
     env.update(vars(scipy.special).copy())
@@ -38,20 +61,17 @@ def safeEval(inp, length=None, keywords=[], type='All', x=None):
     if x is not None:
         env["x"] = x
     inp = re.sub('([0-9]+)[kK]', '\g<1>*1024', str(inp))
-    for i in keywords:
-        if i in inp:
-            return inp
     try:
         val = eval(inp, env)
         if isinstance(val, str):
             return None
-        if type == 'All':
+        if Type == 'All':
             return val
-        elif type == 'FI':  #single float/int type
+        if Type == 'FI':  #single float/int type
             if isinstance(val, (float, int)) and not np.isnan(val) and not np.isinf(val):
                 return val
             return None
-        elif type == 'C': #single complex number
+        if Type == 'C': #single complex number
             if isinstance(val, (float, int, complex)) and not np.isnan(val) and not np.isinf(val):
                 return val
             return None

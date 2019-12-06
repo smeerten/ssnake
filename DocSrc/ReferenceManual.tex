@@ -120,7 +120,7 @@ versions starting from 2.7 and 3.4.
 For the library version, the following are needed:
 \begin{itemize}
   \item  \texttt{numpy} $>=$ 1.11.0
-  \item  \texttt{matplotlib} $>=$ 1.4.2
+  \item  \texttt{matplotlib} $>=$ 1.5.0
   \item  \texttt{scipy} $>=$ 0.14.1
 \end{itemize}
 ssNake also needs the \texttt{PyQt} (version 4 or 5) and \texttt{h5py} libraries.
@@ -306,18 +306,19 @@ Name & Specification \\
 Varian/Agilent & VnmrJ 2 and newer. \texttt{fid} and \texttt{data} (spectrum)\\
 Bruker & Topspin and XWinNMR (\texttt{fid} \& \texttt{ser},\texttt{1r/i} \& \texttt{2rr/ii}) \\
 \rowcolor{gray!30!white}
+Bruker ParaVision & processed data (\texttt{2dseq})\\
 Bruker minispec  & \texttt{.sig} file\\
+\rowcolor{gray!30!white}
 JEOL Delta & 1D and 2D only at the moment \\
-\rowcolor{gray!30!white}
 Chemagnetics & -- \\
+\rowcolor{gray!30!white}
 Magritek & Both 1D and 2D data \\
-\rowcolor{gray!30!white}
 SIMPSON & 1D and 2D, -ascii and -binary \\
+\rowcolor{gray!30!white}
 JCAMP & 1D JCAMP-DX file\\
-\rowcolor{gray!30!white}
 Siemens ima & single voxel only\\
-JSON & ssNake JSON file (ascii)\\
 \rowcolor{gray!30!white}
+JSON & ssNake JSON file (ascii)\\
 Matlab & ssNake \texttt{.mat} file (binary)\\
 \bottomrule
 \end{tabular}
@@ -334,6 +335,9 @@ For processed data (\textit{data}, in the datdir folder for example) it searches
 The Bruker load first checks for the \textit{acqus} and \textit{acqu2s} files and extracts the number of points in both dimensions, the spectral widths and the spectral frequency. Also, the bitorder is checked, which describes the way the data is saved in the \textit{fid} or \textit{ser} file. Using this, the data is extracted.
 
 Bruker processed spectra can be loaded from \textit{1r} and \textit{1i} files for 1D data, \textit{2rr} and \textit{2ii} for 2D data, and \textit{2rr} and \textit{2ir} for hypercomplex data. It additionally takes parameters from \textit{procs} or \textit{proc2s} files in that directory. Moreover, the spectral frequency is extracted from the \textit{acqus} and/or \textit{acqu2s} files located \textit{two directories up}.
+
+\subsubsection*{Bruker ParaVision}
+Loads processed data acquired via Bruker ParaVision. This feature is experimental at the moment. It need several files: \texttt{2dseq}, \texttt{d3proc} and \texttt{procs}.
 
 \subsubsection*{Bruker minispec}
 In some cases, the Bruker minispec also outputs a \texttt{.sig} data file. These can be loaded in ssNake, although this is experimental at the moment.
@@ -386,18 +390,19 @@ Bruker spectrum & (\texttt{1r}/\texttt{1i}) or (\texttt{2rr} and \texttt{2ii}/\t
   & with \texttt{procs}/\texttt{proc2s},&\\
  &\texttt{../../acqus}, \texttt{../../acqu2s} & \\
 \rowcolor{gray!30!white}
+Bruker ParaVision & \texttt{2dseq}, \texttt{procs} and \texttt{d3proc} &\\
 Bruker minispec &  & \texttt{.sig} \\
+\rowcolor{gray!30!white}
 Chemagnetics &  \texttt{acq} (and \texttt{acq\_2} for 2D) + \texttt{data} &\\
-\rowcolor{gray!30!white}
 Magritek &  \texttt{acqu.par}, \texttt{*.1d} or \texttt{*.2d}&\\
+\rowcolor{gray!30!white}
 JEOL Delta & & \texttt{.jdf}\\
-\rowcolor{gray!30!white}
 NMRpipe & & \texttt{.fid} and first byte is 0\\
+\rowcolor{gray!30!white}
 SIMPSON &  & \texttt{.fid} or \texttt{.spe} \\
-\rowcolor{gray!30!white}
 JCAMP & & \texttt{.jcamp} or \texttt{.dx} or \texttt{.jdx}\\
-JSON & & \texttt{.json} or \texttt{.JSON}\\
 \rowcolor{gray!30!white}
+JSON & & \texttt{.json} or \texttt{.JSON}\\
 Matlab & & \texttt{.mat} or \texttt{.MAT}\\
 \bottomrule
 \end{tabular}
@@ -963,6 +968,20 @@ When pushing `Apply' the shift is performed on all traces of the nD data.
 The shifting is always applied in the time domain.
 In the frequency domain Fourier transforms are used to transform to and from the time domain to apply the shifting.
 
+
+\subsection{Roll data}
+Rolls the data to the left or to the right, by removing data points from one side, and inserting
+them on the other side of the data.  Negative values roll to the left, positive values to the
+right. Non-integer values can also be used. In this case, Fourier-based tricks are used to accomplish
+this.
+
+Starting the roll data tool creates an input window. In this window, a number must be
+filled in that equals the number of data points of the desired \textit{right} roll. Left rolls
+can be made by using negative values.  Alternatively, the arrows on the right and left side of the
+input box can be used to roll the data in the direction of the arrow.  The effect of the operation
+on the current 1D can be seen in the main window.  When pushing `Apply' the roll is performed on
+all traces of the nD data.
+
 \subsection{Integrate}
 Integrates a specific part of the active dimension on all traces.
 
@@ -1371,6 +1390,68 @@ $\Lambda^\prime_n$ for each rank $n$, following \autoref{eq:HamSphere}.
 
 
 
+
+\subsection{Connecting parameters}
+In all iterative fitting routines supported by ssNake, it is possible to connect parameters, thereby using
+extra information that the user has about the system, and reducing the number of free parameters in
+the fit. This can for example be used to link integral values, which should be the same for multiple
+sites (i.e. in a solid material with a 1:1 ratio between different sites).
+
+Linking parameters can be done by right-clicking on an input box in an iterative fitting
+routine, and selecting the option `Connect Parameter'. This gives the following pop-up window:
+\begin{center}
+\includegraphics[width=0.3\linewidth]{Images/ConnectPars.png}
+\end{center}
+
+Here several values need to put in:
+\begin{itemize}
+  \item Parameter: the name of the parameter that should be linked to
+  \item Data: the name of the fitting data tab that should be linked to
+  \item Line: the number of the row that should be linked to (first row is `0')
+  \item Multiplier: multiply the linked value by this number
+  \item Offset: offset the linked value by this number
+\end{itemize}
+When doing this, the original parameter is replaced with the number `$\text{Multiplier} \cdot x +
+\text{Offset}$' during the fit (with $x$ the value of the parameter that is linked to).
+
+When pushing `Ok' in the pop-up window, the original value in the input box is replaced by a value
+like `('Integral', 0, 1.0, 0.0, 0)'. The input represents: ('Par name', Line, Multiplier, Offset,
+Data index) The pop-up menu is essentially an easy tool to create this input.
+
+Note that chain-linking parameters will lead to errors. That is, do not link \texttt{par2} to
+\texttt{par1}, and \texttt{par3}
+to \texttt{par2}. Always refer to the original parameter (link \texttt{par2} to \texttt{par1}, and
+\texttt{par3} to \texttt{par1}).
+
+A tutorial on fitting using connected parameters can be found in the `MultiFitQuadrupole' advanced
+tutorial. 
+
+
+\subsection{Simultaneous fitting of multiple data sources}
+Apart from connecting parameters during a fit, as described in the previous section, ssNake also
+allows for the simultaneous fit of multiple data sources (i.e. spectra or time series). When fitting
+in such a case, ssNake tries to minimize the difference between all the experimental and simulated
+data. Fitting multiple data simultaneously only makes sense if there are connected parameters between
+the fitting parameters of the different data sets (otherwise the results are identical to the case
+where each data set is fit individually).
+
+When in a fitting window, extra data can be added using the `+Add data+' tab that can be found in
+the vertical tabs on the left hand side of the window. Clicking this prompts a pop-up window, where
+the workspace name and the desired fitting routine can must be supplied. The new data tab will be
+added to the vertical tab bar.
+
+The new data will have its own parameters. Note that in the `extra' fitting tabs, several buttons are
+missing. These are universal buttons, which are only displayed in the first (i.e. master) fitting
+tab. Pushing `Fit' fits all the data sets simultaneously.
+
+Be very careful with the vertical scaling of the spectra. If spectrum1 has 10000x more intensity
+than spectrum2, spectrum2 will be almost ignored during the fit. To avoid this, scale the spectra to
+have the same integral (scaling can be done via Matrix $\longrightarrow$ Normalize), or to have the
+same noise intensity. Tread carefully\ldots
+
+A tutorial on simultaneous fitting of multiple data sets can be found in the `MultiFitQuadrupole' advanced
+tutorial. 
+
 \subsection{S/N}
 S/N (or SNR) calculates the signal-to-noise ratio between a defined section of noise, and a peak. SNR is a useful way to describe the quality of a spectrum, with too low values being a sign for inaccurate data. In ssNake, opening the S/N tool creates a window, in which the limits of the section of noise has to be set, as well as the region with the peak of interest. Left clicking in the plot can set these values (noise limits first, then signal limits). Note that it is essential that the region that is specified as `noise' really is noise. Any remaining signal will disrupt the SNR calculation. When the limits are set, ssNake directly calculates the SNR, using:
 \begin{equation}
@@ -1410,10 +1491,20 @@ The axes of the plot can be set to a logarithmic scale. Negative number will not
 view. When switching to the log axis, sometimes a recalculation of the curve is necessary to get a
 nice plot.
 
+
 \subsection{Diffusion Curve}
+This routine can be used to fit diffusion curves. The equation
+used for this is:
 \begin{equation}
    y = \text{amp} \cdot (\text{const} + \text{coeff} \cdot \exp(-(\gamma  \delta  x)^2  D  (\Delta -\delta / 3.0)))
 \end{equation}
+Here, $\gamma$ represent the $\gamma$-value of the isotope that is measured, $\delta$ is the length
+of the gradient pulse, $\Delta$ is the time between the gradient pulses (i.e. the time from the
+start of gradient pulse 1, to the start of gradient pulse 2). $D$ is the diffusion constant, which
+is what we will fit. The `const' and `coeff' parameters have the same meaning as in the relaxation
+curve fit. Note that the $x$-axis should be in terms of the gradient strength (in Tesla). ssNake
+will still show `seconds' as a unit though (1 s = 1 T).
+
 
 
 
@@ -1429,7 +1520,7 @@ solution. General values that need to be set are:
 \item The MAS method: static, finite or infinite
 \item The spinning speed in kHz (when MAS is on `finite').
 \item The number of sidebands (when MAS is on `finite'). This value must always be larger then the
-  expected number of spinning sidebands. Higher values take more time to simulate.
+  expected number of spinning sidebands. When too few sidebands are simulated, the sideband intensities will be off. Larger values take more time to simulate. For efficiency powers of two should be used.
 \item The rotor angle in radian (when MAS is not static). Default is the magic angle:
 	 $\text{arctan}(\sqrt{2})$
 \end{itemize}
@@ -1492,12 +1583,12 @@ be turned on or of. General values that need to be set are:
 \begin{itemize}
 \item The spin quantum number $I$ 
 \item The MAS type: static, finite MAS or infinite MAS
-\item The satellites (on or off, not that for integer $I$ values, the must be on)
+\item The satellites (on or off, note that for integer $I$ values, they must be on)
 \item The Cheng number (number of powder averages)
 \item The rotor angle in radian (when MAS is not `static'). Default is the magic angle:
 	 $\text{arctan}(\sqrt{2})$
 \item The number of sidebands (when MAS is on `finite'). This value must always be larger then the
-  expected number of spinning sidebands. Higher values take more time to simulate.
+  expected number of spinning sidebands. When too few sidebands are simulated, the sideband intensities will be off. Larger values take more time to simulate. For efficiency powers of two should be used.
 \item The spinning speed in kHz (when MAS is on `finite').
 \item The background (constant value added to all data points)
 \end{itemize}
@@ -1512,7 +1603,7 @@ And for each site:
 \end{itemize}
 A maximum of 10 sites can be fitted simultaneously.
 
-When simulating an infinite MAS spectrum, a more efficient routine can be used that for finite MAS.
+When simulating an infinite MAS spectrum, a more efficient routine can be used than for finite MAS.
 If spinning sidebands are not important in the calculation, it might be useful to switch to
 `infinite' for speed considerations.
 
@@ -1713,7 +1804,7 @@ spin-spin interactions are present (dipolar, J) the relevant spins \textit{shoul
 SIMPSON file.
 
 
-If, for example, we want to fit a spectrum were we want to change the chemical shift anisotropy
+If, for example, we want to fit the chemical shift anisotropy ($\delta_\text{aniso}$) and asymmetry ($\eta$), 
 ($\delta_\text{aniso}$) and asymmetry ($\eta$), we could use the following SIMPSON spinsys:
 
 \lstset{language=tcl}          % Set your language (you can change the language for each code-block optionally)
@@ -1929,6 +2020,12 @@ Ticking this box draws a diagonal line across the 2D data at x = y. Note that th
 Therefore, if a data set with two identical axes is plot, only if the two units are the same, the diagonal is plot in a way that (probably) is the correct way.
 Alternatively, there is a box called `Multiplier', in which a value can be put that multiplies the x-axis (only for the calculation of the diagonal).
 
+\subsection{2D Colour Plot}
+A 2D Colour plot shows the height profile of the data using a colour scheme.
+This plot type essentially show the same information as a Contour plot, but might
+be more applicable for certain types of data. It is used often for viewing NMR imaging (MRI) data.
+
+As with the Contour plot, the 2D Colour plot shows projections, of which the settings can be changed in the side frame (see the Section on Contour Plot for more information).
 
 \subsection{Multi plot}
 A multi plot is on overlay of multiple workspaces. It shows the 1D Plot of the active workspace, and a button

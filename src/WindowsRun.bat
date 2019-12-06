@@ -1,3 +1,3 @@
 set mypath=%cd%
 cd ..\..
-start pythonw "%mypath%"\ssNake.py
+start pyw "%mypath%"\ssNake.py

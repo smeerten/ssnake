@@ -18,16 +18,16 @@
 # You should have received a copy of the GNU General Public License
 # along with ssNake. If not, see <http://www.gnu.org/licenses/>.
 
-import numpy as np
-import matplotlib as mpl
-from matplotlib.figure import Figure
-import scipy.optimize
 import multiprocessing
 import re
 import time
 import datetime
 import os
 import copy
+import numpy as np
+import matplotlib as mpl
+from matplotlib.figure import Figure
+import scipy.optimize
 from safeEval import safeEval
 from views import Current1D, CurrentContour
 import widgetClasses as wc
@@ -36,7 +36,7 @@ import simFunctions as simFunc
 import specIO as io
 import spectrum as sc
 from ssNake import SideFrame, VERSION, QtGui, QtCore, QtWidgets, FigureCanvas
-import Czjzek as Czjzek
+import Czjzek
 
 stopDict = {}  # Global dictionary with stopping commands for fits
 
@@ -64,15 +64,34 @@ class FittingException(sc.SpectrumException):
 
 
 class TabFittingWindow(QtWidgets.QWidget):
+    """
+    The base widget of the fitting window.
+    This handles the different tabs for multifitting.
+    """
 
     PRECIS = 4
     MINMETHOD = 'Powell'
     NUMFEVAL = 150
 
     def __init__(self, father, oldMainWindow, mainFitType):
+        """
+        Initializes the tab fitting window.
+
+        Parameters
+        ----------
+        father : MainProgram
+            The main program of ssnake.
+        oldMainWindow : Main1DWindow
+            The window that this fitting window replaces.
+        mainFitType : str
+            The name of the base fit type to be performed.
+            Should be a key in FITTYPEDICT.
+        """
         super(TabFittingWindow, self).__init__(father)
         self.father = father
         self.oldMainWindow = oldMainWindow
+        self.get_masterData = oldMainWindow.get_masterData  # Connect function
+        self.get_current = oldMainWindow.get_current        # Connect function
         self.mainFitType = mainFitType
         self.subFitWindows = []
         self.process1 = None
@@ -85,8 +104,8 @@ class TabFittingWindow(QtWidgets.QWidget):
         self.tabs.tabCloseRequested.connect(self.closeTab)
         self.tabs.addTab(self.mainFitWindow, self.current.data.name)
         self.tabs.addTab(QtWidgets.QWidget(), '+Add data+')
-        self.tabs.tabBar().setTabButton(0, QtWidgets.QTabBar.RightSide, QtWidgets.QLabel(''));
-        self.tabs.tabBar().setTabButton(1, QtWidgets.QTabBar.RightSide, QtWidgets.QLabel(''));
+        self.tabs.tabBar().setTabButton(0, QtWidgets.QTabBar.RightSide, QtWidgets.QLabel(''))
+        self.tabs.tabBar().setTabButton(1, QtWidgets.QTabBar.RightSide, QtWidgets.QLabel(''))
         self.tabs.currentChanged.connect(self.changeTab)
         self.oldTabIndex = 0
         grid3 = QtWidgets.QGridLayout(self)
@@ -95,18 +114,30 @@ class TabFittingWindow(QtWidgets.QWidget):
         grid3.setRowStretch(0, 1)
 
     def getTabNames(self):
+        """
+        Returns a list of the tab names.
+        """
         return [self.tabs.tabText(i) for i in range(self.tabs.count()-1)]
 
     def getCurrentTabName(self):
+        """
+        Returns the name of the tab currently open.
+        """
         return self.tabs.tabText(self.tabs.currentIndex())
 
     def getParamTextList(self):
+        """
+        Returns a list of all unique parameter names of all tabs.
+        """
         parametertxtlist = self.mainFitWindow.paramframe.SINGLENAMES + self.mainFitWindow.paramframe.MULTINAMES
         for subfit in self.subFitWindows:
             parametertxtlist += subfit.paramframe.SINGLENAMES+subfit.paramframe.MULTINAMES
         return list(set(parametertxtlist))
 
     def addSpectrum(self):
+        """
+        Asks the user for a workspace name and a fitting type and adds this as a new tab.
+        """
         wsIndex, fitName, accept = NewTabDialog.getFitInput(self, self.father.workspaceNames, list(FITTYPEDICT.keys()), self.mainFitType)
         if not accept:
             return
@@ -116,28 +147,72 @@ class TabFittingWindow(QtWidgets.QWidget):
         self.oldTabIndex = len(self.subFitWindows)
 
     def removeSpectrum(self, spec):
+        """
+        Removes a spectrum from the tabs.
+
+        Parameters
+        ----------
+        spec : str
+            The name of the spectrum to remove.
+        """
         num = self.subFitWindows.index(spec)
-        self.tabs.setCurrentIndex(num) 
+        self.tabs.setCurrentIndex(num)
         self.oldTabIndex = num
         self.tabs.removeTab(num + 1)
         del self.subFitWindows[num]
 
     def changeTab(self, index):
+        """
+        Changes the active fitting tab.
+
+        Parameters
+        ----------
+        index : int
+            The index of the tab to open.
+        """
         if index == self.tabs.count() - 1:
-            self.tabs.setCurrentIndex(self.oldTabIndex) #Quickly set to old tab, to avoid showing the `add data' tab
+            self.tabs.setCurrentIndex(self.oldTabIndex)     # Quickly set to old tab, to avoid showing the `add data' tab
             self.addSpectrum()
         else:
             self.oldTabIndex = index
 
     def closeTab(self, num):
+        """
+        Closes a tab.
+
+        Parameters
+        ----------
+        num : int
+            The index of the tab to close.
+        """
         count = self.tabs.count()
         if num > 0:
             if num != count - 1:
-                self.tabs.setCurrentIndex(num - 1) #Set one step lower to avoid 'addSpectrum' to be run
+                self.tabs.setCurrentIndex(num - 1)          # Set one step lower to avoid 'addSpectrum' to be run
                 self.tabs.removeTab(num)
                 del self.subFitWindows[num - 1]
 
     def fitProcess(self, xax, data1D, guess, args, funcs):
+        """
+        Creates a new process to fit the spectra.
+
+        Parameters
+        ----------
+        xax : list
+            The list with xaxArrays from the various spectra.
+        data1D : ndarray
+            The concatenated data from the various spectra.
+        guess : list
+            The initial guesses of the fit parameters.
+        args : tuple
+            The additional parameters of the fit.
+        funcs : list of functions
+            The fit function for each of the spectra.
+        Returns
+        -------
+        OptimizeResult
+            The results of the fit.
+        """
         self.queue = multiprocessing.Queue()
         self.process1 = multiprocessing.Process(target=mpFit, args=(xax, data1D, guess, args, self.queue, funcs, self.MINMETHOD, self.NUMFEVAL))
         self.process1.start()
@@ -154,11 +229,14 @@ class TabFittingWindow(QtWidgets.QWidget):
         self.stopMP()
         if fitVal is None:
             raise FittingException('Optimal parameters not found')
-        elif isinstance(fitVal, str):
+        if isinstance(fitVal, str):
             raise FittingException(fitVal)
         return fitVal
 
     def stopMP(self, *args):
+        """
+        Stops the running fitting process.
+        """
         if self.queue is not None:
             self.process1.terminate()
             self.queue.close()
@@ -170,11 +248,17 @@ class TabFittingWindow(QtWidgets.QWidget):
         self.mainFitWindow.paramframe.stopButton.hide()
 
     def stopAll(self, *args):
+        """
+        Stops all the fitting processes started by fitAll.
+        """
         self.runningAll = False
         self.stopMP()
         self.mainFitWindow.paramframe.stopAllButton.hide()
 
     def fitAll(self, *args):
+        """
+        sequentially opens slices from an ND spectrum and runs a fit.
+        """
         self.runningAll = True
         self.mainFitWindow.paramframe.stopAllButton.show()
         tmp = np.array(self.mainFitWindow.current.data.shape())
@@ -191,28 +275,28 @@ class TabFittingWindow(QtWidgets.QWidget):
             self.fit()
             self.mainFitWindow.sideframe.upd()
         self.mainFitWindow.paramframe.stopAllButton.hide()
-        
+
     def fit(self):
+        """
+        Fits a spectrum on the current slice.
+        """
         value = self.mainFitWindow.paramframe.getFitParams()
         if value is None:
             return
-        else:
-            xax, data1D, guess, args, out = value
+        xax, data1D, guess, args, out = value
         xax = [xax]
         data1D = [data1D]
-        out = [out]
         selectList = [slice(0, len(guess))]
         funcs = [self.mainFitWindow.paramframe.FITFUNC]
         for i in range(len(self.subFitWindows)):
             xax_tmp, data1D_tmp, guess_tmp, args_tmp, out_tmp = self.subFitWindows[i].paramframe.getFitParams()
-            out.append(out_tmp)
             xax.append(xax_tmp)
             selectList.append(slice(len(guess), len(guess) + len(guess_tmp)))
             data1D.append(data1D_tmp)
             funcs.append(self.subFitWindows[i].paramframe.FITFUNC)
             guess += guess_tmp
             new_args = ()
-            for n in range(len(args)):
+            for n, _ in enumerate(args):
                 new_args += (args[n] + args_tmp[n],)
             args = new_args  # tuples are immutable
         new_args = (selectList,) + args
@@ -222,28 +306,48 @@ class TabFittingWindow(QtWidgets.QWidget):
         allFitVal = allFitVal['x']
         fitVal = []
         for length in selectList:
-            if allFitVal.ndim is 0:
+            if allFitVal.ndim == 0:
                 fitVal.append(np.array([allFitVal]))
             else:
                 fitVal.append(allFitVal[length])
         args_out = []
-        for n in range(len(args)):
+        for n, _ in enumerate(args):
             args_out.append([args[n][0]])
-        self.mainFitWindow.paramframe.setResults(fitVal[0], args_out, out[0])
-        for i in (range(len(self.subFitWindows))):
+        self.mainFitWindow.paramframe.setResults(fitVal[0], args_out)
+        for i, _ in enumerate(self.subFitWindows):
             args_out = []
-            for n in range(len(args)):
+            for n, _ in enumerate(args):
                 args_out.append([args[n][i + 1]])
-            self.subFitWindows[i].paramframe.setResults(fitVal[i + 1], args_out, out[i + 1])
+            self.subFitWindows[i].paramframe.setResults(fitVal[i + 1], args_out)
 
     def getNum(self, paramfitwindow):
+        """
+        Returns the index of a parameter fit window.
+
+        Parameters
+        ----------
+        paramfitwindow : AbstractParamFrame
+            The parameter frame of which to determine the index.
+
+        Returns
+        -------
+        int
+            The index.
+        """
         fitwindow = paramfitwindow.rootwindow
         if fitwindow is self.mainFitWindow:
             return 0
-        else:
-            return self.subFitWindows.index(fitwindow) + 1
+        return self.subFitWindows.index(fitwindow) + 1
 
     def getParams(self):
+        """
+        Collect the fitting parameters from all tabs.
+
+        Returns
+        -------
+        ndarray
+            The fitting parameters.
+        """
         params = [self.mainFitWindow.paramframe.getSimParams()]
         for window in self.subFitWindows:
             tmp_params = window.paramframe.getSimParams()
@@ -251,9 +355,18 @@ class TabFittingWindow(QtWidgets.QWidget):
         if params[0] is None:
             return None
         return params
-            
+
     def disp(self, *args, **kwargs):
-        #self.mainFitWindow.paramframe.simButton.hide()
+        """
+        Simulate all spectra and display them.
+
+        Parameters
+        ----------
+        *args
+            All arguments are passed to the disp functions of the parameter frames.
+        **kwargs
+            All keyword arguments are passed to the disp functions of the parameter frames.
+        """
         self.mainFitWindow.paramframe.simBusyButton.show()
         QtWidgets.qApp.processEvents()
         try:
@@ -263,34 +376,41 @@ class TabFittingWindow(QtWidgets.QWidget):
             self.mainFitWindow.paramframe.disp(params, 0, *args, **kwargs)
             for i in range(len(self.subFitWindows)):
                 self.subFitWindows[i].paramframe.disp(params, i + 1, *args, **kwargs)
-        except:
+        except Exception:
             raise
         finally:
             self.mainFitWindow.paramframe.simBusyButton.hide()
-            #self.mainFitWindow.paramframe.simButton.show()
-
-    def get_masterData(self):
-        return self.oldMainWindow.get_masterData()
-
-    def get_current(self):
-        return self.oldMainWindow.get_current()
 
     def kill(self):
-        self.tabs.currentChanged.disconnect() #Prevent call for data on close
+        """
+        Closes the fitting window.
+        """
+        self.tabs.currentChanged.disconnect() # Prevent call for data on close
         self.mainFitWindow.kill()
 
 ##############################################################################
 
 
 class ResultsExportWindow(QtWidgets.QWidget):
+    """
+    The window for exporting or importing parameters.
+    """
 
     def __init__(self, parent):
+        """
+        Initializes the import export window.
+
+        Parameters
+        ----------
+        parent : AbstractParamFrame
+            The parameter frame from which this window was called.
+        """
         super(ResultsExportWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
         self.setWindowTitle("Export results")
         grid = QtWidgets.QGridLayout(self)
-        exportGroup = QtWidgets.QGroupBox('Export:')
+        exportGroup = QtWidgets.QGroupBox("Export:")
         exportGrid = QtWidgets.QGridLayout()
         self.parToWorkButton = QtWidgets.QPushButton("Parameters to Workspace")
         self.parToWorkButton.clicked.connect(self.parToWork)
@@ -303,44 +423,72 @@ class ResultsExportWindow(QtWidgets.QWidget):
         exportGrid.addWidget(self.curvesToWorkButton, 2, 0)
         exportGroup.setLayout(exportGrid)
         grid.addWidget(exportGroup, 0, 0)
-        importGroup = QtWidgets.QGroupBox('Import:')
+        importGroup = QtWidgets.QGroupBox("Import:")
         importGrid = QtWidgets.QGridLayout()
         self.fileToParButton = QtWidgets.QPushButton("File to parameters")
         self.fileToParButton.clicked.connect(self.fileToPar)
-        importGrid.addWidget(self.fileToParButton, 3, 0)        
+        importGrid.addWidget(self.fileToParButton, 3, 0)
         importGroup.setLayout(importGrid)
         grid.addWidget(importGroup, 1, 0)
         cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
-        grid.addWidget(cancelButton,4, 0)
+        grid.addWidget(cancelButton, 4, 0)
         grid.setRowStretch(100, 1)
         self.show()
         self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
 
     def closeEvent(self, *args):
+        """
+        Closes the import export window.
+        """
         self.deleteLater()
 
     def parToWork(self, *args):
+        """
+        Exports parameters to a workspace.
+        """
         self.deleteLater()
         self.father.paramToWorkspaceWindow()
 
     def parToFile(self, *args):
+        """
+        Exports parameters to a file.
+        """
         if self.father.paramToFile():
             self.deleteLater()
 
     def fileToPar(self, *args):
+        """
+        Imports parameters from a file.
+        """
         if self.father.fileToParam():
             self.deleteLater()
 
     def curvesToWork(self, *args):
+        """
+        Exports curves to a workspace.
+        """
         self.deleteLater()
         self.father.resultToWorkspaceWindow()
 
 ##################################################################################################
 
 class FitCopySettingsWindow(QtWidgets.QWidget):
+    """
+    The window for exporting curves to a workspace.
+    """
 
     def __init__(self, parent, single=False):
+        """
+        Initializes the curve export window.
+
+        Parameters
+        ----------
+        parent : AbstractParamFrame
+            The parameter frame from where the export window was opened.
+        single : bool, optional
+            True when the data has more than one dimension.
+        """
         super(FitCopySettingsWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
@@ -369,17 +517,23 @@ class FitCopySettingsWindow(QtWidgets.QWidget):
         okButton.setFocus()
         box = QtWidgets.QDialogButtonBox()
         box.setOrientation(QtCore.Qt.Horizontal)
-        box.addButton(cancelButton,QtWidgets.QDialogButtonBox.RejectRole)
-        box.addButton(okButton,QtWidgets.QDialogButtonBox.AcceptRole)
+        box.addButton(cancelButton, QtWidgets.QDialogButtonBox.RejectRole)
+        box.addButton(okButton, QtWidgets.QDialogButtonBox.AcceptRole)
         layout.addWidget(box, 2, 0)
         grid.setRowStretch(100, 1)
         self.show()
         self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
 
     def closeEvent(self, *args):
+        """
+        Closes the curve export window.
+        """
         self.deleteLater()
 
     def applyAndClose(self, *args):
+        """
+        Exports the curves and closes the window.
+        """
         self.deleteLater()
         self.father.resultToWorkspace([self.allSlices.isChecked(), self.original.isChecked(), self.subFits.isChecked(), self.difference.isChecked()])
 
@@ -387,8 +541,23 @@ class FitCopySettingsWindow(QtWidgets.QWidget):
 
 
 class ParamCopySettingsWindow(QtWidgets.QWidget):
+    """
+    The window for exporting parameters to a workspace.
+    """
 
     def __init__(self, parent, paramNames, single=False):
+        """
+        Initializes the export parameters window.
+
+        Parameters
+        ----------
+        parent : AbstractParamFrame
+            The parameter frame from where the export window was opened.
+        paramNames : list of str
+            A list of unique parameter names of all tabs.
+        single : bool, optional
+            True when the data has more than one dimension.
+        """
         super(ParamCopySettingsWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
@@ -403,7 +572,7 @@ class ParamCopySettingsWindow(QtWidgets.QWidget):
             line.setFrameShape(QtWidgets.QFrame.HLine)
             grid.addWidget(line, 1, 0, 1, 2)
         self.exportList = []
-        for i in range(len(paramNames)):
+        for i, _ in enumerate(paramNames):
             self.exportList.append(QtWidgets.QCheckBox(paramNames[i]))
             grid.addWidget(self.exportList[-1], i + 2, 0)
         cancelButton = QtWidgets.QPushButton("&Cancel")
@@ -412,17 +581,23 @@ class ParamCopySettingsWindow(QtWidgets.QWidget):
         okButton.clicked.connect(self.applyAndClose)
         okButton.setFocus()
         box = QtWidgets.QDialogButtonBox()
-        box.addButton(cancelButton,QtWidgets.QDialogButtonBox.RejectRole)
-        box.addButton(okButton,QtWidgets.QDialogButtonBox.AcceptRole)
+        box.addButton(cancelButton, QtWidgets.QDialogButtonBox.RejectRole)
+        box.addButton(okButton, QtWidgets.QDialogButtonBox.AcceptRole)
         layout.addWidget(box, 2, 0)
         grid.setRowStretch(100, 1)
         self.show()
         self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
 
     def closeEvent(self, *args):
+        """
+        Closes the parameter export window.
+        """
         self.deleteLater()
 
     def applyAndClose(self, *args):
+        """
+        Exports the parameters and closes the window.
+        """
         self.deleteLater()
         answers = []
         for checkbox in self.exportList:
@@ -433,14 +608,42 @@ class ParamCopySettingsWindow(QtWidgets.QWidget):
 
 
 class FittingWindow(QtWidgets.QWidget):
-    # Inherited by the fitting windows
+    """
+    A fitting tab window.
+    """
 
     def __init__(self, father, oldMainWindow, tabWindow, fitType, isMain=True):
+        """
+        Initializes the fitting tab window.
+
+        Parameters
+        ----------
+        father : MainProgram
+            The main program of ssnake.
+        oldMainWindow : Main1DWindow
+            The window that this fitting window replaces.
+        tabWindow : TabFittingWindow
+            The fitting window that holds this tab.
+        fitType : str
+            The name of the fit type of this frame.
+            Should be a key in FITTYPEDICT.
+        isMain : bool, optional
+            True if this frame is the main tab of tabWindow.
+            By default True.
+        """
         super(FittingWindow, self).__init__(father)
         self.isMain = isMain
         self.father = father
         self.oldMainWindow = oldMainWindow
+        self.get_masterData = self.oldMainWindow.get_masterData    # Connect functions
+        self.get_current = self.oldMainWindow.get_current          # Connect functions
         self.tabWindow = tabWindow
+        self.getCurrentTabName = self.tabWindow.getCurrentTabName  # Connect functions
+        self.getTabNames = self.tabWindow.getTabNames              # Connect functions
+        self.getParams = self.tabWindow.getParams                  # Connect functions
+        self.getNum = self.tabWindow.getNum                        # Connect functions
+        self.getParamTextList = self.tabWindow.getParamTextList    # Connect functions
+        self.addSpectrum = self.tabWindow.addSpectrum              # Connect functions
         self.fitType = fitType
         self.fig = Figure()
         self.canvas = FigureCanvas(self.fig)
@@ -448,6 +651,10 @@ class FittingWindow(QtWidgets.QWidget):
         grid.addWidget(self.canvas, 0, 0)
         self.current = FITTYPEDICT[self.fitType][1](self, self.fig, self.canvas, self.oldMainWindow.get_current())
         self.paramframe = FITTYPEDICT[self.fitType][2](self.current, self, isMain=self.isMain)
+        self.buttonPress = self.current.buttonPress                # Connect functions
+        self.buttonRelease = self.current.buttonRelease            # Connect functions
+        self.pan = self.current.pan                                # Connect functions
+        self.scroll = self.current.scroll                          # Connect functions
         grid.addWidget(self.paramframe, 1, 0, 1, 2)
         grid.setColumnStretch(0, 1)
         grid.setRowStretch(0, 1)
@@ -460,42 +667,56 @@ class FittingWindow(QtWidgets.QWidget):
         self.canvas.mpl_connect('scroll_event', self.scroll)
 
     def rescue(self, *args):
-        # This data has too little dimensions for the fitAll
+        """
+        If rescue is called, the window does not have enough dimensions.
+        """
         raise FittingException("This data has too little dimensions for this type of fit")
-        
+
     def updAllFrames(self, *args):
         pass
-        
+
     def fit(self):
+        """
+        Perform a fit.
+        """
         self.tabWindow.fit()
         self.paramframe.togglePick()
 
     def sim(self, *args, **kwargs):
+        """
+        Perform a simulation.
+
+        Parameters
+        ----------
+        **kwargs
+            Keyword arguments are passed to disp of the TabFittingWindow.
+        """
         self.tabWindow.disp(**kwargs)
         self.paramframe.togglePick()
 
-    def getCurrentTabName(self, *args, **kwargs):
-        return self.tabWindow.getCurrentTabName(*args, **kwargs)
-
-    def getTabNames(self, *args, **kwargs):
-        return self.tabWindow.getTabNames(*args, **kwargs)
-
-    def getParams(self, *args, **kwargs):
-        return self.tabWindow.getParams(*args, **kwargs)
-
-    def getNum(self, *args, **kwargs):
-        return self.tabWindow.getNum(*args, **kwargs)
-
-    def getParamTextList(self, *args, **kwargs):
-        return self.tabWindow.getParamTextList(*args, **kwargs)
-
-    def addSpectrum(self):
-        self.tabWindow.addSpectrum()
-
     def removeSpectrum(self):
+        """
+        Removes itself from the tabs.
+        """
         self.tabWindow.removeSpectrum(self)
 
     def createNewData(self, data, axis, params=False, fitAll=False):
+        """
+        Creates the data for a new workspace.
+
+        Parameters
+        ----------
+        data : ndarray
+            The data to be used in the new workspace.
+        axis : int
+            The axis from which the data should be taken from the masterData.
+        params : bool, optional
+            Whether the data was created from parameters.
+            False by default.
+        fitAll : bool, optional
+            Whether the data was created from all slices of the data.
+            False by default.
+        """
         masterData = self.get_masterData()
         if fitAll:
             if params:
@@ -541,31 +762,27 @@ class FittingWindow(QtWidgets.QWidget):
                                         0)
 
     def rename(self, name):
+        """
+        Renames the workspace.
+
+        Parameters
+        ----------
+        name : str
+            The new name of the workspace.
+        """
         self.canvas.draw()
         self.oldMainWindow.rename(name)
 
-    def buttonPress(self, event):
-        self.current.buttonPress(event)
-
-    def buttonRelease(self, event):
-        self.current.buttonRelease(event)
-
-    def pan(self, event):
-        self.current.pan(event)
-
-    def scroll(self, event):
-        self.current.scroll(event)
-
     def get_mainWindow(self):
+        """
+        Returns the original workspace window.
+        """
         return self.oldMainWindow
 
-    def get_masterData(self):
-        return self.oldMainWindow.get_masterData()
-
-    def get_current(self):
-        return self.oldMainWindow.get_current()
-
     def kill(self):
+        """
+        Completely closes the workspace.
+        """
         for i in reversed(range(self.grid.count())):
             self.grid.itemAt(i).widget().deleteLater()
         self.grid.deleteLater()
@@ -578,7 +795,10 @@ class FittingWindow(QtWidgets.QWidget):
         self.deleteLater()
 
     def cancel(self):
-        self.tabWindow.tabs.currentChanged.disconnect() #Disconnect tabs before closing, to avoid change index signal
+        """
+        Closes the fitting window and restores the original workspace window.
+        """
+        self.tabWindow.tabs.currentChanged.disconnect() # Disconnect tabs before closing, to avoid change index signal
         for i in reversed(range(self.grid.count())):
             self.grid.itemAt(i).widget().deleteLater()
         self.grid.deleteLater()
@@ -601,12 +821,29 @@ class FittingSideFrame(SideFrame):
 
 
 class FitPlotFrame(Current1D):
+    """
+    The frame to plot the spectra during fitting.
+    """
 
     MARKER = ''
     LINESTYLE = '-'
-    FITNUM = 20  # Standard number of fits
+    FITNUM = 20      # Standard number of fits
 
     def __init__(self, rootwindow, fig, canvas, current):
+        """
+        Initializes the fitting plot window.
+
+        Parameters
+        ----------
+        rootwindow : FittingWindow
+            The window that contains the figure.
+        fig : Figure
+            The figure used in this frame.
+        canvas : FigureCanvas
+            The canvas of fig.
+        current : PlotFrame
+            The view of the original workspace.
+        """
         self.data = current.data
         tmp = np.array(current.data.shape(), dtype=int)
         tmp = np.delete(tmp, self.fixAxes(current.axes))
@@ -616,9 +853,22 @@ class FitPlotFrame(Current1D):
         super(FitPlotFrame, self).__init__(rootwindow, fig, canvas, current.data, current)
 
     def getRedLocList(self):
+        """
+        Returns the reduced location list with the displayed axis removed.
+        """
         return tuple(np.delete(self.locList, self.axes))
-        
+
     def setSlice(self, axes, locList):
+        """
+        Changes the displayed slice.
+
+        Parameters
+        ----------
+        axes : array_like of int
+            The list of axes of the slice to be displayed.
+        locList : array_like of int
+            The location of the slice to be displayed.
+        """
         self.rootwindow.paramframe.checkInputs()
         self.pickWidth = False
         super(FitPlotFrame, self).setSlice(axes, locList)
@@ -627,9 +877,15 @@ class FitPlotFrame(Current1D):
         self.rootwindow.paramframe.togglePick()
 
     def getData1D(self):
+        """
+        Returns the raw data.
+        """
         return np.real(self.getDataType(self.data1D.getHyperData(0)))
 
     def showFid(self):
+        """
+        Displays the plot and fit curves.
+        """
         extraX = []
         extraY = []
         self.locList = np.array(self.locList, dtype=int)
@@ -652,24 +908,40 @@ class FitPlotFrame(Current1D):
 
 
 class AbstractParamFrame(QtWidgets.QWidget):
+    """
+    The base class of all parameter frames.
+    """
 
-    FITFUNC = None # Function used for fitting and simulation
-    SINGLENAMES = []
-    MULTINAMES = []
-    EXTRANAMES = []
-    TICKS = True  # Fitting parameters can be fixed by checkboxes
-    FFT_AXES = () # Which axes should be transformed after simulation
-    FFTSHIFT_AXES = () # Which axes should be transformed after simulation
-    DIM = 1 # Number of dimensions of the fit
+    FITFUNC = None      # Function used for fitting and simulation
+    SINGLENAMES = []    # The names of the parameters which are common for all sites
+    MULTINAMES = []     # The names of the parameters which increase with the number of sites
+    EXTRANAMES = []     # The names of additional parameters
+    TICKS = True        # Fitting parameters can be fixed by checkboxes
+    FFT_AXES = ()       # Which axes should be transformed after simulation
+    FFTSHIFT_AXES = ()  # Which axes should be transformed after simulation
+    DIM = 1             # Number of dimensions of the fit
 
     def __init__(self, parent, rootwindow, isMain=True):
+        """
+        Initializes the parameter frame.
+
+        Parameters
+        ----------
+        parent : FitPlotFrame
+            The plot frame connected to this parameter frame.
+        rootwindow : FittingWindow
+            The fitting tab that holds this parameter frame.
+        isMain : bool, optional
+            True if this frame is part of the main tab.
+        """
         super(AbstractParamFrame, self).__init__(rootwindow)
         self.parent = parent
+        self.getRedLocList = self.parent.getRedLocList  # Connect function
         self.FITNUM = self.parent.FITNUM
         self.rootwindow = rootwindow
-        self.isMain = isMain # display fitting buttons
-        self.ticks = {key: [] for key in (self.SINGLENAMES + self.MULTINAMES)}
-        self.entries = {key: [] for key in (self.SINGLENAMES + self.MULTINAMES + self.EXTRANAMES)}
+        self.isMain = isMain              # display fitting buttons
+        self.ticks = {key: [] for key in self.SINGLENAMES + self.MULTINAMES}
+        self.entries = {key: [] for key in self.SINGLENAMES + self.MULTINAMES + self.EXTRANAMES}
         tmp = np.array(self.parent.data.shape(), dtype=int)
         tmp = np.delete(tmp, self.parent.axes)
         self.fitParamList = np.zeros(tmp, dtype=object)
@@ -715,10 +987,10 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.frame3.setAlignment(QtCore.Qt.AlignTop)
         self.simButton = QtWidgets.QPushButton("Sim")
         self.simButton.clicked.connect(self.rootwindow.sim)
-        self.frame1.addWidget(self.simButton, 0, 0,1,1)
+        self.frame1.addWidget(self.simButton, 0, 0, 1, 1)
         self.simBusyButton = QtWidgets.QPushButton("Busy")
-        self.simBusyButton.setEnabled(False) 
-        self.frame1.addWidget(self.simBusyButton, 0, 0,1,1)
+        self.simBusyButton.setEnabled(False)
+        self.frame1.addWidget(self.simBusyButton, 0, 0, 1, 1)
         self.simBusyButton.hide()
         if self.isMain:
             fitButton = QtWidgets.QPushButton("Fit")
@@ -726,7 +998,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
             self.frame1.addWidget(fitButton, 0, 1)
             self.stopButton = QtWidgets.QPushButton("Stop")
             self.stopButton.clicked.connect(self.rootwindow.tabWindow.stopMP)
-            self.stopButton.setStyleSheet('background-color: green') 
+            self.stopButton.setStyleSheet('background-color: green')
             self.frame1.addWidget(self.stopButton, 0, 1)
             self.stopButton.hide()
             fitAllButton = QtWidgets.QPushButton("Fit all")
@@ -734,7 +1006,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
             self.frame1.addWidget(fitAllButton, 1, 0)
             self.stopAllButton = QtWidgets.QPushButton("Stop all")
             self.stopAllButton.clicked.connect(self.rootwindow.tabWindow.stopAll)
-            self.stopAllButton.setStyleSheet('background-color: green') 
+            self.stopAllButton.setStyleSheet('background-color: green')
             self.frame1.addWidget(self.stopAllButton, 1, 0)
             self.stopAllButton.hide()
             prefButton = QtWidgets.QPushButton("Preferences")
@@ -758,28 +1030,44 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.frame1.addWidget(cancelButton, 4, 0, 1, 2)
         self.checkFitParamList(self.getRedLocList())
 
-    def getRedLocList(self):
-        return self.parent.getRedLocList()
-
     def togglePick(self):
         # Dummy function for fitting routines which require peak picking
         pass
 
     def reset(self):
+        """
+        Resets all fit parameters to their default values.
+        """
         locList = self.getRedLocList()
         self.fitNumList[locList] = 0
-        self.fitParamList[locList] = self.defaultValues(0)
+        self.fitParamList[locList] = self.defaultValues()
         self.dispParams()
-    
+
     def checkFitParamList(self, locList):
+        """
+        Checks whether the fit parameters exist for a given slice of the data.
+        When the fit parameters are not available they will be set to the default values.
+
+        Parameters
+        ----------
+        locList : array_like of int
+            The location (indices) for which to check the fit parameters.
+        """
         locList = tuple(locList)
         if not self.fitParamList[locList]:
-            self.fitParamList[locList] = self.defaultValues(0)
+            self.fitParamList[locList] = self.defaultValues()
 
-    def defaultValues(self, inp):
-        if inp:
-            return inp
-        tmpVal = {key: None for key in (self.SINGLENAMES + self.MULTINAMES)}
+    def defaultValues(self):
+        """
+        Creates a dictionary with default values based on self.DEFAULTS.
+        When no default is available for a parameter it is set to [0.0, False]
+
+        Returns
+        -------
+        dict
+            The dictionary with defaults for all parameters.
+        """
+        tmpVal = {key: None for key in self.SINGLENAMES + self.MULTINAMES}
         for name in self.SINGLENAMES:
             if name in self.DEFAULTS.keys():
                 tmpVal[name] = self.DEFAULTS[name]
@@ -793,24 +1081,59 @@ class AbstractParamFrame(QtWidgets.QWidget):
         return tmpVal
 
     def addMultiLabel(self, name, text, num):
+        """
+        Creates a label for a parameter with multiple sites and adds it to frame3.
+
+        Parameters
+        ----------
+        name : str
+            Name of the parameter.
+        text : str
+            The text on the label.
+        num : int
+            The column to place the label widget.
+
+        Returns
+        -------
+        QCheckBox
+            The checkbox next to the label.
+        QLabel
+            The label.
+        """
         tick = QtWidgets.QCheckBox('')
         tick.setChecked(self.DEFAULTS[name][1])
         tick.stateChanged.connect(lambda state, self=self: self.changeAllTicks(state, name))
         self.frame3.addWidget(tick, 1, num)
         label = wc.QLabel(text)
         self.frame3.addWidget(label, 1, num+1)
-        return (tick, label)
-    
+        return tick, label
+
     def changeAllTicks(self, state, name):
+        """
+        Sets or unsets all checkboxes of a given parameter.
+
+        Parameters
+        ----------
+        state : bool
+            The checkboxes will be set to this state.
+        name : str
+            The name of the parameter.
+        """
         self.DEFAULTS[name][1] = state
         for tick in self.ticks[name]:
             tick.setChecked(state)
-    
+
     def closeWindow(self, *args):
+        """
+        Closes the fitting window.
+        """
         self.rootwindow.tabWindow.stopMP()
         self.rootwindow.cancel()
 
     def copyParams(self):
+        """
+        Copies the parameters of the current slice to all other slices of the data.
+        """
         self.checkInputs()
         locList = self.getRedLocList()
         self.checkFitParamList(locList)
@@ -820,6 +1143,9 @@ class AbstractParamFrame(QtWidgets.QWidget):
             elem[...] = self.fitNumList[locList]
 
     def dispParams(self):
+        """
+        Displays the values from the fit parameter list in the window.
+        """
         locList = self.getRedLocList()
         val = self.fitNumList[locList] + 1
         for name in self.SINGLENAMES:
@@ -829,7 +1155,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
                 self.entries[name][0].setText(str(self.fitParamList[locList][name][0]))
             if self.TICKS:
                 self.ticks[name][0].setChecked(self.fitParamList[locList][name][1])
-        self.setNumExp()
+        self.numExp.setCurrentIndex(self.fitNumList[locList])
         for i in range(self.FITNUM):
             for name in self.MULTINAMES:
                 if isinstance(self.fitParamList[locList][name][i][0], (float, int)):
@@ -847,11 +1173,10 @@ class AbstractParamFrame(QtWidgets.QWidget):
                         self.ticks[name][i].hide()
                     self.entries[name][i].hide()
 
-    def setNumExp(self):
-        locList = self.getRedLocList()
-        self.numExp.setCurrentIndex(self.fitNumList[locList])
-
     def changeNum(self, *args):
+        """
+        Set the number of sites to the value shown in the box.
+        """
         val = self.numExp.currentIndex() + 1
         locList = self.getRedLocList()
         self.fitNumList[locList] = self.numExp.currentIndex()
@@ -867,6 +1192,14 @@ class AbstractParamFrame(QtWidgets.QWidget):
                     self.entries[name][i].hide()
 
     def checkInputs(self):
+        """
+        Checks the values set in the parameter boxes for validity.
+
+        Returns
+        -------
+        bool
+            True if all inputs are valid.
+        """
         locList = self.getRedLocList()
         numExp = self.getNumExp()
         for name in self.SINGLENAMES:
@@ -875,7 +1208,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
             inp = safeEval(self.entries[name][0].text())
             if inp is None:
                 return False
-            elif isinstance(inp, float):
+            if isinstance(inp, float):
                 self.entries[name][0].setText(('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % inp)
             else:
                 self.entries[name][0].setText(str(inp))
@@ -887,7 +1220,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
                 inp = safeEval(self.entries[name][i].text())
                 if inp is None:
                     return False
-                elif isinstance(inp, float):
+                if isinstance(inp, float):
                     self.entries[name][i].setText(('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % inp)
                 else:
                     self.entries[name][i].setText(str(inp))
@@ -895,16 +1228,30 @@ class AbstractParamFrame(QtWidgets.QWidget):
         return True
 
     def getNumExp(self):
+        """
+        Returns the number of sites as set in the box.
+        """
         return self.numExp.currentIndex() + 1
 
     def getExtraParams(self, out):
+        """
+        Returns the extra parameters of the fit.
+        """
         return (out, [])
 
     def getFitParams(self):
+        """
+        Creates the parameters and data required for the fit.
+
+        Returns
+        -------
+        tuple
+            The tuple with required fitting information.
+        """
         if not self.checkInputs():
             raise FittingException("Fitting: One of the inputs is not valid")
         struc = {}
-        for name in (self.SINGLENAMES + self.MULTINAMES):
+        for name in self.SINGLENAMES + self.MULTINAMES:
             struc[name] = []
         guess = []
         argu = []
@@ -943,7 +1290,17 @@ class AbstractParamFrame(QtWidgets.QWidget):
         args = ([numExp], [struc], [argu], [self.parent.data1D.freq], [self.parent.data1D.sw], [self.axMult], [self.FFT_AXES], [self.FFTSHIFT_AXES], [self.SINGLENAMES], [self.MULTINAMES])
         return (self.parent.data1D.xaxArray[-self.DIM:], self.parent.getData1D(), guess, args, out)
 
-    def setResults(self, fitVal, args, out):
+    def setResults(self, fitVal, args):
+        """
+        Set the results in the fit parameter list based on the given fit results.
+
+        Parameters
+        ----------
+        fitVal : array_like
+            The results of the fit.
+        args : list
+            The arguments to the fit.
+        """
         locList = self.getRedLocList()
         numExp = args[0][0]
         struc = args[1][0]
@@ -954,15 +1311,18 @@ class AbstractParamFrame(QtWidgets.QWidget):
             for name in self.MULTINAMES:
                 if struc[name][i][0] == 1:
                     self.fitParamList[locList][name][i][0] = fitVal[struc[name][i][1]]
-        self.checkResults(numExp,struc)
+        self.checkResults(numExp, struc)
         self.dispParams()
         self.rootwindow.sim()
 
-    def checkResults(self, struc, numExp):
-        #A placeholder for a function that checks the fit results (e.g. makes values absolute, etc)
+    def checkResults(self, numExp, struc):
+        # A dummy function that is replaced by a function that checks the fit results (e.g., makes values absolute, etc)
         pass
 
     def getSimParams(self):
+        """
+        Returns the dictionary with simulation parameters.
+        """
         if not self.checkInputs():
             raise FittingException("Fitting: One of the inputs is not valid")
         numExp = self.getNumExp()
@@ -982,12 +1342,22 @@ class AbstractParamFrame(QtWidgets.QWidget):
         return out
 
     def extraParamToFile(self):
+        # Dummy function
         return ({}, {})
 
     def extraFileToParam(self, preParams, postParams):
+        # Dummy function
         pass
 
     def paramToFile(self):
+        """
+        Writes the fit parameters to a file.
+
+        Returns
+        -------
+        bool
+            True if an output file was written.
+        """
         if not self.checkInputs():
             raise FittingException("Fitting: One of the inputs is not valid")
         fileName = QtWidgets.QFileDialog.getSaveFileName(self, 'Save parameters', self.rootwindow.father.lastLocation + os.path.sep + self.parent.data.name + '_fit.txt', 'txt (*.txt)')
@@ -996,13 +1366,13 @@ class AbstractParamFrame(QtWidgets.QWidget):
         if not fileName:
             return False
         printLocList = list(self.parent.locList)
-        for i in range(len(printLocList)):
+        for i, _ in enumerate(printLocList):
             if i in self.parent.axes:
-                printLocList[i] = '*'                
+                printLocList[i] = '*'
             else:
                 printLocList[i] = str(printLocList[i])
         printLocList = "(" + ", ".join(printLocList) + ")"
-        report  = "#########" + '#'*len(VERSION) + "##\n"
+        report = "#########" + '#'*len(VERSION) + "##\n"
         report += "# ssNake " + VERSION + " #\n"
         report += "#########" + '#'*len(VERSION) + "##\n"
         report += "#\n"
@@ -1057,22 +1427,30 @@ class AbstractParamFrame(QtWidgets.QWidget):
         return True
 
     def fileToParam(self):
+        """
+        Reads the fit parameters from a file as generated by paramToFile.
+
+        Returns
+        -------
+        bool
+            True if the file was read successfully.
+        """
         fileName = QtWidgets.QFileDialog.getOpenFileName(self, 'Load parameters', self.rootwindow.father.lastLocation)
         if isinstance(fileName, tuple):
             fileName = fileName[0]
-        if len(fileName) == 0:
-            return
+        if not fileName:
+            return False
         with open(fileName, "r") as fp:
             report = fp.read()
         splitReport = re.split("#{20,}\n", report)
         postReport = splitReport[1]
         postReport = re.split("#!", postReport)
-        if len(postReport)==1:
+        if len(postReport) == 1:
             postReport = []
         else:
             postReport = postReport[1:]
         postParams = {}
-        for i in range(len(postReport)):
+        for i, _ in enumerate(postReport):
             tmp = postReport[i].split('\n', 1)
             postParams[tmp[0].strip()] = tmp[1].strip()
         splitReport = re.split("#\?", splitReport[0])
@@ -1089,7 +1467,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
         singleVals = []
         for line in singleReport[1:]:
             tmp = line.strip()
-            if tmp and tmp[0]!='#':
+            if tmp and tmp[0] != '#':
                 singleVals.append(tmp.split())
         if len(singleVals) > 1:
             raise FittingException("Incorrect number of parameters in file")
@@ -1098,7 +1476,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
         multiVals = []
         for line in multiReport[1:]:
             tmp = line.strip()
-            if tmp and tmp[0]!='#':
+            if tmp and tmp[0] != '#':
                 multiVals.append(tmp.split())
         multiVals = self.__interpretParam(multiVals)
         self.extraFileToParam(preParams, postParams)
@@ -1107,10 +1485,22 @@ class AbstractParamFrame(QtWidgets.QWidget):
         return True
 
     def __interpretParam(self, strList):
+        """
+        Checks a given list of strings to interpret them as fit parameters.
+
+        Parameters
+        ----------
+        strList : list of lists of str
+
+        Returns
+        -------
+        list
+            List of values or tuples (as long as they match a link tuple).
+        """
         data = []
-        for i in range(len(strList)):
+        for i, _ in enumerate(strList):
             tmp = []
-            for j in range(len(strList[i])):
+            for j, _ in enumerate(strList[i]):
                 if strList[i][j][0] == '*':
                     tmp.append([safeEval(strList[i][j][1:]), True])
                 else:
@@ -1119,34 +1509,58 @@ class AbstractParamFrame(QtWidgets.QWidget):
                     tmp[-1][0] = checkLinkTuple(tmp[-1][0])
             data.append(tmp)
         return data
-        
+
     def setParamFromList(self, singleNames, singleVals, multiNames, multiVals):
+        """
+        Set the values in the fit parameter list to the given values.
+
+        Parameters
+        ----------
+        singleNames : list of str
+            The names of the parameters shared by all sites.
+        singleVals : list
+            The fit values corresponding to singleNames.
+        multiNames : list of str
+            The names of the parameters for individual sites.
+        multiVals : list
+            The fit values corresponding to multiNames.
+        """
         locList = self.getRedLocList()
         keys = self.fitParamList[locList].keys()
         if singleVals:
             singleVals = singleVals[0]
             if len(singleNames) != len(singleVals):
                 raise FittingException("The number of parameters does not match the parameter names")
-            for i in range(len(singleNames)):
+            for i, _ in enumerate(singleNames):
                 if singleNames[i] in keys:
                     self.fitParamList[locList][singleNames[i]] = singleVals[i]
-        for j in range(len(multiVals)):
+        for j, _ in enumerate(multiVals):
             if len(multiNames) != len(multiVals[j]):
                 raise FittingException("The number of parameters does not match the parameter names")
-            for i in range(len(multiNames)):
+            for i, _ in enumerate(multiNames):
                 if multiNames[i] in keys:
                     self.fitParamList[locList][multiNames[i]][j] = multiVals[j][i]
         self.fitNumList[locList] = len(multiVals) - 1
 
     def paramToWorkspaceWindow(self):
+        """
+        Opens the window for exporting parameters to a workspace.
+        """
         paramNameList = self.SINGLENAMES + self.MULTINAMES
-        if self.parent.data.ndim() == 1:
-            single = True
-        else:
-            single = False
+        single = self.parent.data.ndim() == 1
         ParamCopySettingsWindow(self, paramNameList, single)
 
     def paramToWorkspace(self, allSlices, settings):
+        """
+        Exports parameters to a new workspace.
+
+        Parameters
+        ----------
+        allSlices : bool
+            True to export the parameters from all data slices.
+        settings : list of bool
+            A list of booleans in the order of SINGLENAMES+MULTINAMES whether to export a certain parameter type.
+        """
         if not self.checkInputs():
             raise FittingException("Fitting: One of the inputs is not valid")
         paramNameList = np.array(self.SINGLENAMES + self.MULTINAMES, dtype=object)
@@ -1167,7 +1581,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
             grid = np.array([i.flatten() for i in np.meshgrid(*tmp2)]).T
             for i in grid:
                 self.checkFitParamList(tuple(i))
-                for j in range(len(names)):
+                for j, _ in enumerate(names):
                     if names[j] in self.SINGLENAMES:
                         inp = self.fitParamList[tuple(i)][names[j]][0]
                         if isinstance(inp, tuple):
@@ -1179,7 +1593,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
                         data[(j,) + (slice(None),) + tuple(i)].fill(inp)
                     else:
                         tmpInp = self.fitParamList[tuple(i)][names[j]].T[0][:(self.fitNumList[tuple(i)] + 1)]
-                        for n in range(len(tmpInp)):
+                        for n, _ in enumerate(tmpInp):
                             inp = tmpInp[n]
                             if isinstance(inp, tuple):
                                 inp = checkLinkTuple(inp)
@@ -1191,7 +1605,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
             self.rootwindow.createNewData(data, self.parent.axes[-1], True, True)
         else:
             data = np.zeros((sum(settings), self.fitNumList[locList] + 1))
-            for i in range(len(names)):
+            for i, _ in enumerate(names):
                 if names[i] in self.SINGLENAMES:
                     inp = self.fitParamList[locList][names[i]][0]
                     if isinstance(inp, tuple):
@@ -1200,7 +1614,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
                     data[i].fill(inp)
                 else:
                     tmpInp = self.fitParamList[locList][names[i]].T[0][:(self.fitNumList[locList] + 1)]
-                    for j in range(len(tmpInp)):
+                    for j, _ in enumerate(tmpInp):
                         inp = tmpInp[j]
                         if isinstance(inp, tuple):
                             inp = checkLinkTuple(inp)
@@ -1212,13 +1626,21 @@ class AbstractParamFrame(QtWidgets.QWidget):
         ResultsExportWindow(self)
 
     def resultToWorkspaceWindow(self):
-        if self.parent.data.ndim() == 1:
-            single = True
-        else:
-            single = False
+        """
+        Opens the window for exporting curves to a workspace.
+        """
+        single = self.parent.data.ndim() == 1
         FitCopySettingsWindow(self, single)
 
     def resultToWorkspace(self, settings):
+        """
+        Exports curves to a new workspace.
+
+        Parameters
+        ----------
+        settings : list of bool
+            A list of booleans whether to include [all slices, the original, the subfits, the difference].
+        """
         if settings is None:
             return
         if settings[0]:
@@ -1249,6 +1671,21 @@ class AbstractParamFrame(QtWidgets.QWidget):
             self.rootwindow.createNewData(data, self.parent.axes[-1], False)
 
     def prepareResultToWorkspace(self, settings, minLength=1):
+        """
+        Generates the data required to export curves to a workspace.
+
+        Parameters
+        ----------
+        settings : list of bool
+            A list of booleans whether to include [all slices, the original, the subfits, the difference].
+        minLength : int
+            The minimum length of the data to export.
+
+        Returns
+        -------
+        ndarray
+            The curves to export.
+        """
         self.calculateResultsToWorkspace()
         locList = self.getRedLocList()
         fitData = self.parent.fitDataList[locList]
@@ -1268,7 +1705,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
         outCurvePart.append(fitData[1])
         return np.array(outCurvePart)
 
-    def calculateResultsToWorkspace(self, *args):
+    def calculateResultsToWorkspace(self):
         # Some fitting methods need to recalculate the curves before exporting
         pass
 
@@ -1277,8 +1714,22 @@ class AbstractParamFrame(QtWidgets.QWidget):
 
     def getDispX(self, *args):
         return self.parent.data1D.xaxArray[-self.DIM:]
-        
+
     def disp(self, params, num, display=True):
+        """
+        Simulate the spectrum and displays it.
+
+        Parameters
+        ----------
+        params : list
+            The list of parameters of all tabs.
+        num : int
+            The tab number.
+            The parameters at position num in params belong to this tab.
+        display : bool, optional
+            When True the simulated data will also be displayed.
+            True by default.
+        """
         out = params[num]
         try:
             for name in self.SINGLENAMES:
@@ -1286,7 +1737,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
                 if isinstance(inp, tuple):
                     inp = checkLinkTuple(inp)
                     out[name][0] = inp[2] * params[inp[4]][inp[0]][inp[1]] + inp[3]
-            if len(self.MULTINAMES) == 0: #Abort if no names
+            if not self.MULTINAMES: #Abort if no names
                 return
             numExp = len(out[self.MULTINAMES[0]])
             for i in range(numExp):
@@ -1332,17 +1783,57 @@ class AbstractParamFrame(QtWidgets.QWidget):
 ##############################################################################
 
 def lstSqrs(dataList, *args):
+    """
+    Simulates spectra and calculates the least squares value with a given list of data.
+
+    Parameters
+    ----------
+    dataList : list of arrays
+        The list of spectra to compare with the simulations.
+    *args
+        All other arguments are passed to fitFunc.
+
+    Returns
+    -------
+    float
+        The sum of the least squares values of the spectra.
+    """
     simData = fitFunc(*args)
     if simData is None:
         return np.inf
     costValue = 0
-    for i in range(len(dataList)):
+    for i,_ in enumerate(dataList):
         costValue += np.sum((dataList[i] - simData[i])**2)
     return costValue
 
 def mpFit(xax, data1D, guess, args, queue, funcs, minmethod, numfeval):
+    """
+    The minimization function running in an separate process.
+
+    Parameters
+    ----------
+    xax : list of arrays
+        List of the x-axes of the data.
+    data1D : array or list of arrays
+        Array with the data to be fit.
+    guess : list
+        List with the initial guess values.
+    args : tuple
+        The tuple with additional values.
+    queue : Queue
+        The queue to communicate with the main process.
+        On success the results are put in this queue.
+        When a SimException is raised, the error message is put on this queue.
+        When the simulation fails otherwise, None is put on this queue.
+    funcs : list of functions
+        The functions to run per data in data1D.
+    minmethod : str
+        The minimization method of Scipy minimize to use.
+    numfeval : int
+        The maximum number of function evaluations.
+    """
     try:
-        fitVal = scipy.optimize.minimize(lambda *param: lstSqrs(data1D, funcs, param, xax, args), guess, method=minmethod, options = {'maxfev': numfeval})
+        fitVal = scipy.optimize.minimize(lambda *param: lstSqrs(data1D, funcs, param, xax, args), guess, method=minmethod, options={'maxfev': numfeval})
     except simFunc.SimException as e:
         fitVal = str(e)
     except Exception:
@@ -1350,6 +1841,25 @@ def mpFit(xax, data1D, guess, args, queue, funcs, minmethod, numfeval):
     queue.put(fitVal)
 
 def fitFunc(funcs, params, allX, args):
+    """
+    Reconstructs all linked parameters and executes the fitting function for each set of data.
+
+    Parameters
+    ----------
+    funcs : list of functions
+        The list of fitting functions to execute.
+    params : tuple
+        The tuple with the function parameters generated by minimize.
+    allX : list of arrays
+        The list with x-axes.
+    args : tuple
+        Additional arguments for the fitting functions.
+
+    Returns
+    -------
+    list of arrays
+        A list with the simulated data.
+    """
     params = params[0]
     specSlices = args[0]
     allParam = []
@@ -1358,7 +1868,7 @@ def fitFunc(funcs, params, allX, args):
     allStruc = args[2]
     allArgu = args[3]
     fullTestFunc = []
-    for n in range(len(allX)):
+    for n, _ in enumerate(allX):
         x = allX[n]
         testFunc = np.zeros([len(item) for item in x], dtype=complex)
         param = allParam[n]
@@ -1418,10 +1928,21 @@ def fitFunc(funcs, params, allX, args):
 
 
 class PrefWindow(QtWidgets.QWidget):
+    """
+    Window for setting the fitting preferences.
+    """
 
     METHODLIST = ['Powell', 'Nelder-Mead']
 
     def __init__(self, parent):
+        """
+        Initializes the fitting preference window.
+
+        Parameters
+        ----------
+        parent : TabFittingWindow
+            The fitting window that opened the preference window.
+        """
         super(PrefWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
@@ -1456,9 +1977,15 @@ class PrefWindow(QtWidgets.QWidget):
         self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
 
     def closeEvent(self, *args):
+        """
+        Closes the window.
+        """
         self.deleteLater()
 
     def applyAndClose(self, *args):
+        """
+        Sets the preferences in the fitting window and closes.
+        """
         self.father.PRECIS = self.precisBox.value()
         self.father.MINMETHOD = self.METHODLIST[self.minmethodBox.currentIndex()]
         self.father.NUMFEVAL = self.numFevalBox.value()
@@ -1479,8 +2006,20 @@ class RelaxParamFrame(AbstractParamFrame):
 
     SINGLENAMES = ['Amplitude', 'Constant']
     MULTINAMES = ['Coefficient', 'T']
-    
+
     def __init__(self, parent, rootwindow, isMain=True):
+        """
+        Initializes the relaxation fit parameter frame.
+
+        Parameters
+        ----------
+        parent : FitPlotFrame
+            The plot frame connected to this parameter frame.
+        rootwindow : FittingWindow
+            The fitting tab that holds this parameter frame.
+        isMain : bool, optional
+            True if this frame is part of the main tab.
+        """
         self.FITFUNC = simFunc.relaxationFunc
         self.fullInt = np.max(parent.getData1D())
         self.DEFAULTS = {'Amplitude': [self.fullInt, False], 'Constant': [1.0, False], 'Coefficient': [-1.0, False], 'T': [1.0, False]}
@@ -1518,23 +2057,38 @@ class RelaxParamFrame(AbstractParamFrame):
         self.reset()
 
     def reset(self):
+        """
+        Resets all fit parameters to their default values.
+        """
         self.xlog.setChecked(self.extraDefaults['xlog'])
         self.ylog.setChecked(self.extraDefaults['ylog'])
         super(RelaxParamFrame, self).reset()
 
     def setLog(self, *args):
+        """
+        Set the plot to logarithmic or linear scale.
+        """
         self.parent.setLog(self.xlog.isChecked(), self.ylog.isChecked())
         self.rootwindow.sim()
 
     def getExtraParams(self, out):
+        """
+        Returns the extra parameters of the fit.
+        """
         out['extra'] = []
         return (out, out['extra'])
-    
+
     def calculateResultsToWorkspace(self):
+        """
+        Recalculate the curves to have points located at the same locations as the experimental data.
+        """
         self.rootwindow.sim(display=False)
 
     def getDispX(self, *args):
-        numCurve = 256  # number of points in output curve
+        """
+        Return the x-axis of the plot.
+        """
+        numCurve = 256             # number of points in output curve
         realx = self.parent.xax()
         minx = min(realx)
         maxx = max(realx)
@@ -1544,10 +2098,13 @@ class RelaxParamFrame(AbstractParamFrame):
             x = np.linspace(minx, maxx, numCurve)
         return [x]
 
-    def checkResults(self,numExp,struc):
+    def checkResults(self, numExp, struc):
+        """
+        Sets the relaxation times to absolute values.
+        """
         locList = self.getRedLocList()
         for i in range(numExp):
-           if struc['T'][i][0] == 1:
+            if struc['T'][i][0] == 1:
                 self.fitParamList[locList]['T'][i][0] = abs(self.fitParamList[locList]['T'][i][0])
 
 
@@ -1558,14 +2115,25 @@ class DiffusionParamFrame(AbstractParamFrame):
 
     SINGLENAMES = ['Amplitude', 'Constant']
     MULTINAMES = ['Coefficient', 'D']
-    
+
     def __init__(self, parent, rootwindow, isMain=True):
+        """
+        Initializes the diffusion fit parameter frame.
+
+        Parameters
+        ----------
+        parent : FitPlotFrame
+            The plot frame connected to this parameter frame.
+        rootwindow : FittingWindow
+            The fitting tab that holds this parameter frame.
+        isMain : bool, optional
+            True if this frame is part of the main tab.
+        """
         self.FITFUNC = simFunc.diffusionFunc
         self.fullInt = np.max(parent.getData1D())
         self.DEFAULTS = {'Amplitude': [self.fullInt, False], 'Constant': [0.0, True], 'Coefficient': [1.0, False], 'D': [1.0e-9, False]}
         self.extraDefaults = {'xlog': False, 'ylog': False, 'gamma': "42.576", 'delta': '1.0', 'triangle': '1.0'}
         super(DiffusionParamFrame, self).__init__(parent, rootwindow, isMain)
-        locList = self.getRedLocList()
         self.optframe.addWidget(wc.QLabel(u"γ [MHz/T]:"), 0, 1)
         self.gammaEntry = wc.QLineEdit()
         self.optframe.addWidget(self.gammaEntry, 1, 1)
@@ -1608,6 +2176,9 @@ class DiffusionParamFrame(AbstractParamFrame):
         self.reset()
 
     def reset(self):
+        """
+        Resets all fit parameters to their default values.
+        """
         self.xlog.setChecked(self.extraDefaults['xlog'])
         self.ylog.setChecked(self.extraDefaults['ylog'])
         self.gammaEntry.setText(self.extraDefaults['gamma'])
@@ -1616,16 +2187,25 @@ class DiffusionParamFrame(AbstractParamFrame):
         super(DiffusionParamFrame, self).reset()
 
     def setLog(self, *args):
+        """
+        Set the plot to logarithmic or linear scale.
+        """
         self.parent.setLog(self.xlog.isChecked(), self.ylog.isChecked())
         self.rootwindow.sim()
 
     def extraParamToFile(self):
+        """
+        Extra parameters to export.
+        """
         extraDict = {"gamma": self.gammaEntry.text(),
                      "delta": self.deltaEntry.text(),
                      "DELTA": self.triangleEntry.text()}
         return (extraDict, {})
 
     def extraFileToParam(self, preParams, postParams):
+        """
+        Extra parameters to import.
+        """
         keys = preParams.keys()
         if "gamma" in keys:
             self.gammaEntry.setText(preParams["gamma"])
@@ -1635,6 +2215,9 @@ class DiffusionParamFrame(AbstractParamFrame):
             self.triangleEntry.setText(preParams["DELTA"])
 
     def getExtraParams(self, out):
+        """
+        Returns the extra parameters of the fit.
+        """
         gamma = safeEval(self.gammaEntry.text())
         delta = safeEval(self.deltaEntry.text())
         triangle = safeEval(self.triangleEntry.text())
@@ -1642,10 +2225,16 @@ class DiffusionParamFrame(AbstractParamFrame):
         return (out, out['extra'])
 
     def calculateResultsToWorkspace(self):
+        """
+        Recalculate the curves to have points located at the same locations as the experimental data.
+        """
         self.rootwindow.sim(display=False)
 
     def getDispX(self, *args):
-        numCurve = 256  # number of points in output curve
+        """
+        Return the x-axis of the plot.
+        """
+        numCurve = 256             # number of points in output curve
         realx = self.parent.xax()
         minx = min(realx)
         maxx = max(realx)
@@ -1655,17 +2244,20 @@ class DiffusionParamFrame(AbstractParamFrame):
             x = np.linspace(minx, maxx, numCurve)
         return [x]
 
-    def checkResults(self,numExp,struc):
+    def checkResults(self, numExp, struc):
+        """
+        Sets the relaxation times to absolute values.
+        """
         locList = self.getRedLocList()
         for i in range(numExp):
-           if struc['D'][i][0] == 1:
+            if struc['D'][i][0] == 1:
                 self.fitParamList[locList]['D'][i][0] = abs(self.fitParamList[locList]['D'][i][0])
 
 ##############################################################################
 
 
 class PeakDeconvFrame(FitPlotFrame):
-    
+
     def togglePick(self, var):
         self.peakPickReset()
         if var == 1 and self.fitPickNumList[self.getRedLocList()] < self.FITNUM:
@@ -1679,7 +2271,6 @@ class PeakDeconvFrame(FitPlotFrame):
         locList = self.getRedLocList()
         pickNum = self.fitPickNumList[locList]
         if self.pickWidth:
-            axMult = self.getAxMult(self.spec(), self.getAxType(), self.getppm(), self.freq(), self.ref())
             width = (2 * abs(float(self.rootwindow.paramframe.entries["Position"][pickNum].text()) - pos[1])) / self.getAxMult(self.spec(), self.getAxType(), self.getppm(), self.freq(), self.ref())
             self.rootwindow.paramframe.entries["Integral"][pickNum].setText(('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % (float(self.rootwindow.paramframe.entries["Integral"][pickNum].text()) * width))
             self.rootwindow.paramframe.entries["Lorentz"][pickNum].setText(('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % abs(width))
@@ -1708,12 +2299,24 @@ class PeakDeconvFrame(FitPlotFrame):
 
 class PeakDeconvParamFrame(AbstractParamFrame):
 
-    FFT_AXES = (0,) # Which axes should be transformed after simulation
+    FFT_AXES = (0,)      # Which axes should be transformed after simulation
     FFTSHIFT_AXES = (0,) # Which axes should be transformed after simulation
     SINGLENAMES = ["Offset", "Multiplier"]
     MULTINAMES = ["Position", "Integral", "Lorentz", "Gauss"]
-    
+
     def __init__(self, parent, rootwindow, isMain=True):
+        """
+        Initializes the peak deconvolution parameter frame.
+
+        Parameters
+        ----------
+        parent : FitPlotFrame
+            The plot frame connected to this parameter frame.
+        rootwindow : FittingWindow
+            The fitting tab that holds this parameter frame.
+        isMain : bool, optional
+            True if this frame is part of the main tab.
+        """
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(len(parent.getData1D()))
         self.FITFUNC = simFunc.peakSim
         self.DEFAULTS = {"Offset": [0.0, True], "Multiplier": [1.0, True], "Position": [0.0, False], "Integral": [self.fullInt, False], "Lorentz": [1.0, False], "Gauss": [0.0, True]}
@@ -1746,8 +2349,11 @@ class PeakDeconvParamFrame(AbstractParamFrame):
                 self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j]))
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2 * j + 1)
         self.reset()
-        
+
     def reset(self):
+        """
+        Resets all fit parameters to their default values.
+        """
         locList = self.getRedLocList()
         self.pickTick.setChecked(True)
         self.togglePick()
@@ -1758,13 +2364,15 @@ class PeakDeconvParamFrame(AbstractParamFrame):
     def togglePick(self):
         self.parent.togglePick(self.pickTick.isChecked())
 
-    def checkResults(self,numExp,struc):
-        #After fit, set lor and gauss absolute
+    def checkResults(self, numExp, struc):
+        """
+        Sets the Lorentzian and Gaussian broadenings to absolute values.
+        """
         locList = self.getRedLocList()
         for i in range(numExp):
-           if struc["Lorentz"][i][0] == 1:
+            if struc["Lorentz"][i][0] == 1:
                 self.fitParamList[locList]["Lorentz"][i][0] = abs(self.fitParamList[locList]["Lorentz"][i][0])
-           if struc["Gauss"][i][0] == 1:
+            if struc["Gauss"][i][0] == 1:
                 self.fitParamList[locList]["Gauss"][i][0] = abs(self.fitParamList[locList]["Gauss"][i][0])
 
 ##############################################################################
@@ -1815,7 +2423,6 @@ class CsaDeconvParamFrame(AbstractParamFrame):
     SINGLENAMES = ["Offset", "Multiplier", "Spinspeed"]
     MULTINAMES = ["Definition1", "Definition2", "Definition3", "Integral", "Lorentz", "Gauss"]
     EXTRANAMES = ['spinType', 'angle', 'shiftdef', 'cheng', 'numssb']
-
     MASTYPES = ["Static", "Finite MAS", "Infinite MAS"]
     DEFTYPES = [u'δ11 - δ22 - δ33',
                 u'δxx - δyy - δzz',
@@ -1827,6 +2434,18 @@ class CsaDeconvParamFrame(AbstractParamFrame):
                 "delta_iso - omega - kappa"]
 
     def __init__(self, parent, rootwindow, isMain=True):
+        """
+        Initializes the CSA fit parameter frame.
+
+        Parameters
+        ----------
+        parent : FitPlotFrame
+            The plot frame connected to this parameter frame.
+        rootwindow : FittingWindow
+            The fitting tab that holds this parameter frame.
+        isMain : bool, optional
+            True if this frame is part of the main tab.
+        """
         self.FITFUNC = simFunc.csaFunc
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(len(parent.getData1D()))
         self.DEFAULTS = {"Offset": [0.0, True], "Multiplier": [1.0, True], "Spinspeed": [10.0, True], "Definition1": [0.0, False], "Definition2": [0.0, False], "Definition3": [0.0, False], "Integral": [self.fullInt, False], "Lorentz": [1.0, False], "Gauss": [0.0, True]}
@@ -1935,6 +2554,14 @@ class CsaDeconvParamFrame(AbstractParamFrame):
         self.reset()
 
     def MASChange(self, MAStype):
+        """
+        Change between different MAS types.
+
+        Parameters
+        ----------
+        MAStype : int
+            The MAS type (0=static, 1=finite MAS, 2=infinite MAS).
+        """
         if MAStype > 0:
             self.angleLabel.setEnabled(True)
             self.entries['angle'][-1].setEnabled(True)
@@ -1956,6 +2583,9 @@ class CsaDeconvParamFrame(AbstractParamFrame):
             self.sidebandLabel.setEnabled(False)
 
     def reset(self):
+        """
+        Resets all fit parameters to their default values.
+        """
         self.entries['cheng'][-1].setValue(self.extraDefaults['cheng'])
         self.entries['shiftdef'][-1].setCurrentIndex(self.extraDefaults['shiftdef'])
         self.shiftDefType = self.extraDefaults['shiftdef']
@@ -1974,6 +2604,9 @@ class CsaDeconvParamFrame(AbstractParamFrame):
         self.parent.togglePick(self.pickTick.isChecked())
 
     def changeShiftDef(self):
+        """
+        Change between different chemical shift definitions.
+        """
         NewType = self.entries['shiftdef'][-1].currentIndex()
         OldType = self.shiftDefType
         if NewType == 0:
@@ -2061,6 +2694,9 @@ class CsaDeconvParamFrame(AbstractParamFrame):
         self.shiftDefType = NewType
 
     def extraParamToFile(self):
+        """
+        Extra parameters to export.
+        """
         extraDict = {"MAS": self.MASTYPES[self.entries['spinType'][0].currentIndex()],
                      "Definition": self.DEFNAMES[self.entries['shiftdef'][0].currentIndex()],
                      "Cheng": self.entries['cheng'][0].text(),
@@ -2069,6 +2705,9 @@ class CsaDeconvParamFrame(AbstractParamFrame):
         return (extraDict, {})
 
     def extraFileToParam(self, preParams, postParams):
+        """
+        Extra parameters to import.
+        """
         keys = preParams.keys()
         if "MAS" in keys:
             self.entries['spinType'][0].setCurrentIndex(self.MASTYPES.index(preParams["MAS"]))
@@ -2082,6 +2721,9 @@ class CsaDeconvParamFrame(AbstractParamFrame):
             self.entries['numssb'][0].setValue(int(preParams["Sidebands"]))
 
     def getExtraParams(self, out):
+        """
+        Returns the extra parameters of the fit.
+        """
         shiftdef = self.entries['shiftdef'][0].currentIndex()
         angle = safeEval(self.entries['angle'][-1].text())
         if angle is None:
@@ -2094,8 +2736,10 @@ class CsaDeconvParamFrame(AbstractParamFrame):
         out['extra'] = [shiftdef, numssb, angle, D2, weight, MAStype]
         return (out, out['extra'])
 
-    def checkResults(self,numExp,struc):
-        #After fit, set lor and gauss absolute
+    def checkResults(self, numExp, struc):
+        """
+        Sets the Lorentzian and Gaussian broadenings to absolute values.
+        """
         locList = self.getRedLocList()
         for i in range(numExp):
             if struc["Lorentz"][i][0] == 1:
@@ -2121,16 +2765,27 @@ class QuadDeconvFrame(FitPlotFrame):
 
 class QuadDeconvParamFrame(AbstractParamFrame):
 
-    FFT_AXES = (0,)    
+    FFT_AXES = (0,)
     Ioptions = ['1', '3/2', '2', '5/2', '3', '7/2', '4', '9/2']
     Ivalues = [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5]
     SINGLENAMES = ["Offset", "Multiplier", "Spinspeed"]
     MULTINAMES = ["Position", "Cq", 'eta', "Integral", "Lorentz", "Gauss"]
     EXTRANAMES = ['spinType', 'satBool', 'angle', 'cheng', 'I', 'numssb']
-
     MASTYPES = ["Static", "Finite MAS", "Infinite MAS"]
 
     def __init__(self, parent, rootwindow, isMain=True):
+        """
+        Initializes the quadrupole fit parameter frame.
+
+        Parameters
+        ----------
+        parent : FitPlotFrame
+            The plot frame connected to this parameter frame.
+        rootwindow : FittingWindow
+            The fitting tab that holds this parameter frame.
+        isMain : bool, optional
+            True if this frame is part of the main tab.
+        """
         self.FITFUNC = simFunc.quadFunc
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(len(parent.getData1D()))
         self.DEFAULTS = {"Offset": [0.0, True], "Multiplier": [1.0, True], "Spinspeed": [10.0, True], "Position": [0.0, False], "Cq": [1.0, False], 'eta': [0.0, False], "Integral": [self.fullInt, False], "Lorentz": [1.0, False], "Gauss": [0.0, True]}
@@ -2203,6 +2858,14 @@ class QuadDeconvParamFrame(AbstractParamFrame):
         self.reset()
 
     def MASChange(self, MAStype):
+        """
+        Change between different MAS types.
+
+        Parameters
+        ----------
+        MAStype : int
+            The MAS type (0=static, 1=finite MAS, 2=infinite MAS).
+        """
         if MAStype > 0:
             self.angleLabel.setEnabled(True)
             self.entries['angle'][-1].setEnabled(True)
@@ -2224,6 +2887,9 @@ class QuadDeconvParamFrame(AbstractParamFrame):
             self.sidebandLabel.setEnabled(False)
 
     def reset(self):
+        """
+        Resets all fit parameters to their default values.
+        """
         self.entries['cheng'][-1].setValue(self.extraDefaults['cheng'])
         self.entries['spinType'][-1].setCurrentIndex(self.extraDefaults['spinType'])
         self.MASChange(self.extraDefaults['spinType'])
@@ -2235,6 +2901,9 @@ class QuadDeconvParamFrame(AbstractParamFrame):
         super(QuadDeconvParamFrame, self).reset()
 
     def extraParamToFile(self):
+        """
+        Extra parameters to export.
+        """
         extraDict = {"I": self.Ioptions[self.entries['I'][-1].currentIndex()],
                      "MAS": self.MASTYPES[self.entries['spinType'][-1].currentIndex()],
                      "Satellites": str(self.entries['satBool'][-1].isChecked()),
@@ -2244,6 +2913,9 @@ class QuadDeconvParamFrame(AbstractParamFrame):
         return (extraDict, {})
 
     def extraFileToParam(self, preParams, postParams):
+        """
+        Extra parameters to import.
+        """
         keys = preParams.keys()
         if "I" in keys:
             self.entries['I'][0].setCurrentIndex(self.Ioptions.index(preParams["I"]))
@@ -2259,6 +2931,9 @@ class QuadDeconvParamFrame(AbstractParamFrame):
             self.entries['numssb'][0].setValue(int(preParams["Sidebands"]))
 
     def getExtraParams(self, out):
+        """
+        Returns the extra parameters of the fit.
+        """
         satBool = self.entries['satBool'][-1].isChecked()
         angle = safeEval(self.entries['angle'][-1].text())
         if angle is None:
@@ -2273,18 +2948,21 @@ class QuadDeconvParamFrame(AbstractParamFrame):
         out['extra'] = [satBool, I, numssb, angle, D2, D4, weight, MAStype]
         return (out, out['extra'])
 
-    def checkResults(self,numExp,struc):
-        #After fit, set lor and gauss absolute
+    def checkResults(self, numExp, struc):
+        """
+        Sets the Lorentzian and Gaussian broadenings to absolute values.
+        Sets eta between 0 and 1.
+        Makes Cq positive.
+        """
         locList = self.getRedLocList()
         for i in range(numExp):
-           if struc["Lorentz"][i][0] == 1:
+            if struc["Lorentz"][i][0] == 1:
                 self.fitParamList[locList]["Lorentz"][i][0] = abs(self.fitParamList[locList]["Lorentz"][i][0])
-           if struc["Gauss"][i][0] == 1:
+            if struc["Gauss"][i][0] == 1:
                 self.fitParamList[locList]["Gauss"][i][0] = abs(self.fitParamList[locList]["Gauss"][i][0])
-           if struc['eta'][i][0] == 1:
-                #eta is between 0--1 in a continuous way.
+            if struc['eta'][i][0] == 1:
                 self.fitParamList[locList]['eta'][i][0] = 1 - abs(abs(self.fitParamList[locList]['eta'][i][0]) % 2 - 1)
-           if struc["Cq"][i][0] == 1:
+            if struc["Cq"][i][0] == 1:
                 self.fitParamList[locList]["Cq"][i][0] = abs(self.fitParamList[locList]["Cq"][i][0])
 
 #################################################################################
@@ -2292,13 +2970,12 @@ class QuadDeconvParamFrame(AbstractParamFrame):
 
 class QuadCSADeconvParamFrame(AbstractParamFrame):
 
-    FFT_AXES = (0,)    
+    FFT_AXES = (0,)
     Ioptions = ['1/2', '1', '3/2', '2', '5/2', '3', '7/2', '4', '9/2']
     Ivalues = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5]
     SINGLENAMES = ["Offset", "Multiplier", "Spinspeed"]
     MULTINAMES = ["Definition1", "Definition2", "Definition3", "Cq", 'eta', "Alpha", "Beta", "Gamma", "Integral", "Lorentz", "Gauss"]
     EXTRANAMES = ['spinType', 'satBool', 'angle', 'shiftdef', 'cheng', 'I', 'numssb']
-
     MASTYPES = ["Static", "Finite MAS", "Infinite MAS"]
     DEFTYPES = [u'δ11 - δ22 - δ33',
                 u'δxx - δyy - δzz',
@@ -2310,9 +2987,25 @@ class QuadCSADeconvParamFrame(AbstractParamFrame):
                 "delta_iso - omega - kappa"]
 
     def __init__(self, parent, rootwindow, isMain=True):
+        """
+        Initializes the quadrupole+CSA fit parameter frame.
+
+        Parameters
+        ----------
+        parent : FitPlotFrame
+            The plot frame connected to this parameter frame.
+        rootwindow : FittingWindow
+            The fitting tab that holds this parameter frame.
+        isMain : bool, optional
+            True if this frame is part of the main tab.
+        """
         self.FITFUNC = simFunc.quadCSAFunc
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(len(parent.getData1D()))
-        self.DEFAULTS = {"Offset": [0.0, True], "Multiplier": [1.0, True], "Spinspeed": [10.0, True], "Definition1": [0.0, False], "Definition2": [0.0, False], "Definition3": [0.0, False], "Cq": [1.0, False], 'eta': [0.0, False], "Integral": [self.fullInt, False], "Lorentz": [1.0, False], "Gauss": [0.0, True], "Alpha": [0.0, True], "Beta": [0.0, True], "Gamma": [0.0, True]}
+        self.DEFAULTS = {"Offset": [0.0, True], "Multiplier": [1.0, True], "Spinspeed": [10.0, True],
+                         "Definition1": [0.0, False], "Definition2": [0.0, False], "Definition3": [0.0, False],
+                         "Cq": [1.0, False], 'eta': [0.0, False], "Integral": [self.fullInt, False],
+                         "Lorentz": [1.0, False], "Gauss": [0.0, True], "Alpha": [0.0, True],
+                         "Beta": [0.0, True], "Gamma": [0.0, True]}
         self.extraDefaults = {'I': 2, 'Satellites': False, 'cheng': 15, 'spinType': 0, 'shiftdef': 0, 'rotorAngle': "arctan(sqrt(2))", 'numssb': 32, "Spinspeed": '10.0'}
         super(QuadCSADeconvParamFrame, self).__init__(parent, rootwindow, isMain)
         self.optframe.addWidget(wc.QLabel("MAS:"), 2, 0)
@@ -2426,6 +3119,14 @@ class QuadCSADeconvParamFrame(AbstractParamFrame):
         self.reset()
 
     def MASChange(self, MAStype):
+        """
+        Change between different MAS types.
+
+        Parameters
+        ----------
+        MAStype : int
+            The MAS type (0=static, 1=finite MAS, 2=infinite MAS).
+        """
         if MAStype > 0:
             self.angleLabel.setEnabled(True)
             self.entries['angle'][-1].setEnabled(True)
@@ -2447,6 +3148,9 @@ class QuadCSADeconvParamFrame(AbstractParamFrame):
             self.sidebandLabel.setEnabled(False)
 
     def reset(self):
+        """
+        Resets all fit parameters to their default values.
+        """
         self.entries['cheng'][-1].setValue(self.extraDefaults['cheng'])
         self.entries['shiftdef'][-1].setCurrentIndex(self.extraDefaults['shiftdef'])
         self.shiftDefType = self.extraDefaults['shiftdef']
@@ -2460,6 +3164,9 @@ class QuadCSADeconvParamFrame(AbstractParamFrame):
         super(QuadCSADeconvParamFrame, self).reset()
 
     def changeShiftDef(self):
+        """
+        Change between different chemical shift definitions.
+        """
         NewType = self.entries['shiftdef'][-1].currentIndex()
         OldType = self.shiftDefType
         if NewType == 0:
@@ -2539,6 +3246,9 @@ class QuadCSADeconvParamFrame(AbstractParamFrame):
         self.shiftDefType = NewType
 
     def extraParamToFile(self):
+        """
+        Extra parameters to export.
+        """
         extraDict = {"I": self.Ioptions[self.entries['I'][-1].currentIndex()],
                      "Definition": self.DEFNAMES[self.entries['shiftdef'][0].currentIndex()],
                      "MAS": self.MASTYPES[self.entries['spinType'][-1].currentIndex()],
@@ -2549,6 +3259,9 @@ class QuadCSADeconvParamFrame(AbstractParamFrame):
         return (extraDict, {})
 
     def extraFileToParam(self, preParams, postParams):
+        """
+        Extra parameters to import.
+        """
         keys = preParams.keys()
         if "I" in keys:
             self.entries['I'][0].setCurrentIndex(self.Ioptions.index(preParams["I"]))
@@ -2566,6 +3279,9 @@ class QuadCSADeconvParamFrame(AbstractParamFrame):
             self.entries['numssb'][0].setValue(int(preParams["Sidebands"]))
 
     def getExtraParams(self, out):
+        """
+        Returns the extra parameters of the fit.
+        """
         shiftdef = self.entries['shiftdef'][0].currentIndex()
         satBool = self.entries['satBool'][-1].isChecked()
         angle = safeEval(self.entries['angle'][-1].text())
@@ -2581,8 +3297,10 @@ class QuadCSADeconvParamFrame(AbstractParamFrame):
         out['extra'] = [satBool, I, numssb, angle, D2, D4, weight, MAStype, shiftdef]
         return (out, out['extra'])
 
-    def checkResults(self,numExp,struc):
-        #After fit, set lor and gauss absolute
+    def checkResults(self, numExp, struc):
+        """
+        Fixes the fit results.
+        """
         locList = self.getRedLocList()
         for i in range(numExp):
             if struc["Lorentz"][i][0] == 1:
@@ -2616,11 +3334,25 @@ class QuadCSADeconvParamFrame(AbstractParamFrame):
 
 
 class CzjzekPrefWindow(QtWidgets.QWidget):
+    """
+    The window with Czjzek distribution settings.
+    """
 
     Ioptions = ['1', '3/2', '2', '5/2', '3', '7/2', '4', '9/2']
     MASTYPES = ["Static", "Finite MAS", "Infinite MAS"]
 
     def __init__(self, parent, mqmas=False):
+        """
+        Initializes the Czjzek preference window.
+
+        Parameters
+        ----------
+        parent : QuadCzjzekParamFrame, MqmasCzjzekParamFrame
+            The Czjzek parameter frame.
+        mqmas : bool, optional
+            True if the fit is of an MQMAS spectrum.
+            By default False.
+        """
         super(CzjzekPrefWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
@@ -2645,13 +3377,13 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         self.cqsteps = QtWidgets.QSpinBox()
         self.cqsteps.setMinimum(2)
         self.cqsteps.setMaximum(1000)
-        self.cqsteps.setAlignment(QtCore.Qt.AlignHCenter) 
+        self.cqsteps.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(self.cqsteps, 3, 0)
         grid.addWidget(wc.QLabel(u"η grid size:"), 2, 1)
         self.etasteps = QtWidgets.QSpinBox()
         self.etasteps.setMinimum(2)
         self.etasteps.setMaximum(1000)
-        self.etasteps.setAlignment(QtCore.Qt.AlignHCenter) 
+        self.etasteps.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(self.etasteps, 3, 1)
         grid.addWidget(wc.QLabel(u"C<sub>Q</sub> limits [MHz]:"), 4, 0, 1, 2)
         self.cqmin = wc.QLineEdit(str(self.father.cqmin), self.checkCq)
@@ -2706,7 +3438,7 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         self.site = QtWidgets.QSpinBox()
         self.site.setMinimum(1)
         self.site.setMaximum(self.father.numExp.currentIndex() + 1)
-        self.site.setAlignment(QtCore.Qt.AlignHCenter) 
+        self.site.setAlignment(QtCore.Qt.AlignHCenter)
         grid.addWidget(self.site, 14, 3)
         self.libLabel = wc.QLabel("")
         layout.addWidget(self.libLabel, 4, 3)
@@ -2732,6 +3464,14 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         self.resize(800, 600)
 
     def MASChange(self, MAStype):
+        """
+        Change between different MAS types.
+
+        Parameters
+        ----------
+        MAStype : int
+            The MAS type (0=static, 1=finite MAS, 2=infinite MAS).
+        """
         if self.mqmas:
             return
         if MAStype > 0:
@@ -2750,12 +3490,15 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
             self.spinLabel.setEnabled(False)
             self.numssbEntry.setEnabled(False)
             self.sidebandLabel.setEnabled(False)
-        
+
     def upd(self):
+        """
+        Update the boxes of the grid values.
+        """
         if self.mqmas:
             self.Ientry.setCurrentIndex(int(self.father.I-1.5))
         else:
-            self.Ientry.setCurrentIndex(int(self.father.I*2.0-2.0))            
+            self.Ientry.setCurrentIndex(int(self.father.I*2.0-2.0))
         self.chengEntry.setValue(self.father.cheng)
         if not self.mqmas:
             self.masEntry.setCurrentIndex(self.father.mas)
@@ -2772,22 +3515,25 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         self.libLabel.setText("Library: " + self.father.libName)
 
     def plotDist(self):
+        """
+        Plot the Czjzek distribution.
+        """
         self.ax.cla()
         cqsteps = self.cqsteps.value()
         etasteps = self.etasteps.value()
-        cqmax = safeEval(self.cqmax.text(), type='FI')
-        cqmin = safeEval(self.cqmin.text(), type='FI')
-        etamax = safeEval(self.etamax.text(), type='FI')
-        etamin = safeEval(self.etamin.text(), type='FI')
+        cqmax = safeEval(self.cqmax.text(), Type='FI')
+        cqmin = safeEval(self.cqmin.text(), Type='FI')
+        etamax = safeEval(self.etamax.text(), Type='FI')
+        etamin = safeEval(self.etamin.text(), Type='FI')
         cqArray = np.linspace(cqmin, cqmax, cqsteps)
         etaArray = np.linspace(etamin, etamax, etasteps)
         cq, eta = np.meshgrid(cqArray, etaArray)
         method = self.father.entries['method'][0].currentIndex()
         d = self.father.entries['d'][0].currentIndex() + 1
         site = self.site.value() - 1
-        sigma = safeEval(self.father.entries['Sigma'][site].text(), type='FI')
-        cq0 = safeEval(self.father.entries['Cq0'][site].text(), type='FI')
-        eta0 = safeEval(self.father.entries['eta0'][site].text(), type='FI')
+        sigma = safeEval(self.father.entries['Sigma'][site].text(), Type='FI')
+        cq0 = safeEval(self.father.entries['Cq0'][site].text(), Type='FI')
+        eta0 = safeEval(self.father.entries['eta0'][site].text(), Type='FI')
         if method == 0:
             self.czjzek = Czjzek.czjzekIntensities(sigma, d, cq.flatten(), eta.flatten())
         else:
@@ -2799,6 +3545,9 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         self.canvas.draw()
 
     def saveDist(self):
+        """
+        Save the Czjzek distribution values to an ASCII file.
+        """
         name = QtWidgets.QFileDialog.getSaveFileName(self, 'Save Distribution', self.father.rootwindow.father.lastLocation + os.path.sep + 'czjzek.txt', 'ASCII file (*.txt)')
         if isinstance(name, tuple):
             name = name[0]
@@ -2807,32 +3556,38 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         self.plotDist()
         cqsteps = self.cqsteps.value()
         etasteps = self.etasteps.value()
-        cqmax = safeEval(self.cqmax.text(), type='FI')
-        cqmin = safeEval(self.cqmin.text(), type='FI')
-        etamax = safeEval(self.etamax.text(), type='FI')
-        etamin = safeEval(self.etamin.text(), type='FI')        
+        cqmax = safeEval(self.cqmax.text(), Type='FI')
+        cqmin = safeEval(self.cqmin.text(), Type='FI')
+        etamax = safeEval(self.etamax.text(), Type='FI')
+        etamin = safeEval(self.etamin.text(), Type='FI')
         header = "Cq_min=" + str(cqmin) + "\nCq_max=" + str(cqmax) + "\nCq_steps=" + str(cqsteps) + "eta_min=" + str(etamin) + "\neta_max=" + str(etamax) + "\neta_steps=" + str(etasteps)
         np.savetxt(name, self.czjzek, header=header)
 
     def checkCq(self):
-        inp = safeEval(self.cqmax.text(), type='FI')
+        """
+        Check the input values for Cq.
+        """
+        inp = safeEval(self.cqmax.text(), Type='FI')
         if inp is None:
             return False
         self.cqmax.setText(str(float(inp)))
-        inp = safeEval(self.cqmin.text(), type='FI')
+        inp = safeEval(self.cqmin.text(), Type='FI')
         if inp is None:
             return False
         self.cqmin.setText(str(float(inp)))
         return True
 
     def checkEta(self):
-        inp = safeEval(self.etamax.text(), type='FI')
+        """
+        Check the input values for eta.
+        """
+        inp = safeEval(self.etamax.text(), Type='FI')
         if inp is None:
             return False
         if inp < 0.0 or inp > 1.0:
             return False
         self.etamax.setText(str(abs(float(inp))))
-        inp = safeEval(self.etamin.text(), type='FI')
+        inp = safeEval(self.etamin.text(), Type='FI')
         if inp is None:
             return False
         if inp < 0.0 or inp > 1.0:
@@ -2840,9 +3595,15 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         self.etamin.setText(str(abs(float(inp))))
 
     def closeEvent(self, *args):
+        """
+        Closes the Czjzek window.
+        """
         self.deleteLater()
 
     def generate(self, *args):
+        """
+        Generate the Czjzek library.
+        """
         self.busyButton.show()
         self.loadButton.setEnabled(False)
         self.cancelButton.setEnabled(False)
@@ -2854,7 +3615,7 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
             if not self.mqmas:
                 self.father.I = self.Ientry.currentIndex() * 0.5 + 1.0
                 self.father.mas = self.masEntry.currentIndex()
-                inp = safeEval(self.spinEntry.text(), type='FI')
+                inp = safeEval(self.spinEntry.text(), Type='FI')
                 if inp is None:
                     raise FittingException("Spin speed value not valid.")
                 self.father.spinspeed = inp
@@ -2863,22 +3624,22 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
                 self.father.satBool = self.satBoolEntry.isChecked()
             else:
                 self.father.I = self.Ientry.currentIndex() + 1.5
-            inp = safeEval(self.cqmax.text(), type='FI')
+            inp = safeEval(self.cqmax.text(), Type='FI')
             if inp is None:
                 raise FittingException(u"C_Q_max value not valid.")
             self.father.cqmax = abs(safeEval(self.cqmax.text()))
-            inp = abs(safeEval(self.cqmin.text(), type='FI'))
+            inp = abs(safeEval(self.cqmin.text(), Type='FI'))
             if inp is None:
                 raise FittingException(u"C_Q_min value not valid.")
             self.father.cqmin = abs(safeEval(self.cqmin.text()))
             #eta
-            inp = safeEval(self.etamax.text(), type='FI')
+            inp = safeEval(self.etamax.text(), Type='FI')
             if inp is None:
                 raise FittingException(u"η_max value not valid.")
             if inp < 0.0 or inp > 1.0:
                 raise FittingException(u"η_max value not valid.")
             self.father.etamax = abs(float(inp))
-            inp = safeEval(self.etamin.text(), type='FI')
+            inp = safeEval(self.etamin.text(), Type='FI')
             if inp is None:
                 raise FittingException(u"η_min value not valid.")
             if inp < 0.0 or inp > 1.0:
@@ -2886,7 +3647,7 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
             self.father.etamin = abs(float(inp))
             self.father.libName = "Generated"
             self.father.simLib()
-        except:
+        except Exception:
             raise
         finally:
             self.busyButton.hide()
@@ -2895,6 +3656,9 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
             self.upd()
 
     def loadLib(self, *args):
+        """
+        Load the Czjzek library from a set of files.
+        """
         fileName = self.father.rootwindow.father.loadFitLibDir()
         if not fileName:
             return
@@ -2952,10 +3716,21 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
     SINGLENAMES = ["Offset", "Multiplier"]
     MULTINAMES = ["Position", "Sigma", "Cq0", 'eta0', "Integral", "Lorentz", "Gauss"]
     EXTRANAMES = ['method', 'd']
-
     TYPES = ['Normal', 'Extended']
-    
+
     def __init__(self, parent, rootwindow, isMain=True):
+        """
+        Initializes the Czjzek fit parameter frame.
+
+        Parameters
+        ----------
+        parent : FitPlotFrame
+            The plot frame connected to this parameter frame.
+        rootwindow : FittingWindow
+            The fitting tab that holds this parameter frame.
+        isMain : bool, optional
+            True if this frame is part of the main tab.
+        """
         self.FITFUNC = simFunc.quadCzjzekFunc
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(len(parent.getData1D()))
         self.DEFAULTS = {"Offset": [0.0, True], "Multiplier": [1.0, True], "Position": [0.0, False], "Sigma": [1.0, False], "Cq0": [0.0, True], 'eta0': [0.0, True], "Integral": [self.fullInt, False], "Lorentz": [10.0, False], "Gauss": [0.0, True]}
@@ -2985,7 +3760,7 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
         self.optframe.addWidget(self.entries['method'][0], 1, 0)
         self.optframe.addWidget(wc.QLabel("d:"), 2, 0)
         self.entries['d'].append(QtWidgets.QComboBox())
-        self.entries['d'][0].addItems(['1', '2','3','4','5'])
+        self.entries['d'][0].addItems(['1', '2', '3', '4', '5'])
         self.optframe.addWidget(self.entries['d'][0], 3, 0)
         self.numExp = QtWidgets.QComboBox()
         self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
@@ -3011,6 +3786,9 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
         self.reset()
 
     def reset(self):
+        """
+        Resets all fit parameters to their default values.
+        """
         self.cqsteps = self.extraDefaults['cqsteps']
         self.etasteps = self.extraDefaults['etasteps']
         self.cqmax = self.extraDefaults['cqmax']
@@ -3034,8 +3812,16 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
         super(QuadCzjzekParamFrame, self).reset()
 
     def changeType(self, index):
+        """
+        Enables or disables the extended Czjzek fitting.
+
+        Parameters
+        ----------
+        index : int
+            Czjzek fitting type (0=regular, 1=extended).
+        """
         if index == 0:
-            for i in range(self.FITNUM): 
+            for i in range(self.FITNUM):
                 self.entries["Cq0"][i].setEnabled(False)
                 self.entries['eta0'][i].setEnabled(False)
                 self.ticks["Cq0"][i].setChecked(True)
@@ -3043,7 +3829,7 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
                 self.ticks["Cq0"][i].setEnabled(False)
                 self.ticks['eta0'][i].setEnabled(False)
         elif index == 1:
-            for i in range(self.FITNUM): 
+            for i in range(self.FITNUM):
                 self.entries["Cq0"][i].setEnabled(True)
                 self.entries['eta0'][i].setEnabled(True)
                 self.ticks["Cq0"][i].setEnabled(True)
@@ -3053,7 +3839,10 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
         CzjzekPrefWindow(self)
 
     def simLib(self):
-        angle = safeEval(self.angle, type='FI')
+        """
+        Simulate the spectra for the Czjzek library.
+        """
+        angle = safeEval(self.angle, Type='FI')
         alpha, beta, weight = simFunc.zcw_angles(self.cheng, 2)
         D2 = simFunc.D2tens(alpha, beta, np.zeros_like(alpha))
         D4 = simFunc.D4tens(alpha, beta, np.zeros_like(alpha))
@@ -3061,6 +3850,9 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
         self.lib, self.cqLib, self.etaLib = simFunc.genLib(len(self.parent.xax()), self.cqmin, self.cqmax, self.etamin, self.etamax, self.cqsteps, self.etasteps, extra, self.parent.freq(), self.parent.sw(), self.spinspeed)
 
     def extraParamToFile(self):
+        """
+        Extra parameters to export.
+        """
         extraDict = {"Method": self.TYPES[self.entries['method'][-1].currentIndex()],
                      "d": str(self.entries['d'][0].currentIndex() + 1),
                      "I": CzjzekPrefWindow.Ioptions[int(self.I*2.0-2.0)],
@@ -3080,6 +3872,9 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
         return (extraDict, {})
 
     def extraFileToParam(self, preParams, postParams):
+        """
+        Extra parameters to import.
+        """
         keys = preParams.keys()
         if "Method" in keys:
             self.entries['method'][0].setCurrentIndex(self.TYPES.index(preParams["Method"]))
@@ -3113,6 +3908,9 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
             self.numssb = int(preParams["Sidebands"])
 
     def getExtraParams(self, out):
+        """
+        Returns the extra parameters of the fit.
+        """
         if self.lib is None:
             raise FittingException("No library available")
         method = self.entries['method'][0].currentIndex()
@@ -3120,19 +3918,21 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
         out['extra'] = [method, d, self.lib, self.cqLib, self.etaLib]
         return (out, out['extra'])
 
-    def checkResults(self,numExp,struc):
-        #After fit, set lor and gauss absolute
+    def checkResults(self, numExp, struc):
+        """
+        Fixes the fit results.
+        """
         locList = self.getRedLocList()
         for i in range(numExp):
-           if struc["Lorentz"][i][0] == 1:
+            if struc["Lorentz"][i][0] == 1:
                 self.fitParamList[locList]["Lorentz"][i][0] = abs(self.fitParamList[locList]["Lorentz"][i][0])
-           if struc["Gauss"][i][0] == 1:
+            if struc["Gauss"][i][0] == 1:
                 self.fitParamList[locList]["Gauss"][i][0] = abs(self.fitParamList[locList]["Gauss"][i][0])
-           if struc["Sigma"][i][0] == 1:
+            if struc["Sigma"][i][0] == 1:
                 self.fitParamList[locList]["Sigma"][i][0] = abs(self.fitParamList[locList]["Sigma"][i][0])
-           if struc["Cq0"][i][0] == 1:
+            if struc["Cq0"][i][0] == 1:
                 self.fitParamList[locList]["Cq0"][i][0] = abs(self.fitParamList[locList]["Cq0"][i][0])
-           if struc['eta0'][i][0] == 1:
+            if struc['eta0'][i][0] == 1:
                 self.fitParamList[locList]['eta0'][i][0] = 1 - abs(abs(self.fitParamList[locList]['eta0'][i][0])%2 - 1)
 
 #################################################################################
@@ -3149,8 +3949,20 @@ class ExternalFitDeconvParamFrame(AbstractParamFrame):
 
     SINGLENAMES = []
     MULTINAMES = []
-    
+
     def __init__(self, parent, rootwindow, isMain=True):
+        """
+        Initializes the external fit parameter frame.
+
+        Parameters
+        ----------
+        parent : FitPlotFrame
+            The plot frame connected to this parameter frame.
+        rootwindow : FittingWindow
+            The fitting tab that holds this parameter frame.
+        isMain : bool, optional
+            True if this frame is part of the main tab.
+        """
         self.FITFUNC = simFunc.externalFitRunScript
         self.resetDefaults()
         super(ExternalFitDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
@@ -3175,14 +3987,17 @@ class ExternalFitDeconvParamFrame(AbstractParamFrame):
 
     def resetDefaults(self):
         self.DEFAULTS = {"Offset": [0.0, True], "Multiplier": [1.0, True], "Integral": [1.0, False], "Lorentz": [10.0, False], "Gauss": [0.0, True]}
-        
+
     def txtOutputWindow(self):
         TxtOutputWindow(self.rootwindow, self.txtOutput[0], self.txtOutput[1])
 
     def loadScript(self):
+        """
+        Asks the user for a script file and analyses it.
+        """
         self.resetDefaults()
         fileName = self.rootwindow.father.loadSIMPSONScript()
-        if len(fileName) == 0:
+        if not fileName:
             return
         try:
             with open(fileName, "r") as myfile:
@@ -3192,6 +4007,14 @@ class ExternalFitDeconvParamFrame(AbstractParamFrame):
         self.analyseScript(inFile)
 
     def analyseScript(self, inFile):
+        """
+        Analyses a given script for external fitting.
+
+        Parameters
+        ----------
+        inFile : str
+            Script to analyse.
+        """
         matches = np.unique(re.findall("(@\w+@)", inFile))
         self.script = inFile
         for n in self.SINGLENAMES+self.MULTINAMES:
@@ -3231,32 +4054,43 @@ class ExternalFitDeconvParamFrame(AbstractParamFrame):
         self.reset()
 
     def extraParamToFile(self):
+        """
+        Extra parameters to export.
+        """
         extraDict = {"Command": self.commandLine.text()}
         return (extraDict, {"Script": self.script})
 
     def extraFileToParam(self, preParams, postParams):
+        """
+        Extra parameters to import.
+        """
         if "Script" in postParams.keys():
             self.analyseScript(postParams["Script"])
         if "Command" in preParams.keys():
             self.commandLine.setText(preParams["Command"])
 
     def getExtraParams(self, out):
+        """
+        Returns the extra parameters of the fit.
+        """
         out['extra'] = [self.MULTINAMES, self.commandLine.text(), self.script, self.txtOutput, self.parent.spec()]
         return (out, out['extra'])
 
-    def checkResults(self,numExp,struc):
-        #After fit, set lor and gauss absolute
+    def checkResults(self, numExp, struc):
+        """
+        Fixes the fit results.
+        """
         locList = self.getRedLocList()
         for i in range(numExp):
-           if struc["Lorentz"][i][0] == 1:
+            if struc["Lorentz"][i][0] == 1:
                 self.fitParamList[locList]["Lorentz"][i][0] = abs(self.fitParamList[locList]["Lorentz"][i][0])
-           if struc["Gauss"][i][0] == 1:
+            if struc["Gauss"][i][0] == 1:
                 self.fitParamList[locList]["Gauss"][i][0] = abs(self.fitParamList[locList]["Gauss"][i][0])
 
 ##############################################################################
 
 
-class TxtOutputWindow(wc.ToolWindows):
+class TxtOutputWindow(wc.ToolWindow):
 
     NAME = "Script Output"
     RESIZABLE = True
@@ -3293,8 +4127,20 @@ class FunctionFitParamFrame(AbstractParamFrame):
 
     SINGLENAMES = []
     MULTINAMES = []
-    
+
     def __init__(self, parent, rootwindow, isMain=True):
+        """
+        Initializes the function fit parameter frame.
+
+        Parameters
+        ----------
+        parent : FitPlotFrame
+            The plot frame connected to this parameter frame.
+        rootwindow : FittingWindow
+            The fitting tab that holds this parameter frame.
+        isMain : bool, optional
+            True if this frame is part of the main tab.
+        """
         self.FITFUNC = simFunc.functionRun
         self.numExp = QtWidgets.QComboBox()
         self.function = ""
@@ -3312,11 +4158,14 @@ class FunctionFitParamFrame(AbstractParamFrame):
 
     def resetDefaults(self):
         self.DEFAULTS = {}
-        
+
     def functionInput(self):
         FunctionInputWindow(self, self.function)
 
     def functionInputSetup(self):
+        """
+        Interprets the input function and makes labels and entries.
+        """
         self.resetDefaults()
         matches = np.unique(re.findall("(@\w+@)", self.function))
         for n in self.SINGLENAMES+self.MULTINAMES:
@@ -3344,15 +4193,24 @@ class FunctionFitParamFrame(AbstractParamFrame):
         self.reset()
 
     def extraParamToFile(self):
+        """
+        Extra parameters to export.
+        """
         extraDict = {"Function": self.function}
         return (extraDict, {})
 
     def extraFileToParam(self, preParams, postParams):
+        """
+        Extra parameters to import.
+        """
         if "Function" in preParams.keys():
             self.function = preParams["Function"]
             self.functionInputSetup()
 
     def getExtraParams(self, out):
+        """
+        Returns the extra parameters of the fit.
+        """
         if self.function == "":
             raise FittingException("Fitting: No function defined")
         out["extra"] = [self.MULTINAMES, self.function]
@@ -3361,7 +4219,7 @@ class FunctionFitParamFrame(AbstractParamFrame):
 ##############################################################################
 
 
-class FunctionInputWindow(wc.ToolWindows):
+class FunctionInputWindow(wc.ToolWindow):
 
     NAME = "Fitting Function"
     RESIZABLE = True
@@ -3387,8 +4245,25 @@ class FunctionInputWindow(wc.ToolWindows):
 
 
 class FitContourFrame(CurrentContour, FitPlotFrame):
+    """
+    The frame to plot contour spectra during fitting.
+    """
 
     def __init__(self, rootwindow, fig, canvas, current):
+        """
+        Initializes the fitting contour plot window.
+
+        Parameters
+        ----------
+        rootwindow : FittingWindow
+            The window that contains the figure.
+        fig : Figure
+            The figure used in this frame.
+        canvas : FigureCanvas
+            The canvas of fig.
+        current : PlotFrame
+            The view of the original workspace.
+        """
         self.data = current.data
         tmp = np.array(current.data.shape(), dtype=int)
         tmp = np.delete(tmp, self.fixAxes(current.axes))
@@ -3398,6 +4273,9 @@ class FitContourFrame(CurrentContour, FitPlotFrame):
         CurrentContour.__init__(self, rootwindow, fig, canvas, current.data, current)
 
     def showFid(self):
+        """
+        Displays the plot and fit curves.
+        """
         extraX = []
         extraY = []
         extraZ = []
@@ -3428,21 +4306,35 @@ class MqmasDeconvFrame(FitContourFrame):
 
 class MqmasDeconvParamFrame(AbstractParamFrame):
 
-    FFT_AXES = (0,1) # Which axes should be transformed after simulation
+    FFT_AXES = (0, 1) # Which axes should be transformed after simulation
     DIM = 2
     Ioptions = ['3/2', '5/2', '7/2', '9/2']
     Ivalues = [1.5, 2.5, 3.5, 4.5]
     MQvalues = [3, 5, 7, 9]
     SINGLENAMES = ["Offset", "Multiplier", "Spinspeed"]
     MULTINAMES = ["Position", "Cq", 'eta', "Integral", "Lorentz2", "Gauss2", "Lorentz1", "Gauss1"]
-    EXTRANAMES = ['spinType', 'angle', 'numssb','cheng', 'I', 'MQ', 'shear', 'scale']
-
+    EXTRANAMES = ['spinType', 'angle', 'numssb', 'cheng', 'I', 'MQ', 'shear', 'scale']
     MASTYPES = ["Static", "Finite MAS", "Infinite MAS"]
-    
+
     def __init__(self, parent, rootwindow, isMain=True):
+        """
+        Initializes the MQMAS fit parameter frame.
+
+        Parameters
+        ----------
+        parent : FitPlotFrame
+            The plot frame connected to this parameter frame.
+        rootwindow : FittingWindow
+            The fitting tab that holds this parameter frame.
+        isMain : bool, optional
+            True if this frame is part of the main tab.
+        """
         self.FITFUNC = simFunc.mqmasFunc
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(parent.getData1D().shape[-1]) * parent.sw(-2) / float(parent.getData1D().shape[-2])
-        self.DEFAULTS = {"Offset": [0.0, True], "Multiplier": [1.0, True], "Spinspeed": [10.0, True], "Position": [0.0, False], "Cq": [1.0, False], 'eta': [0.0, False], "Integral": [self.fullInt, False], "Lorentz2": [10.0, False], "Gauss2": [0.0, True], "Lorentz1": [10.0, False], "Gauss1": [0.0, True]}
+        self.DEFAULTS = {"Offset": [0.0, True], "Multiplier": [1.0, True], "Spinspeed": [10.0, True],
+                         "Position": [0.0, False], "Cq": [1.0, False], 'eta': [0.0, False],
+                         "Integral": [self.fullInt, False], "Lorentz2": [10.0, False], "Gauss2": [0.0, True],
+                         "Lorentz1": [10.0, False], "Gauss1": [0.0, True]}
         self.extraDefaults = {'spinType': 2, 'angle': "arctan(sqrt(2))", 'numssb': 32, 'cheng': 15, 'I': 0, 'MQ': 0, 'shear': '0.0', 'scale': '1.0'}
         super(MqmasDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
         self.optframe.addWidget(wc.QLabel("MAS:"), 2, 0)
@@ -3525,6 +4417,9 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         self.reset()
 
     def reset(self):
+        """
+        Resets all fit parameters to their default values.
+        """
         self.entries['angle'][-1].setText(self.extraDefaults['angle'])
         self.entries['spinType'][-1].setCurrentIndex(self.extraDefaults['spinType'])
         self.entries['numssb'][-1].setValue(self.extraDefaults['numssb'])
@@ -3537,19 +4432,30 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         super(MqmasDeconvParamFrame, self).reset()
 
     def autoShearScale(self, *args):
-        from fractions import gcd
+        """
+        Calculates the auto shearing values.
+        """
+        from math import gcd
         I = self.entries['I'][-1].currentIndex() + 3/2.0
         mq = self.MQvalues[self.entries['MQ'][-1].currentIndex()]
         m = 0.5 * mq
         numerator = m * (18 * I * (I + 1) - 34 * m**2 - 5)
         denomenator = 0.5 * (18 * I * (I + 1) - 34 * 0.5**2 - 5)
-        divis = gcd(numerator, denomenator)
+        divis = gcd(int(numerator), int(denomenator))
         numerator /= divis
         denomenator /= divis
         self.entries['shear'][-1].setText(str(numerator) + '/' + str(denomenator))
         self.entries['scale'][-1].setText(str(denomenator) + '/' + str(mq * denomenator - numerator))
-        
+
     def MASChange(self, MAStype):
+        """
+        Change between different MAS types.
+
+        Parameters
+        ----------
+        MAStype : int
+            The MAS type (0=static, 1=finite MAS, 2=infinite MAS).
+        """
         if MAStype > 0:
             self.angleLabel.setEnabled(True)
             self.entries['angle'][-1].setEnabled(True)
@@ -3569,8 +4475,11 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
             self.spinLabel.setEnabled(False)
             self.entries['numssb'][-1].setEnabled(False)
             self.sidebandLabel.setEnabled(False)
-        
+
     def extraParamToFile(self):
+        """
+        Extra parameters to export.
+        """
         extraDict = {"I": self.Ioptions[self.entries['I'][-1].currentIndex()],
                      "MQ": str(self.MQvalues[self.entries['MQ'][-1].currentIndex()]),
                      "Shear": self.entries['shear'][-1].text(),
@@ -3582,6 +4491,9 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         return (extraDict, {})
 
     def extraFileToParam(self, preParams, postParams):
+        """
+        Extra parameters to import.
+        """
         keys = preParams.keys()
         if "I" in keys:
             self.entries['I'][0].setCurrentIndex(self.Ioptions.index(preParams["I"]))
@@ -3601,6 +4513,9 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
             self.entries['numssb'][0].setValue(int(preParams["Sidebands"]))
 
     def getExtraParams(self, out):
+        """
+        Returns the extra parameters of the fit.
+        """
         angle = safeEval(self.entries['angle'][-1].text())
         if angle is None:
             raise FittingException("Fitting: Rotoe Angle is not valid")
@@ -3619,22 +4534,25 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         out['extra'] = [I, MQ, numssb, angle, D2, D4, weight, shear, scale, MAStype]
         return (out, out['extra'])
 
-    def checkResults(self,numExp,struc):
-        #After fit, set lor and gauss absolute
+    def checkResults(self, numExp, struc):
+        """
+        Sets the Lorentzian and Gaussian broadenings to absolute values.
+        Sets eta between 0 and 1.
+        Makes Cq positive.
+        """
         locList = self.getRedLocList()
         for i in range(numExp):
-           if struc["Lorentz1"][i][0] == 1:
+            if struc["Lorentz1"][i][0] == 1:
                 self.fitParamList[locList]["Lorentz1"][i][0] = abs(self.fitParamList[locList]["Lorentz1"][i][0])
-           if struc["Gauss1"][i][0] == 1:
+            if struc["Gauss1"][i][0] == 1:
                 self.fitParamList[locList]["Gauss1"][i][0] = abs(self.fitParamList[locList]["Gauss1"][i][0])
-           if struc["Lorentz2"][i][0] == 1:
+            if struc["Lorentz2"][i][0] == 1:
                 self.fitParamList[locList]["Lorentz2"][i][0] = abs(self.fitParamList[locList]["Lorentz2"][i][0])
-           if struc["Gauss2"][i][0] == 1:
+            if struc["Gauss2"][i][0] == 1:
                 self.fitParamList[locList]["Gauss2"][i][0] = abs(self.fitParamList[locList]["Gauss2"][i][0])
-           if struc['eta'][i][0] == 1:
-                #eta is between 0--1 in a continuous way.
+            if struc['eta'][i][0] == 1:
                 self.fitParamList[locList]['eta'][i][0] = 1 - abs(abs(self.fitParamList[locList]['eta'][i][0]) % 2 - 1)
-           if struc["Cq"][i][0] == 1:
+            if struc["Cq"][i][0] == 1:
                 self.fitParamList[locList]["Cq"][i][0] = abs(self.fitParamList[locList]["Cq"][i][0])
 
 ##############################################################################
@@ -3649,13 +4567,27 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
     SINGLENAMES = ["Offset", "Multiplier"]
     MULTINAMES = ["Position", "Sigma", 'SigmaCS', "Cq0", 'eta0', "Integral", "Lorentz2", "Gauss2", "Lorentz1", "Gauss1"]
     EXTRANAMES = ['method', 'd', 'MQ', 'shear', 'scale']
-
     TYPES = ['Normal', 'Extended']
 
     def __init__(self, parent, rootwindow, isMain=True):
+        """
+        Initializes the Czjzek MQMAS fit parameter frame.
+
+        Parameters
+        ----------
+        parent : FitPlotFrame
+            The plot frame connected to this parameter frame.
+        rootwindow : FittingWindow
+            The fitting tab that holds this parameter frame.
+        isMain : bool, optional
+            True if this frame is part of the main tab.
+        """
         self.FITFUNC = simFunc.mqmasCzjzekFunc
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(parent.getData1D().shape[-1]) * parent.sw(-2) / float(parent.getData1D().shape[-2])
-        self.DEFAULTS = {"Offset": [0.0, True], "Multiplier": [1.0, True], "Position": [0.0, False], "Sigma": [1.0, False], 'SigmaCS': [10.0, False], "Cq0": [0.0, True], 'eta0': [0.0, True], "Integral": [self.fullInt, False], "Lorentz2": [10.0, False], "Gauss2": [0.0, True], "Lorentz1": [10.0, False], "Gauss1": [0.0, True]}
+        self.DEFAULTS = {"Offset": [0.0, True], "Multiplier": [1.0, True], "Position": [0.0, False],
+                         "Sigma": [1.0, False], 'SigmaCS': [10.0, False], "Cq0": [0.0, True],
+                         'eta0': [0.0, True], "Integral": [self.fullInt, False], "Lorentz2": [10.0, False],
+                         "Gauss2": [0.0, True], "Lorentz1": [10.0, False], "Gauss1": [0.0, True]}
         self.extraDefaults = {'mas': 2, 'method': 0, 'd': 5, 'cheng': 15, 'I': 3/2.0, 'MQ': 0, 'shear': '0.0', 'scale': '1.0',
                               'cqsteps': 50, 'etasteps': 10, 'cqmax': 4, 'cqmin': 0, 'etamax': 1, 'etamin': 0, 'libName': "Not available", 'lib': None, 'cqLib': None, 'etaLib': None}
         super(MqmasCzjzekParamFrame, self).__init__(parent, rootwindow, isMain)
@@ -3723,6 +4655,9 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         self.reset()
 
     def reset(self):
+        """
+        Resets all fit parameters to their default values.
+        """
         self.cqsteps = self.extraDefaults['cqsteps']
         self.etasteps = self.extraDefaults['etasteps']
         self.cqmax = self.extraDefaults['cqmax']
@@ -3745,20 +4680,31 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         super(MqmasCzjzekParamFrame, self).reset()
 
     def autoShearScale(self, *args):
-        from fractions import gcd
+        """
+        Calculates the auto shearing values.
+        """
+        from math import gcd
         mq = self.MQvalues[self.entries['MQ'][-1].currentIndex()]
         m = 0.5 * mq
         numerator = m * (18 * self.I * (self.I + 1) - 34 * m**2 - 5)
         denomenator = 0.5 * (18 * self.I * (self.I + 1) - 34 * 0.5**2 - 5)
-        divis = gcd(numerator, denomenator)
+        divis = gcd(int(numerator), int(denomenator))
         numerator /= divis
         denomenator /= divis
         self.entries['shear'][-1].setText(str(numerator) + '/' + str(denomenator))
         self.entries['scale'][-1].setText(str(denomenator) + '/' + str(mq * denomenator - numerator))
-        
+
     def changeType(self, index):
+        """
+        Enables or disables the extended Czjzek fitting.
+
+        Parameters
+        ----------
+        index : int
+            Czjzek fitting type (0=regular, 1=extended).
+        """
         if index == 0:
-            for i in range(self.FITNUM): 
+            for i in range(self.FITNUM):
                 self.entries["Cq0"][i].setEnabled(False)
                 self.entries['eta0'][i].setEnabled(False)
                 self.ticks["Cq0"][i].setChecked(True)
@@ -3766,7 +4712,7 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
                 self.ticks["Cq0"][i].setEnabled(False)
                 self.ticks['eta0'][i].setEnabled(False)
         elif index == 1:
-            for i in range(self.FITNUM): 
+            for i in range(self.FITNUM):
                 self.entries["Cq0"][i].setEnabled(True)
                 self.entries['eta0'][i].setEnabled(True)
                 self.ticks["Cq0"][i].setEnabled(True)
@@ -3776,6 +4722,9 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         CzjzekPrefWindow(self, mqmas=True)
 
     def simLib(self):
+        """
+        Simulate the spectra for the Czjzek library.
+        """
         angle = np.arctan(np.sqrt(2))
         alpha, beta, weight = simFunc.zcw_angles(self.cheng, 2)
         D2 = simFunc.D2tens(alpha, beta, np.zeros_like(alpha))
@@ -3784,6 +4733,9 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         self.lib, self.cqLib, self.etaLib = simFunc.genLib(len(self.parent.xax()), self.cqmin, self.cqmax, self.etamin, self.etamax, self.cqsteps, self.etasteps, extra, self.parent.freq(), self.parent.sw(), np.inf)
 
     def extraParamToFile(self):
+        """
+        Extra parameters to export.
+        """
         extraDict = {"Method": self.TYPES[self.entries['method'][-1].currentIndex()],
                      "d": str(self.entries['d'][0].currentIndex() + 1),
                      "I": CzjzekPrefWindow.Ioptions[int(self.I*2.0-2.0)],
@@ -3800,6 +4752,9 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         return (extraDict, {})
 
     def extraFileToParam(self, preParams, postParams):
+        """
+        Extra parameters to import.
+        """
         keys = preParams.keys()
         if "Method" in keys:
             self.entries['method'][0].setCurrentIndex(self.TYPES.index(preParams["Method"]))
@@ -3827,6 +4782,9 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
             self.cheng = int(preParams["Cheng"])
 
     def getExtraParams(self, out):
+        """
+        Returns the extra parameters of the fit.
+        """
         if self.lib is None:
             raise FittingException("No library available")
         MQ = self.MQvalues[self.entries['MQ'][-1].currentIndex()]
@@ -3840,22 +4798,24 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         out['extra'] = [I, MQ, self.cqLib, self.etaLib, self.lib, shear, scale, method, d]
         return (out, out['extra'])
 
-    def checkResults(self,numExp,struc):
-        #After fit, set lor and gauss absolute
+    def checkResults(self, numExp, struc):
+        """
+        Fixes the fit results.
+        """
         locList = self.getRedLocList()
         for i in range(numExp):
-           if struc["Lorentz1"][i][0] == 1:
+            if struc["Lorentz1"][i][0] == 1:
                 self.fitParamList[locList]["Lorentz1"][i][0] = abs(self.fitParamList[locList]["Lorentz1"][i][0])
-           if struc["Gauss1"][i][0] == 1:
+            if struc["Gauss1"][i][0] == 1:
                 self.fitParamList[locList]["Gauss1"][i][0] = abs(self.fitParamList[locList]["Gauss1"][i][0])
-           if struc["Lorentz2"][i][0] == 1:
+            if struc["Lorentz2"][i][0] == 1:
                 self.fitParamList[locList]["Lorentz2"][i][0] = abs(self.fitParamList[locList]["Lorentz2"][i][0])
-           if struc["Gauss2"][i][0] == 1:
+            if struc["Gauss2"][i][0] == 1:
                 self.fitParamList[locList]["Gauss2"][i][0] = abs(self.fitParamList[locList]["Gauss2"][i][0])
-           if struc['eta0'][i][0] == 1:
+            if struc['eta0'][i][0] == 1:
                 #eta is between 0--1 in a continuous way.
                 self.fitParamList[locList]['eta0'][i][0] = 1 - abs(abs(self.fitParamList[locList]['eta0'][i][0]) % 2 - 1)
-           if struc["Cq0"][i][0] == 1:
+            if struc["Cq0"][i][0] == 1:
                 self.fitParamList[locList]["Cq0"][i][0] = abs(self.fitParamList[locList]["Cq0"][i][0])
 
 
@@ -3882,13 +4842,13 @@ class NewTabDialog(QtWidgets.QDialog):
 
     def getInputs(self):
         return (self.dataEntry.currentIndex(), self.fitList[self.fitEntry.currentIndex()])
-        
+
     @staticmethod
     def getFitInput(*args):
         dialog = NewTabDialog(*args)
         result = dialog.exec_()
         data, fitName = dialog.getInputs()
-        return (data, fitName, result == QtWidgets.QDialog.Accepted)        
+        return (data, fitName, result == QtWidgets.QDialog.Accepted)
 
 
 # full_name, plot_frame, parameter_frame
@@ -3903,4 +4863,3 @@ FITTYPEDICT = {'relax': ("Relaxation Curve", RelaxFrame, RelaxParamFrame),
                'function': ("Function", FunctionFitFrame, FunctionFitParamFrame),
                'mqmas': ("MQMAS", MqmasDeconvFrame, MqmasDeconvParamFrame),
                'mqmasczjzek': ("Czjzek MQMAS", MqmasDeconvFrame, MqmasCzjzekParamFrame)}
-

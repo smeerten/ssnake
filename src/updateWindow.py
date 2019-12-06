@@ -28,11 +28,23 @@ if sys.version_info >= (3, 0):
 else:
     from urllib import urlopen, urlretrieve
 import ssNake as sc
-from ssNake import QtGui, QtCore, QtWidgets
+from ssNake import QtCore, QtWidgets
+
 
 class UpdateWindow(QtWidgets.QWidget):
+    """
+    The window for updating ssNake.
+    """
 
     def __init__(self, parent):
+        """
+        Initializes the update window.
+
+        Parameters
+        ----------
+        parent : MainProgram
+            The mainprogram object of ssNake.
+        """
         super(UpdateWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
@@ -45,7 +57,7 @@ class UpdateWindow(QtWidgets.QWidget):
             req.close()
             self.nameList = [u'develop']
             self.urlList = [u'https://api.github.com/repos/smeerten/ssnake/zipball/develop']
-            for i in range(len(info)):
+            for i, _ in enumerate(info):
                 self.nameList.append(info[i]['name'])
                 self.urlList.append(info[i]['zipball_url'])
         except Exception:
@@ -65,16 +77,22 @@ class UpdateWindow(QtWidgets.QWidget):
         okButton = QtWidgets.QPushButton("&Ok")
         okButton.clicked.connect(self.applyAndClose)
         box = QtWidgets.QDialogButtonBox()
-        box.addButton(cancelButton,QtWidgets.QDialogButtonBox.RejectRole)
-        box.addButton(okButton,QtWidgets.QDialogButtonBox.AcceptRole)
+        box.addButton(cancelButton, QtWidgets.QDialogButtonBox.RejectRole)
+        box.addButton(okButton, QtWidgets.QDialogButtonBox.AcceptRole)
         layout.addWidget(box, 2, 0)
         layout.setColumnStretch(1, 1)
         self.show()
 
     def closeEvent(self, *args):
+        """
+        Closes the update window.
+        """
         self.deleteLater()
 
     def applyAndClose(self, *args):
+        """
+        Asks the user to update and closes the window.
+        """
         ssnake_location = os.path.dirname(os.path.dirname(__file__))
         try:
             os.mkdir(ssnake_location + os.path.sep + 'test')

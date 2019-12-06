@@ -17,25 +17,42 @@
 # You should have received a copy of the GNU General Public License
 # along with ssNake. If not, see <http://www.gnu.org/licenses/>.
 
+import numpy as np
+import os
+import copy
 import matplotlib
 matplotlib.rc('svg', fonttype='none')
 from matplotlib.colors import colorConverter
 import widgetClasses as wc
 from safeEval import safeEval
-import numpy as np
-import os
-import copy
 from ssNake import QtGui, QtCore, QtWidgets, FigureCanvas
 
 #####################################################################################
 
 
 class SaveFigureWindow(QtWidgets.QWidget):
+    """
+    The window for saving a figure.
+    This window replaces the original figure.
+    """
 
     def __init__(self, father, oldMainWindow):
+        """
+        Initializes the SaveFigureWindow.
+
+        Parameters
+        ----------
+        father : MainProgram
+            The main program of ssNake.
+        oldMainWindow : Main1DWindow
+            The figure window that this window replaces.
+        """
         super(SaveFigureWindow, self).__init__(father)
         self.father = father
         self.oldMainWindow = oldMainWindow
+        self.rename = self.oldMainWindow.rename                  # Forward function
+        self.get_masterData = self.oldMainWindow.get_masterData  # Forward function
+        self.get_current = self.oldMainWindow.get_current        # Forward function
         self.fig = oldMainWindow.current.fig
         self.canvas = FigureCanvas(self.fig)
         self.canvas.mpl_connect('pick_event', self.pickHandler)
@@ -188,10 +205,9 @@ class SaveFigureWindow(QtWidgets.QWidget):
         self.ytickFontSizeEntry.valueChanged.connect(self.updatePlot)
         self.ytickFontSizeEntry.hide()
         self.fontFrame.addWidget(self.ytickFontSizeEntry, 6, 1)
-
         self.legend = self.ax.legend()
-        if self.legend is not None: #Fix for matplotlid 2.0, were for contour self.legend becomes None
-            if len(self.legend.get_texts()) == 0:
+        if self.legend is not None:              # Fix for matplotlib 2.0, were for contour self.legend becomes None
+            if not self.legend.get_texts():
                 self.legend.set_visible(False)
                 self.legend = None
             else:
@@ -218,7 +234,10 @@ class SaveFigureWindow(QtWidgets.QWidget):
                 self.legendOrder = list(np.arange(0, len(self.legend.get_texts())))[::-1]
             else:
                 self.legendOrder = list(np.arange(0, len(self.legend.get_texts())))
-            self.legend.draggable(True)
+            try:
+                self.legend.set_draggable(True)
+            except AttributeError:
+                self.legend.draggable(True) # For older Matplotlib versions
             self.legendPos = 'best'
             self.legendTextList = []
             for line in self.legend.get_texts():
@@ -250,8 +269,8 @@ class SaveFigureWindow(QtWidgets.QWidget):
         okButton.clicked.connect(self.save)
         box = QtWidgets.QDialogButtonBox()
         box.setOrientation(QtCore.Qt.Horizontal)
-        box.addButton(cancelButton,QtWidgets.QDialogButtonBox.RejectRole)
-        box.addButton(okButton,QtWidgets.QDialogButtonBox.AcceptRole)
+        box.addButton(cancelButton, QtWidgets.QDialogButtonBox.RejectRole)
+        box.addButton(okButton, QtWidgets.QDialogButtonBox.AcceptRole)
         self.inFrame.addWidget(box, 2, 0)
         grid.setColumnStretch(0, 1)
         grid.setRowStretch(0, 1)
@@ -261,10 +280,15 @@ class SaveFigureWindow(QtWidgets.QWidget):
         scroll.setMinimumWidth(content.sizeHint().width() + scroll.verticalScrollBar().sizeHint().width())
         self.updatePlot()
 
-    def rename(self, name):
-        self.oldMainWindow.rename(name)
-
     def fontCheckChanged(self, val):
+        """
+        Shows or hides the details of the font settings.
+
+        Parameters
+        ----------
+        val : bool
+            When True the font details are shown, otherwise they are hidden.
+        """
         if val:  # If active
             self.mainFontLabel.setEnabled(False)
             self.mainFontSizeEntry.setEnabled(False)
@@ -300,6 +324,9 @@ class SaveFigureWindow(QtWidgets.QWidget):
         self.updatePlot()
 
     def updateLegend(self, *args):
+        """
+        Updates the figure legend.
+        """
         if self.legend is None:
             return
         if self.legendGroup.isChecked():
@@ -309,18 +336,24 @@ class SaveFigureWindow(QtWidgets.QWidget):
                 size = self.legendFontSizeEntry.value()
             else:
                 size = self.mainFontSizeEntry.value()
-            self.legend = self.ax.legend(orderedLines, orderedLegendText, framealpha = 1.0, loc=self.legendPos, prop={'size': size })
-            self.legend.draggable(True)
+            self.legend = self.ax.legend(orderedLines, orderedLegendText, framealpha=1.0, loc=self.legendPos, prop={'size': size})
+            try:
+                self.legend.set_draggable(True)
+            except AttributeError:
+                self.legend.draggable(True) # For older Matplotlib versions
         else:
             self.legend.set_visible(False)
 
     def updatePlot(self, *args):
+        """
+        Updates the plot.
+        """
         if self.fontDetailsCheck.checkState():  # If details checked
             self.fig.suptitle(self.titleEntry.text(), fontsize=self.titleFontSizeEntry.value())
             self.ax.set_xlabel(self.xlabelEntry.text(), fontsize=self.xlabelFontSizeEntry.value())
             self.ax.set_ylabel(self.ylabelEntry.text(), fontsize=self.ylabelFontSizeEntry.value())
-            self.ax.set_xlim((safeEval(self.xlimLeftEntry.text(),type = 'FI'), safeEval(self.xlimRightEntry.text(),type = 'FI')))
-            self.ax.set_ylim((safeEval(self.ylimLeftEntry.text(),type = 'FI'), safeEval(self.ylimRightEntry.text(),type = 'FI')))
+            self.ax.set_xlim((safeEval(self.xlimLeftEntry.text(), Type='FI'), safeEval(self.xlimRightEntry.text(), Type='FI')))
+            self.ax.set_ylim((safeEval(self.ylimLeftEntry.text(), Type='FI'), safeEval(self.ylimRightEntry.text(), Type='FI')))
             self.ax.tick_params(axis='x', labelsize=self.xtickFontSizeEntry.value())
             self.ax.xaxis.get_offset_text().set_fontsize(self.xtickFontSizeEntry.value())
             self.ax.tick_params(axis='y', labelsize=self.ytickFontSizeEntry.value())
@@ -329,8 +362,8 @@ class SaveFigureWindow(QtWidgets.QWidget):
             self.fig.suptitle(self.titleEntry.text(), fontsize=self.mainFontSizeEntry.value())
             self.ax.set_xlabel(self.xlabelEntry.text(), fontsize=self.mainFontSizeEntry.value())
             self.ax.set_ylabel(self.ylabelEntry.text(), fontsize=self.mainFontSizeEntry.value())
-            self.ax.set_xlim((safeEval(self.xlimLeftEntry.text(),type = 'FI'), safeEval(self.xlimRightEntry.text(),type = 'FI')))
-            self.ax.set_ylim((safeEval(self.ylimLeftEntry.text(),type = 'FI'), safeEval(self.ylimRightEntry.text(),type = 'FI')))
+            self.ax.set_xlim((safeEval(self.xlimLeftEntry.text(), Type='FI'), safeEval(self.xlimRightEntry.text(), Type='FI')))
+            self.ax.set_ylim((safeEval(self.ylimLeftEntry.text(), Type='FI'), safeEval(self.ylimRightEntry.text(), Type='FI')))
             self.ax.tick_params(axis='x', labelsize=self.mainFontSizeEntry.value())
             self.ax.xaxis.get_offset_text().set_fontsize(self.mainFontSizeEntry.value())
             self.ax.tick_params(axis='y', labelsize=self.mainFontSizeEntry.value())
@@ -343,11 +376,23 @@ class SaveFigureWindow(QtWidgets.QWidget):
         self.canvas.adjustSize()
 
     def pickHandler(self, pickEvent):
+        """
+        The handler for the peak picking in the save figure window.
+
+        Parameters
+        ----------
+        pickEvent : QEvent
+            The peak picking event.
+        """
         if pickEvent.mouseevent.dblclick and (pickEvent.mouseevent.button == 1):
             if isinstance(pickEvent.artist, matplotlib.lines.Line2D):
                 EditLineWindow(self, pickEvent.artist)
 
     def exFile(self):
+        """
+        Executes an external file.
+        Note: Any code in the file is executed, so the file should only come from trusted sources.
+        """
         warning_msg = "This is an advanced feature. Do not execute files you haven't inspected yourself. Are you sure you want to continue?"
         reply = QtWidgets.QMessageBox.question(self, 'Warning', warning_msg, QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No)
         if reply == QtWidgets.QMessageBox.Yes:
@@ -364,15 +409,13 @@ class SaveFigureWindow(QtWidgets.QWidget):
                 self.canvas.draw()
 
     def get_mainWindow(self):
+        """Returns the mainwindow that has been replaced by the save figure window."""
         return self.oldMainWindow
 
-    def get_masterData(self):
-        return self.oldMainWindow.get_masterData()
-
-    def get_current(self):
-        return self.oldMainWindow.get_current()
-
     def kill(self):
+        """
+        Closes the save figure window.
+        """
         for i in reversed(range(self.grid.count())):
             item = self.grid.itemAt(i).widget()
             if item is not None:
@@ -384,6 +427,9 @@ class SaveFigureWindow(QtWidgets.QWidget):
         self.deleteLater()
 
     def save(self):
+        """
+        Asks the user for a filename and saves the plot in the format set in the window.
+        """
         self.updatePlot()
         self.fig.set_size_inches(self.widthEntry.value() / 2.54, self.heightEntry.value() / 2.54)
         WorkspaceName = self.father.workspaceNames[self.father.workspaceNum]  # Set name of file to be saved to workspace name to start
@@ -403,6 +449,9 @@ class SaveFigureWindow(QtWidgets.QWidget):
                     fd.write(s.replace('stroke-miterlimit:100000;', ''))
 
     def cancel(self):
+        """
+        Closes the save figure by the cancel button.
+        """
         if self.oldMainWindow.current.viewSettings['showTitle']:
             self.fig.suptitle(self.titleBackup, fontsize=self.titleFontSizeBackup)
         else:
@@ -429,8 +478,19 @@ class SaveFigureWindow(QtWidgets.QWidget):
 
 
 class LegendWindow(QtWidgets.QWidget):
+    """
+    The window with the settings of the plot legend.
+    """
 
     def __init__(self, parent):
+        """
+        Initializes the legend window.
+
+        Parameters
+        ----------
+        parent : SaveFigureWindow
+            The save figure window from which the legend window is called.
+        """
         super(LegendWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
@@ -469,11 +529,22 @@ class LegendWindow(QtWidgets.QWidget):
         self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
 
     def changeEdit(self, num):
+        """
+        Changes the line for which the legend label is edited.
+
+        Parameters
+        ----------
+        num : int
+            The line number.
+        """
         for i in range(len(self.legendEditList)):
             self.legendEditList[i].setVisible(False)
         self.legendEditList[num].setVisible(True)
 
     def preview(self, *args):
+        """
+        Preview the changes made to the legend.
+        """
         tmp = copy.deepcopy(self.father.legendTextList)
         order = eval(self.orderEntry.text())
         for i in range(len(self.legendEditList)):
@@ -486,14 +557,23 @@ class LegendWindow(QtWidgets.QWidget):
         orderedLines = [self.father.ax.lines[x] for x in order]
         orderedLegendText = [tmp[x] for x in order]
         self.father.ax.legend(orderedLines, orderedLegendText, loc=inp)
-        self.father.legend.draggable(True)
+        try:
+            self.father.legend.set_draggable(True)
+        except AttributeError:
+            self.father.legend.draggable(True) # For older Matplotlib versions
         self.father.canvas.draw()
 
     def closeEvent(self, *args):
+        """
+        Closes the legend window.
+        """
         self.deleteLater()
         self.father.updatePlot()
 
     def applyAndClose(self):
+        """
+        Applies the changes made to the legend and closes the window.
+        """
         for i in range(len(self.legendEditList)):
             self.father.legendTextList[i] = self.legendEditList[i].text()
         self.father.legendOrder = eval(self.orderEntry.text())
@@ -510,8 +590,21 @@ class LegendWindow(QtWidgets.QWidget):
 
 
 class EditLineWindow(QtWidgets.QWidget):
+    """
+    The window for editing the line styles.
+    """
 
     def __init__(self, parent, line=None):
+        """
+        Initializes the line edit window.
+
+        Parameters
+        ----------
+        parent : SaveFigureWindow
+            The save figure window from which the line edit window is called.
+        line : Line2D, optional
+            The line for which to show the line style.
+        """
         super(EditLineWindow, self).__init__(parent)
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
         self.father = parent
@@ -576,6 +669,9 @@ class EditLineWindow(QtWidgets.QWidget):
         self.show()
 
     def setup(self):
+        """
+        Stores backup information about the styles to restore the figure.
+        """
         self.backupColor = colorConverter.to_rgba(self.line.get_color())
         self.backupLineWidth = self.line.get_linewidth()
         self.lwSpinBox.setValue(self.backupLineWidth)
@@ -591,11 +687,22 @@ class EditLineWindow(QtWidgets.QWidget):
         self.msSpinBox.setValue(self.backupMarkerSize)
 
     def setIndex(self, val):
+        """
+        Changes the line of which the information is shown.
+
+        Parameters
+        ----------
+        val : int
+            The line number of which to show information.
+        """
         self.reset()
         self.line = self.lineList[val]
         self.setup()
 
     def setColor(self, *args):
+        """
+        Sets the color of the selected line.
+        """
         color = QtGui.QColor()
         color.setRgbF(*self.backupColor)
         color = QtWidgets.QColorDialog.getColor(color, self, 'Color', QtWidgets.QColorDialog.ColorDialogOption(1))
@@ -605,6 +712,9 @@ class EditLineWindow(QtWidgets.QWidget):
         self.canvas.draw()
 
     def setEdgeColor(self, *args):
+        """
+        Sets the edgecolor of the selected line.
+        """
         color = QtGui.QColor()
         color.setRgbF(*self.backupEdgeColor)
         color = QtWidgets.QColorDialog.getColor(color, self, 'Edgecolor', QtWidgets.QColorDialog.ColorDialogOption(1))
@@ -614,6 +724,9 @@ class EditLineWindow(QtWidgets.QWidget):
         self.canvas.draw()
 
     def setFaceColor(self, *args):
+        """
+        Sets the facecolor of the selected line.
+        """
         color = QtGui.QColor()
         color.setRgbF(*self.backupFaceColor)
         color = QtWidgets.QColorDialog.getColor(color, self, 'Facecolor', QtWidgets.QColorDialog.ColorDialogOption(1))
@@ -623,22 +736,57 @@ class EditLineWindow(QtWidgets.QWidget):
         self.canvas.draw()
 
     def setLineWidth(self, val):
+        """
+        Sets the linewidth of the selected line.
+
+        Parameters
+        ----------
+        val : float
+            Linewidth in points.
+        """
         self.line.set_linewidth(val)
         self.canvas.draw()
 
     def setLineStyle(self, val):
+        """
+        Sets the line style of the selected line.
+
+        Parameters
+        ----------
+        val : {'-', '--', '-.', ':', '', (offset, on-off-seq), ...}
+            The line style.
+        """
         self.line.set_linestyle(self.LINESTYLES[val])
         self.canvas.draw()
 
     def setMarker(self, val):
+        """
+        Sets the marker of the selected line.
+
+        Parameters
+        ----------
+        val : str
+            The marker style.
+        """
         self.line.set_marker(self.MARKERSTYLES[val])
         self.canvas.draw()
 
     def setMarkerSize(self, val):
+        """
+        Sets the marker size of the selected line.
+
+        Parameters
+        ----------
+        val : float
+            The marker size in points.
+        """
         self.line.set_markersize(val)
         self.canvas.draw()
 
     def reset(self):
+        """
+        Resets the line to the backup values.
+        """
         self.line.set_color(self.backupColor)
         self.line.set_linewidth(self.backupLineWidth)
         self.line.set_linestyle(self.backupLineStyle)
@@ -649,12 +797,21 @@ class EditLineWindow(QtWidgets.QWidget):
         self.canvas.draw()
 
     def closeEvent(self, *args):
+        """
+        Closes the line edit window.
+        """
         self.deleteLater()
         self.father.updatePlot()
 
     def apply(self):
+        """
+        Applies the changes to the line.
+        """
         self.setup()
 
     def cancelAndClose(self):
+        """
+        Cancels the changes to the line and closes the line edit window.
+        """
         self.reset()
         self.closeEvent()

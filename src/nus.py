@@ -23,6 +23,22 @@ import scipy.signal
 
 
 def ent_ffm(missingPoints, fid, posArray):
+    """
+    Performs FFM NUS reconstruction of a 1D FID.
+
+    Parameters
+    ----------
+    missingPoints: ndarray
+        1D array which holds the reconstructed spectrum that will be optimized
+    fid: ndarray
+        1D array with the 'bad' FID
+    posArray: ndarray
+        1D array with the indexes of the 'bad' points of the FID
+
+    Returns
+    -------
+
+    """
     fid[posArray] = missingPoints[:len(posArray)] + 1j * missingPoints[len(posArray):]
     spec = np.fft.fft(fid)
     zn = np.fft.fft((np.imag(spec) + 1j * np.real(spec)) / np.abs(spec))
@@ -30,6 +46,20 @@ def ent_ffm(missingPoints, fid, posArray):
 
 
 def ffm(inp):
+    """
+    Performs FFM NUS reconstruction of a 1D FID.
+
+    Parameters
+    ----------
+    inp: list with paramyters:
+        0: 1D ndarray with the 'bad' FID
+        1: 1D ndarray with the indexes of the 'bad' points of the FID
+
+    Returns
+    -------
+    ndarray:
+        1D array of the corrected spectrum.
+    """
     l = len(inp[1])
     res = scipy.optimize.minimize(ent_ffm,
                                   np.zeros(l * 2),
@@ -41,6 +71,23 @@ def ffm(inp):
 
 
 def clean(inp):
+    """
+    Performs CLEAN NUS reconstruction of a 1D spectrum.
+
+    Parameters
+    ----------
+    inp: list with parameters:
+        0: 1D ndarray with the 'bad' spectrum
+        1: 1D array of the fft of the mask
+        2: float, gamma value of the CLEAN calculation
+        3: float, stopping limit (0 < x < 1) (stop if residual intensity below this point)
+        4: int, maximum number of iterations
+
+    Returns
+    -------
+    ndarray:
+        1D array of the corrected spectrum.
+    """
     residuals = inp[0]
     mask = inp[1]
     gamma = inp[2]
@@ -61,6 +108,24 @@ def clean(inp):
 
 
 def ist(inp):  # Iterative soft thresholding
+    """
+    Performs Iterative Soft Thresholding of a 1D FID
+
+    Parameters
+    ----------
+    inp: list with paramyters:
+        0: 1D ndarray with the FID (reshaped to contain the zeros)
+        1: 1D array with the 'zero' positions
+        2: float, threshold. The level (0 < x < 1) at which the data is cut every iteration
+        3: int, maximum number of iterations
+        4: float, stopping limit (0 < x < 1) (stop if residual intensity below this point)
+        5: float, maxmimum of the ND data, needed for the stopping limit
+
+    Returns
+    -------
+    ndarray:
+        1D array of the corrected spectrum.
+    """
     data = inp[0]
     posList = inp[1]  # data points that must be set to zero
     threshold = inp[2]  # level at which the data is cut
@@ -69,7 +134,7 @@ def ist(inp):  # Iterative soft thresholding
     NDmax = inp[5]  # max of ND data. Needed for stopping limit.
     result = np.zeros_like(data, dtype=complex)
     data[0] = data[0] * 0.5
-    for itt in range(0, ittnum):
+    for itt in range(ittnum):
         spectrum = np.real(np.fft.fft(data, axis=0))
         signmatrix = np.sign(spectrum)
         height = np.max(np.abs(spectrum))
@@ -83,8 +148,6 @@ def ist(inp):  # Iterative soft thresholding
         spectrum = np.conj(scipy.signal.hilbert(spectrum, axis=0))
         data = np.fft.ifft(spectrum, axis=0)
         data[posList] = 0
-        
     result = np.real(result + spectrum)
-
-    result = np.fft.fftshift(result,axes=0)
+    result = np.fft.fftshift(result, axes=0)
     return result
