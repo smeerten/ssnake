@@ -2109,7 +2109,10 @@ class Current1D(PlotFrame):
         """
         tmpLocList = copy.copy(self.locList)
         if self.ndim() > 1:
-            tmpLocList[self.axes[:-1]] = self.viewSettings["stackBegin"]
+            if self.viewSettings["stackBegin"] is None:
+                tmpLocList[self.axes[-1]] = 0
+            else:
+                tmpLocList[self.axes[-1]] = self.viewSettings["stackBegin"]
         self.root.addMacro(['autoPhase', (phaseNum, self.axes[-1] - self.data.ndim(), tmpLocList)])
         self.data.autoPhase(phaseNum, self.axes[-1], tmpLocList)
         self.upd()
