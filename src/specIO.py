@@ -1901,7 +1901,7 @@ def loadAscii(filePath, asciiInfo=None):
         delimChar = ','
     else:
         return
-    matrix = np.genfromtxt(filePath, dtype=None, delimiter=delimChar)
+    matrix = np.loadtxt(filePath, dtype=None, delimiter=delimChar)
     if dataOrder == 'XRI' or dataOrder == 'XR' or dataOrder == 'XI':
         if not dataSpec:
             sw = 1.0 / (matrix[1, 0] - matrix[0, 0])
