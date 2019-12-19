@@ -253,9 +253,14 @@ class SaveFigureWindow(QtWidgets.QWidget):
             self.legendFrame.addWidget(legendButton, 0, 0)
             self.legendGroup.setLayout(self.legendFrame)
             self.optionFrame.addWidget(self.legendGroup, 4, 0)
-        execFileButton = QtWidgets.QPushButton('Execute file')
-        execFileButton.clicked.connect(self.exFile)
-        self.optionFrame.addWidget(execFileButton, 44, 0)
+        self.xticksToggle = QtWidgets.QCheckBox('X-ticks')
+        self.xticksToggle.setChecked(True)
+        self.xticksToggle.stateChanged.connect(self.updatePlot)
+        self.optionFrame.addWidget(self.xticksToggle, 5, 0)
+        self.yticksToggle = QtWidgets.QCheckBox('Y-ticks')
+        self.yticksToggle.setChecked(True)
+        self.yticksToggle.stateChanged.connect(self.updatePlot)
+        self.optionFrame.addWidget(self.yticksToggle, 6, 0)
         self.inFrame = QtWidgets.QGridLayout()
         self.frame1.addLayout(self.inFrame, 1, 0)
         self.inFrame.addWidget(wc.QLabel("File type:"), 0, 0, 1, 2)
@@ -370,6 +375,15 @@ class SaveFigureWindow(QtWidgets.QWidget):
             self.ax.yaxis.get_offset_text().set_fontsize(self.mainFontSizeEntry.value())
             if self.legend is not None:
                 self.legend.prop = {'size': self.mainFontSizeEntry.value()}
+        xticksbool = self.xticksToggle.isChecked()
+        for i in self.ax.get_xticklabels():
+            i.set_visible(xticksbool)
+        self.ax.xaxis.get_offset_text().set_visible(xticksbool)
+        yticksbool = self.yticksToggle.isChecked()
+        for i in self.ax.get_yticklabels():
+            i.set_visible(yticksbool)
+        self.ax.yaxis.get_offset_text().set_visible(yticksbool)
+        self.ax.tick_params(bottom=xticksbool, left=yticksbool)
         self.updateLegend()
         self.fig.set_size_inches(self.widthEntry.value() / 2.54, self.heightEntry.value() / 2.54)
         self.canvas.draw()
@@ -387,26 +401,6 @@ class SaveFigureWindow(QtWidgets.QWidget):
         if pickEvent.mouseevent.dblclick and (pickEvent.mouseevent.button == 1):
             if isinstance(pickEvent.artist, matplotlib.lines.Line2D):
                 EditLineWindow(self, pickEvent.artist)
-
-    def exFile(self):
-        """
-        Executes an external file.
-        Note: Any code in the file is executed, so the file should only come from trusted sources.
-        """
-        warning_msg = "This is an advanced feature. Do not execute files you haven't inspected yourself. Are you sure you want to continue?"
-        reply = QtWidgets.QMessageBox.question(self, 'Warning', warning_msg, QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No)
-        if reply == QtWidgets.QMessageBox.Yes:
-            filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Execute File', self.father.lastLocation)
-            if isinstance(filename, tuple):
-                filename = filename[0]
-            fig = self.fig
-            ax = self.ax
-            if filename:
-                try:
-                    exec(open(filename).read())
-                except Exception as e:
-                    self.father.dispMsg(str(e))
-                self.canvas.draw()
 
     def get_mainWindow(self):
         """Returns the mainwindow that has been replaced by the save figure window."""
@@ -464,8 +458,17 @@ class SaveFigureWindow(QtWidgets.QWidget):
         self.ax.xaxis.get_offset_text().set_fontsize(self.xtickFontSizeBackup)
         self.ax.tick_params(axis='y', labelsize=self.ytickFontSizeBackup)
         self.ax.yaxis.get_offset_text().set_fontsize(self.ytickFontSizeBackup)
+        xticksbool = True
+        for i in self.ax.get_xticklabels():
+            i.set_visible(xticksbool)
+        self.ax.xaxis.get_offset_text().set_visible(xticksbool)
+        yticksbool = True
+        for i in self.ax.get_yticklabels():
+            i.set_visible(yticksbool)
+        self.ax.yaxis.get_offset_text().set_visible(yticksbool)
         if self.legend is not None:
             self.legend.set_visible(False)
+        self.ax.tick_params(bottom=xticksbool, left=yticksbool)
         self.fig.set_size_inches((self.widthBackup / 2.54, self.heightBackup / 2.54))
         self.grid.deleteLater()
         self.canvas.draw()
