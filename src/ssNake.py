@@ -7018,7 +7018,7 @@ class shiftConversionWindow(wc.ToolWindow):
         self.hbdiso.setText('0')
         self.hbdaniso.setText('0')
 
-    def closeEvent(self):
+    def closeEvent(self, *args):
         self.deleteLater()
 
 ##############################################################################
@@ -7188,7 +7188,7 @@ class quadConversionWindow(wc.ToolWindow):
         self.Vyy.setText('ND')
         self.Vzz.setText('ND')
 
-    def closeEvent(self):
+    def closeEvent(self, *args):
         self.deleteLater()
 
 ##############################################################################
@@ -7317,7 +7317,7 @@ class dipolarDistanceWindow(wc.ToolWindow):
         self.gamma1Drop.setCurrentIndex(0)
         self.gamma2Drop.setCurrentIndex(0)
 
-    def closeEvent(self):
+    def closeEvent(self, *args):
         self.deleteLater()
 
 ##############################################################################
@@ -7674,7 +7674,7 @@ class mqmasExtractWindow(wc.ToolWindow):
         self.pq.setText('0')
         self.IEntry.setCurrentIndex(0)
 
-    def closeEvent(self):
+    def closeEvent(self, *args):
         self.deleteLater()
 
 
