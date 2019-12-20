@@ -37,7 +37,7 @@ class SpectrumException(Exception):
 # the generic spectrum class
 
 
-class Spectrum:
+class Spectrum(object):
     """
     The object that contains all relevant spectral information.
     The functions for processing are methods of this object.
