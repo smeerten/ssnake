@@ -30,7 +30,7 @@ FREQLABELLIST = [u'[Hz]', u'[kHz]', u'[MHz]']
 # the class from which the 1d data is displayed, the operations which only edit the content of this class are for previewing
 
 
-class PlotFrame:
+class PlotFrame(object):
     """
     The frame used to display the plot.
     It handles the mouse actions applied to the figure.
