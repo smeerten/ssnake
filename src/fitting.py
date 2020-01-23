@@ -113,6 +113,17 @@ class TabFittingWindow(QtWidgets.QWidget):
         grid3.setColumnStretch(0, 1)
         grid3.setRowStretch(0, 1)
 
+    def rename(self, name):
+        """
+        Renames the workspace.
+
+        Parameters
+        ----------
+        name : str
+            The new name of the workspace.
+        """
+        self.oldMainWindow.rename(name)
+        
     def getTabNames(self):
         """
         Returns a list of the tab names.
@@ -760,18 +771,6 @@ class FittingWindow(QtWidgets.QWidget):
                                         np.append(None, self.current.data1D.ref),
                                         [np.arange(len(data))] + self.current.data1D.xaxArray,
                                         0)
-
-    def rename(self, name):
-        """
-        Renames the workspace.
-
-        Parameters
-        ----------
-        name : str
-            The new name of the workspace.
-        """
-        self.canvas.draw()
-        self.oldMainWindow.rename(name)
 
     def get_mainWindow(self):
         """
