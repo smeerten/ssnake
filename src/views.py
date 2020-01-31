@@ -1921,7 +1921,7 @@ class Current1D(PlotFrame):
         self.showFid()
         self.upd()
 
-    def extract(self, pos1, pos2, newSpec=False):
+    def extract(self, pos1, pos2, newSpec=False, step=1):
         """
         Extract a region from the data (i.e. remove data outside the region.
         Can return a new data class if newSpec==True.
@@ -1934,6 +1934,8 @@ class Current1D(PlotFrame):
             Second data point limit of the selected region.
         newSpec (optional = False): boolean
             Return a new data class object
+        step : int, optional
+            Steps between indices to use
 
         Returns
         -------
@@ -1942,10 +1944,10 @@ class Current1D(PlotFrame):
         """
         if newSpec:
             tmpData = copy.deepcopy(self.data)
-            tmpData.extract(pos1, pos2, self.axes[-1])
+            tmpData.extract(pos1, pos2, self.axes[-1], step)
             return tmpData
-        self.root.addMacro(['extract', (pos1, pos2, self.axes[-1] - self.data.ndim())])
-        self.data.extract(pos1, pos2, self.axes[-1])
+        self.root.addMacro(['extract', (pos1, pos2, self.axes[-1] - self.data.ndim(), step)])
+        self.data.extract(pos1, pos2, self.axes[-1], step)
         self.upd()
         self.showFid()
         self.plotReset()

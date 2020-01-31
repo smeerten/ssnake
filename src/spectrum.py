@@ -1206,7 +1206,7 @@ class Spectrum(object):
             self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.average(pos1, pos2, axis)))
         self.addHistory("Average between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axis + 1))
 
-    def extract(self, pos1=None, pos2=None, axis=-1):
+    def extract(self, pos1=None, pos2=None, axis=-1, step=None):
         """
         Extract the data between two given indices along a dimension and make it the new data.
 
@@ -1221,20 +1221,27 @@ class Spectrum(object):
         axis : int, optional
             The dimension.
             By default the last dimension is used.
+        step : int, optional
+            Step size between indices to extract.
+            1 by default
         """
         axis = self.checkAxis(axis)
         if pos1 is None:
             pos1 = 0
         if pos2 is None:
             pos2 = self.shape()[axis]
+        if step is None:
+            step = 1
         if not self.noUndo:
             copyData = copy.deepcopy(self)
         minPos = min(pos1, pos2)
         maxPos = max(pos1, pos2)
-        slicing = (slice(None), ) * axis + (slice(minPos, maxPos), )
+        slicing = (slice(None), ) * axis + (slice(minPos, maxPos, step), )
         if self.spec[axis] == 1:
-            oldFxax = self.xaxArray[axis][slice(minPos, maxPos)][0]
-            self.sw[axis] *= (maxPos - minPos) / (1.0 * self.shape()[axis])
+            oldFxax = self.xaxArray[axis][minPos]
+            self.sw[axis] *= (step * np.ceil((maxPos - minPos)/step)) / (1.0 * self.shape()[axis])
+        else:
+            self.sw[axis] /= step
         self.data = self.data[slicing]
         if self.spec[axis] == 1:
             newFxax = np.fft.fftshift(np.fft.fftfreq(self.shape()[axis], 1.0 / self.sw[axis]))[0]
@@ -1242,10 +1249,10 @@ class Spectrum(object):
                 self.ref[axis] = self.freq[axis]
             self.freq[axis] = self.ref[axis] - newFxax + oldFxax
         self.resetXax(axis)
-        self.addHistory("Extracted part between " + str(minPos) + " and " + str(maxPos) + " of dimension " + str(axis + 1))
+        self.addHistory("Extracted part between " + str(minPos) + " and " + str(maxPos) + " with steps of " + str(step) + " of dimension " + str(axis + 1))
         self.redoList = []
         if not self.noUndo:
-            self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.extract(pos1, pos2, axis)))
+            self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.extract(pos1, pos2, axis, step)))
 
     def fiddle(self, refSpec, lb, axis=-1):
         """

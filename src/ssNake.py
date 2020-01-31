@@ -4641,38 +4641,125 @@ class regionWindow2(wc.ToolWindow):
         inp = safeEval(self.startEntry.text(), length=self.father.current.len(), Type='FI')
         if inp is None:
             raise SsnakeException(self.NAME + ": value not valid")
-        self.startVal = int(round(inp))
-        if self.startVal < 0:
-            self.startVal = 0
-        elif self.startVal > dataLength:
-            self.startVal = dataLength
         inp = safeEval(self.endEntry.text(), length=self.father.current.len(), Type='FI')
         if inp is None:
             raise SsnakeException(self.NAME + ": value not valid")
-        self.endVal = int(round(inp))
-        if self.endVal < 0:
-            self.endVal = 0
-        elif self.endVal > dataLength:
-            self.endVal = dataLength
+        self.checkValues(self)
         self.apply(self.startVal, self.endVal, self.newSpec.isChecked())
 
     def apply(self, maximum, minimum, newSpec):
         pass
 
+#############################################################
+
+
+class regionWindowStep(wc.ToolWindow):
+
+    def __init__(self, parent, name, newSpecOption):
+        self.NAME = name
+        super(regionWindowStep, self).__init__(parent)
+        self.startVal = 0
+        self.endVal = parent.current.len()
+        self.stepVal = 1;
+        self.grid.addWidget(wc.QLabel("Start index:"), 0, 0)
+        self.startEntry = wc.QLineEdit(self.startVal, self.checkValues)
+        self.grid.addWidget(self.startEntry, 1, 0)
+        self.grid.addWidget(wc.QLabel("End index:"), 2, 0)
+        self.endEntry = wc.QLineEdit(self.endVal, self.checkValues)
+        self.grid.addWidget(self.endEntry, 3, 0)
+        self.grid.addWidget(wc.QLabel("Step size:"), 4, 0)
+        self.stepEntry = wc.QLineEdit(self.stepVal, self.checkValues)
+        self.grid.addWidget(self.stepEntry, 5, 0)
+        self.newSpec = QtWidgets.QCheckBox("Result in new workspace")
+        if not newSpecOption:
+            self.newSpec.hide()
+        self.layout.addWidget(self.newSpec, 1, 0, 1, 2)
+        self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
+        self.father.current.peakPick = True
+
+    def preview(self, maximum, minimum, step):
+        pass
+
+    def picked(self, pos, second=False):
+        if second:
+            dataLength = self.father.current.len()
+            inp = safeEval(self.startEntry.text(), length=self.father.current.len(), Type='FI')
+            if inp is not None:
+                self.startVal = int(round(inp))
+            if self.startVal < 0:
+                self.startVal = 0
+            elif self.startVal > dataLength:
+                self.startVal = dataLength
+            self.startEntry.setText(str(self.startVal))
+            self.endVal = pos[0]
+            self.endEntry.setText(str(self.endVal))
+            self.preview(self.startVal, self.endVal, self.stepVal)
+            self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
+            self.father.current.peakPick = True
+        else:
+            self.startEntry.setText(str(pos[0]))
+            self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos, True)
+            self.father.current.peakPick = True
+
+    def checkValues(self, *args):
+        dataLength = self.father.current.len()
+        inp = safeEval(self.startEntry.text(), length=self.father.current.len(), Type='FI')
+        if inp is not None:
+            self.startVal = int(round(inp))
+        if self.startVal < 0:
+            self.startVal = 0
+        elif self.startVal > dataLength:
+            self.startVal = dataLength
+        self.startEntry.setText(str(self.startVal))
+        inp = safeEval(self.endEntry.text(), length=self.father.current.len(), Type='FI')
+        if inp is not None:
+            self.endVal = int(round(inp))
+        if self.endVal < 0:
+            self.endVal = 0
+        elif self.endVal > dataLength:
+            self.endVal = dataLength
+        self.endEntry.setText(str(self.endVal))
+        inp = safeEval(self.stepEntry.text(), length=self.father.current.len(), Type='FI')
+        if inp is not None:
+            self.stepVal = int(round(inp))
+        if self.stepVal <= 0:
+            self.stepVal = 1
+        elif self.stepVal > dataLength:
+            self.stepVal = dataLength
+        self.endEntry.setText(str(self.stepVal))
+        self.preview(self.startVal, self.endVal, self.stepVal)
+
+    def applyFunc(self):
+        dataLength = self.father.current.len()
+        inp = safeEval(self.startEntry.text(), length=self.father.current.len(), Type='FI')
+        if inp is None:
+            raise SsnakeException(self.NAME + ": value not valid")
+        inp = safeEval(self.endEntry.text(), length=self.father.current.len(), Type='FI')
+        if inp is None:
+            raise SsnakeException(self.NAME + ": value not valid")
+        inp = safeEval(self.stepEntry.text(), length=self.father.current.len(), Type='FI')
+        if inp is None:
+            raise SsnakeException(self.NAME + ": value not valid")
+        self.checkValues(self)
+        self.apply(self.startVal, self.endVal, self.newSpec.isChecked(), self.stepVal)
+
+    def apply(self, maximum, minimum, newSpec, step):
+        pass
+    
 ############################################################
 
 
-class extractRegionWindow(regionWindow2):
+class extractRegionWindow(regionWindowStep):
 
     def __init__(self, parent):
         super(extractRegionWindow, self).__init__(parent, 'Extract part', True)
 
-    def apply(self, maximum, minimum, newSpec):
+    def apply(self, maximum, minimum, newSpec, step):
         if newSpec:
-            if self.father.father.newWorkspace(self.father.current.extract(minimum, maximum, newSpec)) is None:
+            if self.father.father.newWorkspace(self.father.current.extract(minimum, maximum, newSpec, step)) is None:
                 return None
         else:
-            self.father.current.extract(minimum, maximum, newSpec)
+            self.father.current.extract(minimum, maximum, newSpec, step)
             self.father.updAllFrames()
         return 1
 
