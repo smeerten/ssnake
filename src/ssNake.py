@@ -6209,15 +6209,53 @@ class CombineWorkspaceWindow(wc.ToolWindow):
     def __init__(self, parent):
         super(CombineWorkspaceWindow, self).__init__(parent)
         self.grid.addWidget(wc.QLabel("Workspaces:"), 0, 0)
-        self.grid.addWidget(wc.QLabel("Combined spectrum:"), 0, 1)
+        self.grid.addWidget(wc.QLabel("Combined spectrum:"), 0, 2)
         self.listB = DestListWidget(self)
         self.listA = OrigListWidget(self, self.listB)
         for i in self.father.workspaceNames:
             QtWidgets.QListWidgetItem(i, self.listA).setToolTip(i)
-        self.grid.addWidget(self.listA, 1, 0)
-        self.grid.addWidget(self.listB, 1, 1)
-        self.layout.setColumnStretch(2, 1)
+        self.grid.addWidget(self.listA, 1, 0, 4, 1)
+        self.grid.addWidget(self.listB, 1, 2, 4, 1)
+        self.rightPush = QtWidgets.QPushButton(u"\u2192", self)
+        self.leftPush = QtWidgets.QPushButton(u"\u2190", self)
+        self.downPush = QtWidgets.QPushButton(u"\u2193", self)
+        self.upPush = QtWidgets.QPushButton(u"\u2191", self)
+        self.rightPush.setSizePolicy(
+        QtWidgets.QSizePolicy.Maximum,
+        QtWidgets.QSizePolicy.Expanding)
+        self.leftPush.setSizePolicy(
+        QtWidgets.QSizePolicy.Maximum,
+        QtWidgets.QSizePolicy.Expanding)
+        self.downPush.setSizePolicy(
+        QtWidgets.QSizePolicy.Maximum,
+        QtWidgets.QSizePolicy.Expanding)
+        self.upPush.setSizePolicy(
+        QtWidgets.QSizePolicy.Maximum,
+        QtWidgets.QSizePolicy.Expanding)
+        self.grid.addWidget(self.rightPush, 1, 1)
+        self.grid.addWidget(self.leftPush, 2, 1)
+        self.grid.addWidget(self.upPush, 3, 1)
+        self.grid.addWidget(self.downPush, 4, 1)
+        self.leftPush.clicked.connect(self.right2left)
+        self.rightPush.clicked.connect(self.left2right)
+        self.upPush.clicked.connect(self.moveUp)
         self.resize(500, 400)
+
+    def right2left(self):
+        self.listB.deleteSelected()
+
+    def left2right(self):
+        for item in self.listA.selectedItems():
+            self.listB.addItem(item.text())
+
+    def moveUp(self):
+        items = [x for x in self.listB.selectedItems()]
+        print('test1')
+        if len(items) == 1:
+            print('test2')
+            return
+
+
 
     def applyFunc(self, *args):
         items = []
