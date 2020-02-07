@@ -395,6 +395,9 @@ class Spectrum(object):
             raise SpectrumException('Cannot delete all data')
         self.data = tmpData
         self.xaxArray[axis] = np.delete(self.xaxArray[axis], pos)
+        if isinstance(pos, np.ndarray):
+            if pos.ndim == 0:
+                pos = int(pos)
         if isinstance(pos, (int, float)):
             length = 1
         else:
