@@ -20,11 +20,12 @@
 
 EXE = False
 
-import sip
 import sys
+if sys.version_info.major == 2:
+    import sip
+    sip.setapi('QString', 2)
 import os
 import importlib
-sip.setapi('QString', 2)
 try:
     from PyQt5 import QtGui, QtCore, QtWidgets
     QT = 5
@@ -52,13 +53,13 @@ if __name__ == '__main__':
     splash = QtWidgets.QSplashScreen(splash_pix, QtCore.Qt.WindowStaysOnTopHint)
     splash.setMask(splash_pix.mask())
     progressBar = QtWidgets.QProgressBar(splash)
-    progressBar.setGeometry(2.5 * splash.width() / 10.0, 0.89 * splash.height(), 5 * splash.width() / 10.0, splash.height() / 20.0)
+    progressBar.setGeometry(int(2.5 * splash.width() / 10.0), int(0.89 * splash.height()), int(5 * splash.width() / 10.0), int(splash.height() / 20.0))
     splash.show()
 
 def splashProgressStep(splashStep):  # A function to easily increase the progressbar value
     if __name__ == '__main__':
         splashStep = splashStep + 1
-        progressBar.setValue(splashStep // splashSteps + (splashStep % splashSteps > 0))  # Rounds up without math or numpy module
+        progressBar.setValue(int(splashStep // splashSteps + (splashStep % splashSteps > 0)))  # Rounds up without math or numpy module
         root.processEvents()
     return splashStep
 
@@ -1123,7 +1124,7 @@ class MainProgram(QtWidgets.QMainWindow):
             count += 1
             name = 'macro' + str(count)
         givenName, ok = QtWidgets.QInputDialog.getText(self, 'Macro name', 'Name:', text=name)
-        while (givenName in self.macros.keys()) or givenName is '':
+        while (givenName in self.macros.keys()) or givenName == '':
             if not ok:
                 return
             self.dispMsg("Macro name '" + givenName + "' already exists")
@@ -2966,52 +2967,52 @@ class TextFrame(QtWidgets.QScrollArea):
         self.xpos = wc.QLineEdit("0")
         self.xpos.setReadOnly(True)
         self.xpos.setToolTip(TOOLTIPS['xPosition'])
-        self.xpos.setFixedWidth(self.xpos.sizeHint().width() * widthScale)
+        self.xpos.setFixedWidth(int(self.xpos.sizeHint().width() * widthScale))
         grid.addWidget(self.xpos, 0, 3)
         self.yposlabel = wc.QLabel("y-Position:")
         grid.addWidget(self.yposlabel, 0, 4)
         self.ypos = wc.QLineEdit("0")
         self.ypos.setToolTip(TOOLTIPS['yPosition'])
         self.ypos.setReadOnly(True)
-        self.ypos.setFixedWidth(self.ypos.sizeHint().width() * widthScale)
+        self.ypos.setFixedWidth(int(self.ypos.sizeHint().width() * widthScale))
         grid.addWidget(self.ypos, 0, 5)
         grid.addWidget(wc.QLabel("x-Value:"), 0, 6)
         self.xpoint = wc.QLineEdit("0.0")
         self.xpoint.setToolTip(TOOLTIPS['xValue'])
         self.xpoint.setReadOnly(True)
-        self.xpoint.setFixedWidth(self.xpoint.sizeHint().width() * widthScale)
+        self.xpoint.setFixedWidth(int(self.xpoint.sizeHint().width() * widthScale))
         grid.addWidget(self.xpoint, 0, 7)
         self.ylabel = wc.QLabel("y-Value:")
         grid.addWidget(self.ylabel, 0, 8)
         self.ypoint = wc.QLineEdit("0.0")
         self.ypoint.setToolTip(TOOLTIPS['yValue'])
         self.ypoint.setReadOnly(True)
-        self.ypoint.setFixedWidth(self.ypoint.sizeHint().width() * widthScale)
+        self.ypoint.setFixedWidth(int(self.ypoint.sizeHint().width() * widthScale))
         grid.addWidget(self.ypoint, 0, 9)
         grid.addWidget(wc.QLabel("Amp:"), 0, 10)
         self.amppoint = wc.QLineEdit("0.0")
         self.amppoint.setToolTip(TOOLTIPS['ampValue'])
         self.amppoint.setReadOnly(True)
-        self.amppoint.setFixedWidth(self.amppoint.sizeHint().width() * widthScale)
+        self.amppoint.setFixedWidth(int(self.amppoint.sizeHint().width() * widthScale))
         grid.addWidget(self.amppoint, 0, 11)
         grid.addWidget(wc.QLabel(u"Δx:"), 0, 12)
         self.deltaxpoint = wc.QLineEdit("0.0")
         self.deltaxpoint.setToolTip(TOOLTIPS['deltaxvalue'])
         self.deltaxpoint.setReadOnly(True)
-        self.deltaxpoint.setFixedWidth(self.deltaxpoint.sizeHint().width() * widthScale)
+        self.deltaxpoint.setFixedWidth(int(self.deltaxpoint.sizeHint().width() * widthScale))
         grid.addWidget(self.deltaxpoint, 0, 13)
         self.deltaylabel = wc.QLabel(u"Δy:")
         grid.addWidget(self.deltaylabel, 0, 14)
         self.deltaypoint = wc.QLineEdit("0.0")
         self.deltaypoint.setToolTip(TOOLTIPS['deltayvalue'])
         self.deltaypoint.setReadOnly(True)
-        self.deltaypoint.setFixedWidth(self.deltaypoint.sizeHint().width() * widthScale)
+        self.deltaypoint.setFixedWidth(int(self.deltaypoint.sizeHint().width() * widthScale))
         grid.addWidget(self.deltaypoint, 0, 15)
         grid.addWidget(wc.QLabel(u"Δamp:"), 0, 16)
         self.deltaamppoint = wc.QLineEdit("0.0")
         self.deltaamppoint.setToolTip(TOOLTIPS['deltaamplitude'])
         self.deltaamppoint.setReadOnly(True)
-        self.deltaamppoint.setFixedWidth(self.deltaamppoint.sizeHint().width() * widthScale)
+        self.deltaamppoint.setFixedWidth(int(self.deltaamppoint.sizeHint().width() * widthScale))
         grid.addWidget(self.deltaamppoint, 0, 17)
         grid.setColumnStretch(20, 1)
         self.grid = grid
@@ -3239,7 +3240,7 @@ class PhaseWindow(wc.ToolWindow):
 
     NAME = "Phasing"
     SINGLESLICE = True
-    RESOLUTION = 1000.0
+    RESOLUTION = 1000
     P1LIMIT = 540.0
     PHASE0STEP = 1.0
     PHASE1STEP = 1.0
@@ -3340,7 +3341,7 @@ class PhaseWindow(wc.ToolWindow):
         self.zeroVal = np.mod(inp + 180, 360) - 180
         self.zeroEntry.setText('%.3f' % self.zeroVal)
         self.available = False
-        self.zeroScale.setValue(round(self.zeroVal / 180.0 * self.RESOLUTION))
+        self.zeroScale.setValue(int(round(self.zeroVal / 180.0 * self.RESOLUTION)))
         self.available = True
         self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0)
 
@@ -3353,7 +3354,7 @@ class PhaseWindow(wc.ToolWindow):
             self.firstVal = value
             self.firstEntry.setText('%.3f' % self.firstVal)
             self.available = False
-            self.zeroScale.setValue(round(self.zeroVal / 180.0 * self.RESOLUTION))
+            self.zeroScale.setValue(int(round(self.zeroVal / 180.0 * self.RESOLUTION)))
             self.available = True
             self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0)
 
@@ -3367,8 +3368,8 @@ class PhaseWindow(wc.ToolWindow):
         self.firstVal = value
         self.firstEntry.setText('%.3f' % self.firstVal)
         self.available = False
-        self.zeroScale.setValue(round(self.zeroVal / 180.0 * self.RESOLUTION))
-        self.firstScale.setValue(round(self.firstVal / self.P1LIMIT * self.RESOLUTION))
+        self.zeroScale.setValue(int(round(self.zeroVal / 180.0 * self.RESOLUTION)))
+        self.firstScale.setValue(int(round(self.firstVal / self.P1LIMIT * self.RESOLUTION)))
         self.available = True
         self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0)
 
@@ -3737,13 +3738,13 @@ class ApodWindow(wc.ToolWindow):
             if lor is None:
                 self.father.current.showFid()
                 raise SsnakeException('Apodize: Lorentzian value is not valid!')
-            self.lorScale.setValue(round(lor * self.RESOLUTION / self.maximum))
+            self.lorScale.setValue(int(round(lor * self.RESOLUTION / self.maximum)))
         if self.ticks['gauss'].isChecked():
             gauss = safeEval(self.entries['gauss'][0].text(), length=self.father.current.len(), Type='FI')
             if gauss is None:
                 self.father.current.showFid()
                 raise SsnakeException('Apodize: Gaussian value is not valid!')
-            self.gaussScale.setValue(round(gauss * self.RESOLUTION / self.maximum))
+            self.gaussScale.setValue(int(round(gauss * self.RESOLUTION / self.maximum)))
         if self.ticks['cos2'].isChecked():
             cos2 = safeEval(self.entries['cos2'][0].text(), length=self.father.current.len(), Type='FI')
             if cos2 is None:
