@@ -6283,6 +6283,35 @@ class DestListWidget(QtWidgets.QListWidget):
         for item in self.selectedItems():
             self.takeItem(self.row(item))
 
+    def moveSelection(self,direction = 'up'):
+
+        #Get selected items
+        index = [self.row(item) for item in self.selectedItems()]
+        items = [item for item in self.selectedItems()]
+        #Sort items based on index, to get move order right
+        items = [x for _,x in sorted(zip(index,items))]
+
+        if direction == 'up':
+            check = 0
+            step = -1
+        elif direction == 'down':
+            check = self.count() - 1
+            step = +1
+            items = items[::-1] #Invert move order
+
+        if check in index: #If one item already at limit
+            return
+
+        #If not, move one line
+        for item in items:
+            row = self.row(item)
+            currentItem = self.takeItem(row)
+            self.insertItem(row + step, currentItem)
+
+        #Reselect the items
+        for item in items:
+            item.setSelected(True)
+
     def mouseDoubleClickEvent(self, event):
         self.deleteSelected()
 
@@ -6327,6 +6356,7 @@ class CombineWorkspaceWindow(wc.ToolWindow):
         self.leftPush.clicked.connect(self.right2left)
         self.rightPush.clicked.connect(self.left2right)
         self.upPush.clicked.connect(self.moveUp)
+        self.downPush.clicked.connect(self.moveDown)
         self.resize(500, 400)
 
     def right2left(self):
@@ -6337,13 +6367,10 @@ class CombineWorkspaceWindow(wc.ToolWindow):
             self.listB.addItem(item.text())
 
     def moveUp(self):
-        items = [x for x in self.listB.selectedItems()]
-        print('test1')
-        if len(items) == 1:
-            print('test2')
-            return
+        self.listB.moveSelection('up')
 
-
+    def moveDown(self):
+        self.listB.moveSelection('down')
 
     def applyFunc(self, *args):
         items = []
