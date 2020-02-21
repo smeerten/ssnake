@@ -6331,8 +6331,8 @@ class CombineWorkspaceWindow(wc.ToolWindow):
         self.listA = OrigListWidget(self, self.listB)
         for i in self.father.workspaceNames:
             QtWidgets.QListWidgetItem(i, self.listA).setToolTip(i)
-        self.grid.addWidget(self.listA, 1, 0, 4, 1)
-        self.grid.addWidget(self.listB, 1, 2, 4, 1)
+        self.grid.addWidget(self.listA, 1, 0, 2, 1)
+        self.grid.addWidget(self.listB, 1, 2, 2, 1)
         self.rightPush = QtWidgets.QPushButton(u"\u2192", self)
         self.leftPush = QtWidgets.QPushButton(u"\u2190", self)
         self.downPush = QtWidgets.QPushButton(u"\u2193", self)
@@ -6351,8 +6351,8 @@ class CombineWorkspaceWindow(wc.ToolWindow):
         QtWidgets.QSizePolicy.Expanding)
         self.grid.addWidget(self.rightPush, 1, 1)
         self.grid.addWidget(self.leftPush, 2, 1)
-        self.grid.addWidget(self.upPush, 3, 1)
-        self.grid.addWidget(self.downPush, 4, 1)
+        self.grid.addWidget(self.upPush, 1, 3)
+        self.grid.addWidget(self.downPush, 2, 3)
         self.leftPush.clicked.connect(self.right2left)
         self.rightPush.clicked.connect(self.left2right)
         self.upPush.clicked.connect(self.moveUp)
@@ -6924,9 +6924,46 @@ class ToolbarWindow(wc.ToolWindow):
         self.listA = OrigListWidget(self, self.listB)
         for i in self.father.father.allActionsList:
             QtWidgets.QListWidgetItem(i[0], self.listA).setToolTip(i[0])
-        self.grid.addWidget(self.listA, 1, 0)
-        self.grid.addWidget(self.listB, 1, 1)
+        self.grid.addWidget(self.listA, 1, 0, 2, 1)
+        self.grid.addWidget(self.listB, 1, 2, 2, 1)
+        self.rightPush = QtWidgets.QPushButton(u"\u2192", self)
+        self.leftPush = QtWidgets.QPushButton(u"\u2190", self)
+        self.downPush = QtWidgets.QPushButton(u"\u2193", self)
+        self.upPush = QtWidgets.QPushButton(u"\u2191", self)
+        self.rightPush.setSizePolicy(
+        QtWidgets.QSizePolicy.Maximum,
+        QtWidgets.QSizePolicy.Expanding)
+        self.leftPush.setSizePolicy(
+        QtWidgets.QSizePolicy.Maximum,
+        QtWidgets.QSizePolicy.Expanding)
+        self.downPush.setSizePolicy(
+        QtWidgets.QSizePolicy.Maximum,
+        QtWidgets.QSizePolicy.Expanding)
+        self.upPush.setSizePolicy(
+        QtWidgets.QSizePolicy.Maximum,
+        QtWidgets.QSizePolicy.Expanding)
+        self.grid.addWidget(self.rightPush, 1, 1)
+        self.grid.addWidget(self.leftPush, 2, 1)
+        self.grid.addWidget(self.upPush, 1, 3)
+        self.grid.addWidget(self.downPush, 2, 3)
+        self.leftPush.clicked.connect(self.right2left)
+        self.rightPush.clicked.connect(self.left2right)
+        self.upPush.clicked.connect(self.moveUp)
+        self.downPush.clicked.connect(self.moveDown)
         self.resize(650, 500)
+
+    def right2left(self):
+        self.listB.deleteSelected()
+
+    def left2right(self):
+        for item in self.listA.selectedItems():
+            self.listB.addItem(item.text())
+
+    def moveUp(self):
+        self.listB.moveSelection('up')
+
+    def moveDown(self):
+        self.listB.moveSelection('down')
 
     def applyAndClose(self, *args):
         items = []
