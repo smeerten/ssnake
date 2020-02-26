@@ -102,6 +102,7 @@ class Current1D(PlotFrame):
                 self.fig.suptitle(self.data.name)
             else:
                 self.fig.suptitle('')
+            self.resetSpacing(False)
             self.startUp()
         else:
             self.axes = self.fixAxes(copy.deepcopy(duplicateCurrent.axes))
@@ -136,7 +137,13 @@ class Current1D(PlotFrame):
                 self.fig.suptitle(self.data.name)
             else:
                 self.fig.suptitle('')
+            if type(self) != type(duplicateCurrent):
+                self.resetSpacing(False)
             self.startUp(xReset, yReset)
+
+    def resetSpacing(self, *args):
+        # Dummy function
+        pass
 
     def shape(self):
         """
@@ -2780,7 +2787,6 @@ class CurrentStacked(Current1D):
         yReset (optional = True): boolean
             Reset the y-axis if True
         """
-        self.resetSpacing()
         self.showFid()
         self.plotReset(xReset, yReset)
 
@@ -3022,7 +3028,6 @@ class CurrentArrayed(CurrentStacked):
         yReset (optional = True): boolean
             Reset the y-axis if True
         """
-        self.resetSpacing(False)
         self.showFid()
         self.plotReset(xReset, yReset)
 
