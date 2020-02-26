@@ -1501,7 +1501,7 @@ class Spectrum(object):
         if self.spec[axis] == 0:
             self.__invFourier(axis, tmp=True)
 
-    def phase(self, phase0=0.0, phase1=0.0, axis=-1, select=slice(None)):
+    def phase(self, phase0=0.0, phase1=0.0, axis=-1, select=slice(None), offset=None):
         """
         Phases a spectrum along a given dimension.
 
@@ -1519,12 +1519,17 @@ class Spectrum(object):
         select : Slice, optional
             An optional selection of the spectrum data on which the phasing is performed.
             By default the entire data is used.
+        offset : float, optional
+            The offset frequency for the first order phase correction.
+            When set to None, the offset is set to the reference frequency.
+            None by default.
         """
         axis = self.checkAxis(axis)
-        if self.ref[axis] is None:
-            offset = 0
-        else:
-            offset = self.freq[axis] - self.ref[axis]
+        if offset is None:
+            if self.ref[axis] is None:
+                offset = 0
+            else:
+                offset = self.freq[axis] - self.ref[axis]
         self.__phase(phase0, phase1, offset, axis, select=select)
         Message = "Phasing: phase0 = " + str(phase0 * 180 / np.pi) + " and phase1 = " + str(phase1 * 180 / np.pi) + " for dimension " + str(axis + 1)
         if not isinstance(select, slice):
@@ -1556,7 +1561,7 @@ class Spectrum(object):
         self.addHistory(Message)
         self.redoList = []
         if not self.noUndo:
-            self.undoList.append(lambda self: self.phase(0, -self.dFilter, offset, axis))
+            self.undoList.append(lambda self: self.phase(0, -self.dFilter, axis, slice(None), offset))
 
     def apodize(self, lor=None, gauss=None, cos2=[None, None], hamming=None, shift=0.0, shifting=0.0, shiftingAxis=None, axis=-1, select=slice(None), preview=False):
         """
