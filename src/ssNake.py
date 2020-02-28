@@ -1488,7 +1488,7 @@ class MainProgram(QtWidgets.QMainWindow):
                 if dialog.exec_():
                     if dialog.closed:
                         return
-                asciiInfo = (dialog.dataDimension, dialog.dataOrder, dialog.dataSpec, dialog.delim, dialog.sw)
+                asciiInfo = (dialog.dataDimension, dialog.dataOrder, dialog.dataSpec, dialog.delim, dialog.sw, dialog.axisMulti)
                 masterData = io.autoLoad(filePath, [asciiInfo])
             if self.defaultAskName:
                 name = self.askName(filePath, masterData.name)
@@ -3073,6 +3073,10 @@ class AsciiLoadWindow(QtWidgets.QDialog):
 
     dataOrders = ['XRI', 'XR', 'XI', 'RI', 'R']
     delimiters = ['Tab', 'Space', 'Comma']
+    timeUnits = ['s','ms',u'μs']
+    timeMultiVals = [1.0,1.0e-3,1.0e-6]
+    freqUnits = ['Hz','kHz','MHz']
+    freqMultiVals = [1.0, 1.0e3, 1.0e6]
 
     def __init__(self, parent, file):
         super(AsciiLoadWindow, self).__init__(parent)
@@ -3083,6 +3087,7 @@ class AsciiLoadWindow(QtWidgets.QDialog):
         self.sw = 0.0
         self.delim = 'Tab'
         self.closed = False
+        self.axisMulti = 1.0
         self.setWindowTitle("Load ASCII")
         grid = QtWidgets.QGridLayout(self)
         grid.addWidget(QtWidgets.QLabel("# Dimensions:"), 1, 0)
@@ -3093,6 +3098,7 @@ class AsciiLoadWindow(QtWidgets.QDialog):
         grid.addWidget(self.numDims, 2, 0, 1, 2)
         grid.addWidget(QtWidgets.QLabel("Data Type:"), 3, 0)
         self.specGroup = QtWidgets.QButtonGroup(self)
+        self.specGroup.buttonClicked.connect(self.checkState)
         self.timeButton = QtWidgets.QRadioButton('Time', parent=self)
         self.timeButton.toggle()
         self.specGroup.addButton(self.timeButton, 0)
@@ -3104,17 +3110,26 @@ class AsciiLoadWindow(QtWidgets.QDialog):
         self.datOrderBox = QtWidgets.QComboBox()
         self.datOrderBox.addItems(self.dataOrders)
         grid.addWidget(self.datOrderBox, 6, 0, 1, 2)
+        self.unitLabel = wc.QLeftLabel("x-axis unit:")
+        grid.addWidget(self.unitLabel, 7, 0, 1, 2)
+        self.timeUnitBox = QtWidgets.QComboBox()
+        self.timeUnitBox.addItems(self.timeUnits)
+        grid.addWidget(self.timeUnitBox, 8, 0, 1, 2)
+        self.freqUnitBox = QtWidgets.QComboBox()
+        self.freqUnitBox.addItems(self.freqUnits)
+        grid.addWidget(self.freqUnitBox, 8, 0, 1, 2)
+        self.freqUnitBox.hide()
         self.swLabel = wc.QLeftLabel("Spectral Width [kHz]:")
-        grid.addWidget(self.swLabel, 7, 0, 1, 2)
+        grid.addWidget(self.swLabel, 9, 0, 1, 2)
         self.swEntry = wc.QLineEdit("0.0")
-        grid.addWidget(self.swEntry, 8, 0, 1, 2)
+        grid.addWidget(self.swEntry, 10, 0, 1, 2)
         self.swLabel.hide()
         self.swEntry.hide()
-        self.datOrderBox.currentIndexChanged.connect(self.checkDatOrder)
-        grid.addWidget(QtWidgets.QLabel("Data Delimiter:"), 9, 0)
+        self.datOrderBox.currentIndexChanged.connect(self.checkState)
+        grid.addWidget(QtWidgets.QLabel("Data Delimiter:"), 11, 0)
         self.datDelimBox = QtWidgets.QComboBox()
         self.datDelimBox.addItems(self.delimiters)
-        grid.addWidget(self.datDelimBox, 10, 0, 1, 2)
+        grid.addWidget(self.datDelimBox, 12, 0, 1, 2)
         cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         okButton = QtWidgets.QPushButton("&Ok")
@@ -3122,19 +3137,29 @@ class AsciiLoadWindow(QtWidgets.QDialog):
         box = QtWidgets.QDialogButtonBox()
         box.addButton(cancelButton, QtWidgets.QDialogButtonBox.RejectRole)
         box.addButton(okButton, QtWidgets.QDialogButtonBox.AcceptRole)
-        grid.addWidget(box, 13, 0, 1, 2)
+        grid.addWidget(box, 15, 0, 1, 2)
         self.show()
         self.setFixedSize(self.size())
         self.checkType(file)
 
-    def checkDatOrder(self):
+    def checkState(self):
         tmp = self.dataOrders[self.datOrderBox.currentIndex()]
         if tmp in ('RI', 'R'):
             self.swLabel.show()
             self.swEntry.show()
+            self.unitLabel.hide()
+            self.timeUnitBox.hide()
+            self.freqUnitBox.hide()
         else:
             self.swLabel.hide()
             self.swEntry.hide()
+            self.unitLabel.show()
+            if self.timeButton.isChecked():
+                self.timeUnitBox.show()
+                self.freqUnitBox.hide()
+            else:
+                self.timeUnitBox.hide()
+                self.freqUnitBox.show()
 
     def checkType(self, file):
         if file.endswith('.zip'):
@@ -3173,6 +3198,11 @@ class AsciiLoadWindow(QtWidgets.QDialog):
             self.dataSpec = False
         else:
             self.dataSpec = True
+        if 'X' in self.dataOrder: # If there is an x-axis
+            if self.dataSpec == False:
+                self.axisMulti = self.timeMultiVals[self.timeUnitBox.currentIndex()]
+            else:
+                self.axisMulti = self.freqMultiVals[self.freqUnitBox.currentIndex()]
         self.accept()
         self.deleteLater()
 

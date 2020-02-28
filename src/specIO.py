@@ -1891,6 +1891,7 @@ def loadAscii(filePath, asciiInfo=None):
     dataSpec = asciiInfo[2]
     delimiter = asciiInfo[3]
     swInp = asciiInfo[4]
+    axisMulti = asciiInfo[5]
     freq = 0.0
     delimChar = ''
     if delimiter == 'Tab':
@@ -1902,6 +1903,7 @@ def loadAscii(filePath, asciiInfo=None):
     else:
         return
     matrix = np.loadtxt(filePath, dtype=None, delimiter=delimChar)
+    matrix[:,0] = matrix[:,0] * axisMulti
     if dataOrder == 'XRI' or dataOrder == 'XR' or dataOrder == 'XI':
         if not dataSpec:
             sw = 1.0 / (matrix[1, 0] - matrix[0, 0])
