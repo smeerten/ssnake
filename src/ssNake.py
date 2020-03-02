@@ -3075,8 +3075,8 @@ class AsciiLoadWindow(QtWidgets.QDialog):
     delimiters = ['Tab', 'Space', 'Comma']
     timeUnits = ['s','ms',u'μs']
     timeMultiVals = [1.0,1.0e-3,1.0e-6]
-    freqUnits = ['Hz','kHz','MHz']
-    freqMultiVals = [1.0, 1.0e3, 1.0e6]
+    freqUnits = ['Hz','kHz','MHz','ppm']
+    freqMultiVals = [1.0, 1.0e3, 1.0e6, None]
 
     def __init__(self, parent, file):
         super(AsciiLoadWindow, self).__init__(parent)
@@ -3117,6 +3117,7 @@ class AsciiLoadWindow(QtWidgets.QDialog):
         grid.addWidget(self.timeUnitBox, 8, 0, 1, 2)
         self.freqUnitBox = QtWidgets.QComboBox()
         self.freqUnitBox.addItems(self.freqUnits)
+        self.freqUnitBox.currentIndexChanged.connect(self.checkState)
         grid.addWidget(self.freqUnitBox, 8, 0, 1, 2)
         self.freqUnitBox.hide()
         self.swLabel = wc.QLeftLabel("Spectral Width [kHz]:")
@@ -3126,10 +3127,16 @@ class AsciiLoadWindow(QtWidgets.QDialog):
         self.swLabel.hide()
         self.swEntry.hide()
         self.datOrderBox.currentIndexChanged.connect(self.checkState)
-        grid.addWidget(QtWidgets.QLabel("Data Delimiter:"), 11, 0)
+        self.freqLabel = wc.QLeftLabel("Spectrometer freq. [MHz]:")
+        grid.addWidget(self.freqLabel, 11, 0, 1, 2)
+        self.freqEntry = wc.QLineEdit("0.0")
+        grid.addWidget(self.freqEntry, 12, 0, 1, 2)
+        self.freqLabel.hide()
+        self.freqEntry.hide()
+        grid.addWidget(QtWidgets.QLabel("Data Delimiter:"), 13, 0)
         self.datDelimBox = QtWidgets.QComboBox()
         self.datDelimBox.addItems(self.delimiters)
-        grid.addWidget(self.datDelimBox, 12, 0, 1, 2)
+        grid.addWidget(self.datDelimBox, 14, 0, 1, 2)
         cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         okButton = QtWidgets.QPushButton("&Ok")
@@ -3150,6 +3157,8 @@ class AsciiLoadWindow(QtWidgets.QDialog):
             self.unitLabel.hide()
             self.timeUnitBox.hide()
             self.freqUnitBox.hide()
+            self.freqLabel.hide()
+            self.freqEntry.hide()
         else:
             self.swLabel.hide()
             self.swEntry.hide()
@@ -3157,9 +3166,16 @@ class AsciiLoadWindow(QtWidgets.QDialog):
             if self.timeButton.isChecked():
                 self.timeUnitBox.show()
                 self.freqUnitBox.hide()
+                self.freqLabel.hide()
+                self.freqEntry.hide()
             else:
                 self.timeUnitBox.hide()
                 self.freqUnitBox.show()
+                self.freqLabel.hide()
+                self.freqEntry.hide()
+                if self.freqUnitBox.currentIndex() == 3:
+                    self.freqLabel.show()
+                    self.freqEntry.show()
 
     def checkType(self, file):
         if file.endswith('.zip'):
@@ -3198,11 +3214,15 @@ class AsciiLoadWindow(QtWidgets.QDialog):
             self.dataSpec = False
         else:
             self.dataSpec = True
+
         if 'X' in self.dataOrder: # If there is an x-axis
             if self.dataSpec == False:
                 self.axisMulti = self.timeMultiVals[self.timeUnitBox.currentIndex()]
             else:
-                self.axisMulti = self.freqMultiVals[self.freqUnitBox.currentIndex()]
+                if self.freqUnitBox.currentIndex() == 3: #If ppm
+                    self.axisMulti = safeEval(self.freqEntry.text())
+                else:
+                    self.axisMulti = self.freqMultiVals[self.freqUnitBox.currentIndex()]
         self.accept()
         self.deleteLater()
 
