@@ -194,6 +194,8 @@ def loadFile(filePath, realpath=False, asciiInfo=None):
         masterData = loadMestreC(filePath)
     elif num == 17:
         masterData = loadBrukerImaging(filePath)
+    elif num == 18:
+        masterData = loadBrukerImagingTime(filePath)
     masterData.rename(name)
     return masterData
 
@@ -256,6 +258,8 @@ def fileTypeCheck(filePath):
         return 0, direc
     elif os.path.exists(direc + os.path.sep + 'acqus') and (os.path.exists(direc + os.path.sep + 'fid') or os.path.exists(direc + os.path.sep + 'ser')):
         return 1, direc
+    elif os.path.exists(direc + os.path.sep + 'acqp') and os.path.exists(direc + os.path.sep + 'fid'):
+        return 18, direc
     elif os.path.exists(direc + os.path.sep + 'procs') and (os.path.exists(direc + os.path.sep + '1r') or os.path.exists(direc + os.path.sep + '2rr') or os.path.exists(direc + os.path.sep + '3rrr')):
         return 7, direc
     elif os.path.exists(direc + os.path.sep + 'procs') and os.path.exists(direc + os.path.sep + 'd3proc') and os.path.exists(direc + os.path.sep + '2dseq'):
@@ -1144,6 +1148,61 @@ def loadBrukerTopspin(filePath):
     except Exception:
         pass
     masterData.addHistory("Bruker TopSpin data loaded from " + filePath)
+    return masterData
+
+
+
+def loadBrukerImagingTime(filePath):
+    """
+    Loads Bruker Paravision time domain data.
+    Experimental support at this moment.
+
+    Parameters
+    ----------
+    filePath: string
+        Path to the file that should be loaded
+
+    Returns
+    -------
+    SpectrumClass
+        SpectrumClass object of the loaded data
+    """
+    if os.path.isfile(filePath):
+        Dir = os.path.dirname(filePath)
+    else:
+        Dir = filePath
+
+    pars = brukerTopspinGetPars(Dir + os.path.sep + 'acqp')
+    SIZE = pars['ACQ_size']
+    if pars['NI'] > 1: #Increments (like echoes) are inserted in position 1
+        SIZE.insert(1,pars['NI'])
+    dim = len(SIZE)
+    FREQ = [pars['SFO1']] * dim
+    SW = [pars['SW_h']] * dim
+    if pars['BYTORDA'] == 'little':
+        ByteOrder = 'l'
+    else:
+        ByteOrder = 'b'
+    totsize = np.prod(SIZE)
+
+    directSize = int(np.ceil(float(SIZE[0]) / 256)) * 256 #Size of direct dimension including
+    #blocking size of 256 data points
+    totsize = int(totsize / SIZE[0]) * directSize #Always load full 1024 byte blocks (256 data points) for >1D
+    with open(Dir + os.path.sep + 'fid', "rb") as f:
+        raw = np.fromfile(f, np.int32, totsize)
+    raw = raw.newbyteorder(ByteOrder) #Load with right byte order
+    ComplexData = np.array(raw[0:len(raw):2]) + 1j * np.array(raw[1:len(raw):2])
+    if dim >= 2:
+        newSize = [int(x) for x in SIZE]
+        newSize[0] = int(directSize / 2)
+        ComplexData = ComplexData.reshape(newSize[-1::-1])
+    if dim == 2:
+        ComplexData = ComplexData[:, 0:int(SIZE[0]/2)] #Cut off placeholder data
+    elif dim == 3:
+        ComplexData = ComplexData[:, :, 0:int(SIZE[0]/2)] #Cut off placeholder data
+    elif dim == 4:
+        ComplexData = ComplexData[:, :, :, 0:int(SIZE[0]/2)] #Cut off placeholder data
+    masterData = sc.Spectrum(ComplexData, (filePath, None), FREQ, SW, [False] * dim)
     return masterData
 
 def loadBrukerWinNMR(filePath):
