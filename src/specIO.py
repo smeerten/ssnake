@@ -1121,10 +1121,7 @@ def loadBrukerTopspin(filePath):
         newSize = list(SIZE)
         newSize[0] = int(directSize / 2)
         ComplexData = ComplexData.reshape(*newSize[-1::-1])
-    if dim == 2:
-        ComplexData = ComplexData[:, 0:int(SIZE[0]/2)] #Cut off placeholder data
-    elif dim == 3:
-        ComplexData = ComplexData[:, :, 0:int(SIZE[0]/2)] #Cut off placeholder data
+        ComplexData = ComplexData[..., 0:int(SIZE[0]/2)] #Cut off placeholder data
     masterData = sc.Spectrum(ComplexData, (filePath, None), FREQ[-1::-1], SW[-1::-1], [False] * dim, ref = REF[-1::-1], dFilter=dFilter)
     # TODO: Inserting metadata should be made more generic
     try:
@@ -1187,6 +1184,7 @@ def loadBrukerImagingTime(filePath):
 
     directSize = int(np.ceil(float(SIZE[0]) / 256)) * 256 #Size of direct dimension including
     #blocking size of 256 data points
+
     totsize = int(totsize / SIZE[0]) * directSize #Always load full 1024 byte blocks (256 data points) for >1D
     with open(Dir + os.path.sep + 'fid', "rb") as f:
         raw = np.fromfile(f, np.int32, totsize)
@@ -1196,12 +1194,7 @@ def loadBrukerImagingTime(filePath):
         newSize = [int(x) for x in SIZE]
         newSize[0] = int(directSize / 2)
         ComplexData = ComplexData.reshape(newSize[-1::-1])
-    if dim == 2:
-        ComplexData = ComplexData[:, 0:int(SIZE[0]/2)] #Cut off placeholder data
-    elif dim == 3:
-        ComplexData = ComplexData[:, :, 0:int(SIZE[0]/2)] #Cut off placeholder data
-    elif dim == 4:
-        ComplexData = ComplexData[:, :, :, 0:int(SIZE[0]/2)] #Cut off placeholder data
+        ComplexData = ComplexData[..., 0:int(SIZE[0]/2)] #Cut off placeholder data
     masterData = sc.Spectrum(ComplexData, (filePath, None), FREQ, SW, [False] * dim)
     return masterData
 
@@ -1764,7 +1757,7 @@ def convertDIFDUB(dat):
             dup, currentNum, step, numberList = checkWrite(dup, currentNum, step, numberList)
             step = step + str(DIF[char])
         elif char in DUP.keys():
-            dup = dup + str(DUP[char])  # For now, assume no SQZ defore DUP
+            dup = dup + str(DUP[char])  # For now, assume no SQZ before DUP
         elif char == ' ':
             last = True
             break
