@@ -1027,6 +1027,10 @@ class AbstractParamFrame(QtWidgets.QWidget):
             cancelButton = QtWidgets.QPushButton("&Delete")
             cancelButton.clicked.connect(self.rootwindow.removeSpectrum)
         self.frame1.addWidget(cancelButton, 4, 0, 1, 2)
+        self.rmsdLabel = QtWidgets.QLabel()
+        self.frame1.addWidget(self.rmsdLabel, 5, 0, 1, 2)
+        self.setRMSD()
+
         self.checkFitParamList(self.getRedLocList())
 
     def togglePick(self):
@@ -1079,6 +1083,20 @@ class AbstractParamFrame(QtWidgets.QWidget):
                 tmpVal[name] = np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0)
         return tmpVal
 
+    def setRMSD(self, val=None):
+        """
+        Set the RMSD label to val.
+
+        Parameters
+        ----------
+        val : float
+            RMSD values
+        """
+        if val is None:
+            self.rmsdLabel.setText("RMSD:")
+        else:
+            self.rmsdLabel.setText(('RMSD: %#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % val)
+    
     def addMultiLabel(self, name, text, num):
         """
         Creates a label for a parameter with multiple sites and adds it to frame3.
@@ -1712,6 +1730,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
         PrefWindow(self.rootwindow.tabWindow)
 
     def getDispX(self, *args):
+        # Only one dimensional data can have an x-axis which has additional datapoints
         return self.parent.data1D.xaxArray[-self.DIM:]
 
     def disp(self, params, num, display=True):
@@ -1777,6 +1796,15 @@ class AbstractParamFrame(QtWidgets.QWidget):
         locList = self.getRedLocList()
         self.parent.fitDataList[locList] = [plotx, outCurve, x, outCurvePart]
         if display:
+            if self.DIM == 1: # One dimensional data can have additional datapoints for plot
+                if len(plotx) > len(self.parent.xax()):
+                    rmsd = np.sum((outCurve[np.searchsorted(plotx, self.parent.xax())] - self.parent.getData1D())**2)
+                else:
+                    rmsd = np.sum((outCurve - self.parent.getData1D())**2)
+            else:
+                rmsd = np.sum((outCurve - self.parent.getData1D())**2)
+            rmsd = np.sqrt(rmsd/float(self.parent.getData1D().size))
+            self.setRMSD(rmsd)
             self.parent.showFid()
 
 ##############################################################################
@@ -2095,7 +2123,8 @@ class RelaxParamFrame(AbstractParamFrame):
             x = np.logspace(np.log(minx), np.log(maxx), numCurve)
         else:
             x = np.linspace(minx, maxx, numCurve)
-        return [x]
+        np.concatenate((x, realx))
+        return [np.sort(x)]
 
     def checkResults(self, numExp, struc):
         """
@@ -2241,7 +2270,8 @@ class DiffusionParamFrame(AbstractParamFrame):
             x = np.logspace(np.log(minx), np.log(maxx), numCurve)
         else:
             x = np.linspace(minx, maxx, numCurve)
-        return [x]
+        np.concatenate((x, realx))
+        return [np.sort(x)]
 
     def checkResults(self, numExp, struc):
         """
