@@ -736,6 +736,10 @@ class QLineEdit(QtWidgets.QLineEdit):
         if func is not None:
             self.returnPressed.connect(func)
 
+    def setText(self,*args, **kwargs):
+        super(QLineEdit, self).setText(*args,**kwargs)
+        self.setCursorPosition(0)
+
 
 class FitQLineEdit(QLineEdit):
     """
