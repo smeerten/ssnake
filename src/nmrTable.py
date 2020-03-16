@@ -154,16 +154,16 @@ class PeriodicTable(QtWidgets.QWidget):
             groupList[-1].mouseDoubleClickEvent = lambda arg, i=i: self.openWindow(arg, i)
             grid.addWidget(groupList[-1], count1 + 2, count2)
             count2 += 1
-            if count1 is 0 and count2 is 1:
+            if count1 == 0 and count2 == 1:
                 count2 = 17
-            elif (count1 is 1 or count1 is 2) and count2 is 2:
+            elif (count1 == 1 or count1 == 2) and count2 == 2:
                 count2 = 12
-            elif (count1 is 5 or count1 is 6) and count2 is 2:
+            elif (count1 == 5 or count1 == 6) and count2 == 2:
                 count1 += 2
-            elif (count1 is 7 or count1 is 8) and count2 is 16:
+            elif (count1 == 7 or count1 == 8) and count2 == 16:
                 count2 = 2
                 count1 -= 2
-            elif count2 is 18:
+            elif count2 == 18:
                 count2 = 0
                 count1 += 1
             grid2 = QtWidgets.QGridLayout()
@@ -193,7 +193,7 @@ class PeriodicTable(QtWidgets.QWidget):
                     color = QtGui.QColor(SPINCOLORS[int(2 * MASTERISOTOPELIST[i]['spin'][int(self.isoSelect[i])])])
                     colorA = QtGui.QColor()
                     colorA.setHsl(color.hslHue(), color.hslSaturation(), 245)
-                    self.freqEditList[i].setStyleSheet('border-style: solid;color: rgb(0, 0, 0); border-width: 2px; border-color: rgb' + repr(color.getRgb()) + '; background-color: rgb' + repr(colorA.getRgb()) + ';')
+                    self.freqEditList[i].setStyleSheet('border-style: solid;color: rgb(0, 0, 0); border-width: 2px; border-color: rgb' + repr(color.getRgb()[:-1]) + '; background-color: rgb' + repr(colorA.getRgb()[:-1]) + ';')
                     self.spinSet.add(MASTERISOTOPELIST[i]['spin'][int(self.isoSelect[i])])
                 else:
                     self.labelList[i].setText(str(i + 1) + ': ' + MASTERISOTOPELIST[i]['name'][int(self.isoSelect[i])])
@@ -213,7 +213,7 @@ class PeriodicTable(QtWidgets.QWidget):
             color = QtGui.QColor(SPINCOLORS[index])
             colorA = QtGui.QColor()
             colorA.setHsl(color.hslHue(), color.hslSaturation(), 245)
-            self.legendEntries[i].setStyleSheet('color: rgb(0, 0, 0);border-style: solid; border-width: 2px; border-color: rgb' + repr(color.getRgb()) + '; background-color: rgb' + repr(colorA.getRgb()) + ';')
+            self.legendEntries[i].setStyleSheet('color: rgb(0, 0, 0);border-style: solid; border-width: 2px; border-color: rgb' + repr(color.getRgb()[:-1]) + '; background-color: rgb' + repr(colorA.getRgb()[:-1]) + ';')
             self.legendEntries[i].setText(SPINNAMES[index])
             self.legendEntries[i].show()
 
