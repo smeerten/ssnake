@@ -1027,8 +1027,11 @@ class AbstractParamFrame(QtWidgets.QWidget):
             cancelButton = QtWidgets.QPushButton("&Delete")
             cancelButton.clicked.connect(self.rootwindow.removeSpectrum)
         self.frame1.addWidget(cancelButton, 4, 0, 1, 2)
-        self.rmsdLabel = QtWidgets.QLabel()
-        self.frame1.addWidget(self.rmsdLabel, 5, 0, 1, 2)
+        self.rmsdLabel = QtWidgets.QLabel('RMSD:')
+        self.frame1.addWidget(self.rmsdLabel, 5, 0, 1, 1)
+        self.rmsdEdit = wc.QLineEdit()
+        self.rmsdEdit.setReadOnly(True)
+        self.frame1.addWidget(self.rmsdEdit, 5, 1, 1, 1)
         self.setRMSD()
 
         self.checkFitParamList(self.getRedLocList())
@@ -1093,9 +1096,10 @@ class AbstractParamFrame(QtWidgets.QWidget):
             RMSD values
         """
         if val is None:
-            self.rmsdLabel.setText("RMSD:")
+            self.rmsdEdit.setText("")
         else:
-            self.rmsdLabel.setText(('RMSD: %#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % val)
+            self.rmsdEdit.setText(('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % val)
+            self.rmsdEdit.setCursorPosition(0)
     
     def addMultiLabel(self, name, text, num):
         """
