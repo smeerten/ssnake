@@ -24,6 +24,7 @@ import sys
 if sys.version_info.major == 2:
     import sip
     sip.setapi('QString', 2)
+    print('DEPRECATION WARNING: From version 1.4 onwards, python2 is no longer supported. Consider upgrading to python3.')
 import os
 import importlib
 try:
@@ -33,6 +34,7 @@ except ImportError:
     from PyQt4 import QtGui, QtCore
     from PyQt4 import QtGui as QtWidgets
     QT = 4
+    print('DEPRECATION WARNING: From version 1.4 onwards, PyQt4 is no longer supported. Consider upgrading to PyQt5.')
 QtCore.pyqtRemoveInputHook()
 import matplotlib
 # First import matplotlib and Qt
