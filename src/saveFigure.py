@@ -376,14 +376,8 @@ class SaveFigureWindow(QtWidgets.QWidget):
             if self.legend is not None:
                 self.legend.prop = {'size': self.mainFontSizeEntry.value()}
         xticksbool = self.xticksToggle.isChecked()
-        for i in self.ax.get_xticklabels():
-            i.set_visible(xticksbool)
-        self.ax.xaxis.get_offset_text().set_visible(xticksbool)
         yticksbool = self.yticksToggle.isChecked()
-        for i in self.ax.get_yticklabels():
-            i.set_visible(yticksbool)
-        self.ax.yaxis.get_offset_text().set_visible(yticksbool)
-        self.ax.tick_params(bottom=xticksbool, left=yticksbool)
+        self.ax.tick_params(bottom=xticksbool, labelbottom=xticksbool, left=yticksbool, labelleft=yticksbool)
         self.updateLegend()
         self.fig.set_size_inches(self.widthEntry.value() / 2.54, self.heightEntry.value() / 2.54)
         self.canvas.draw()
@@ -458,17 +452,9 @@ class SaveFigureWindow(QtWidgets.QWidget):
         self.ax.xaxis.get_offset_text().set_fontsize(self.xtickFontSizeBackup)
         self.ax.tick_params(axis='y', labelsize=self.ytickFontSizeBackup)
         self.ax.yaxis.get_offset_text().set_fontsize(self.ytickFontSizeBackup)
-        xticksbool = True
-        for i in self.ax.get_xticklabels():
-            i.set_visible(xticksbool)
-        self.ax.xaxis.get_offset_text().set_visible(xticksbool)
-        yticksbool = True
-        for i in self.ax.get_yticklabels():
-            i.set_visible(yticksbool)
-        self.ax.yaxis.get_offset_text().set_visible(yticksbool)
         if self.legend is not None:
             self.legend.set_visible(False)
-        self.ax.tick_params(bottom=xticksbool, left=yticksbool)
+        self.ax.tick_params(bottom=True, labelbottom=True, left=True, labelleft=True)
         self.fig.set_size_inches((self.widthBackup / 2.54, self.heightBackup / 2.54))
         self.grid.deleteLater()
         self.canvas.draw()
