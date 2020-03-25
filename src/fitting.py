@@ -1027,13 +1027,14 @@ class AbstractParamFrame(QtWidgets.QWidget):
             cancelButton = QtWidgets.QPushButton("&Delete")
             cancelButton.clicked.connect(self.rootwindow.removeSpectrum)
         self.frame1.addWidget(cancelButton, 4, 0, 1, 2)
+        rmsdFrame = QtWidgets.QGridLayout()
+        self.frame1.addLayout(rmsdFrame, 5, 0, 1, 2)
         self.rmsdLabel = QtWidgets.QLabel('RMSD:')
-        self.frame1.addWidget(self.rmsdLabel, 5, 0, 1, 1)
+        rmsdFrame.addWidget(self.rmsdLabel, 0, 0)
         self.rmsdEdit = wc.QLineEdit()
         self.rmsdEdit.setReadOnly(True)
-        self.frame1.addWidget(self.rmsdEdit, 5, 1, 1, 1)
+        rmsdFrame.addWidget(self.rmsdEdit, 0, 1)
         self.setRMSD()
-
         self.checkFitParamList(self.getRedLocList())
 
     def togglePick(self):
