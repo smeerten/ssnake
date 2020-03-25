@@ -919,6 +919,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
     FFT_AXES = ()       # Which axes should be transformed after simulation
     FFTSHIFT_AXES = ()  # Which axes should be transformed after simulation
     DIM = 1             # Number of dimensions of the fit
+    FUNC_LABEL = None   # Function string to show in the window
 
     def __init__(self, parent, rootwindow, isMain=True):
         """
@@ -965,7 +966,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.optframe = QtWidgets.QGridLayout()
         self.frame2 = QtWidgets.QGridLayout()
         self.frame3 = QtWidgets.QGridLayout()
-        grid.addLayout(self.frame1, 0, 0)
+        grid.addLayout(self.frame1, 0, 0, 2, 1)
         paramgrid = QtWidgets.QGridLayout()
         paramgrid.addLayout(self.optframe, 0, 0)
         paramgrid.addLayout(self.frame2, 0, 1)
@@ -976,7 +977,11 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.scrollArea = QtWidgets.QScrollArea()
         self.scrollArea.setWidgetResizable(True)
         self.scrollArea.setWidget(self.gridLayoutWidget)
-        grid.addWidget(self.scrollArea, 0, 1)
+        if self.FUNC_LABEL is not None:
+            grid.addWidget(QtWidgets.QLabel(self.FUNC_LABEL), 0, 1)
+            grid.addWidget(self.scrollArea, 1, 1)
+        else:
+            grid.addWidget(self.scrollArea, 0, 1, 2, 1)
         grid.setColumnStretch(1, 1)
         grid.setAlignment(QtCore.Qt.AlignLeft)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
@@ -2038,6 +2043,7 @@ class RelaxParamFrame(AbstractParamFrame):
 
     SINGLENAMES = ['Amplitude', 'Constant']
     MULTINAMES = ['Coefficient', 'T']
+    FUNC_LABEL = "Amplitude * (Constant + Coefficient * exp(-x / abs(T)))"
 
     def __init__(self, parent, rootwindow, isMain=True):
         """
@@ -2128,7 +2134,7 @@ class RelaxParamFrame(AbstractParamFrame):
             x = np.logspace(np.log(minx), np.log(maxx), numCurve)
         else:
             x = np.linspace(minx, maxx, numCurve)
-        np.concatenate((x, realx))
+        x = np.concatenate((x, realx))
         return [np.sort(x)]
 
     def checkResults(self, numExp, struc):
@@ -2148,6 +2154,7 @@ class DiffusionParamFrame(AbstractParamFrame):
 
     SINGLENAMES = ['Amplitude', 'Constant']
     MULTINAMES = ['Coefficient', 'D']
+    FUNC_LABEL = u"Amplitude * (Constant + Coefficient * exp(-(γ * δ * x)**2 * D * (Δ - δ / 3.0)))"
 
     def __init__(self, parent, rootwindow, isMain=True):
         """
@@ -2275,7 +2282,7 @@ class DiffusionParamFrame(AbstractParamFrame):
             x = np.logspace(np.log(minx), np.log(maxx), numCurve)
         else:
             x = np.linspace(minx, maxx, numCurve)
-        np.concatenate((x, realx))
+        x = np.concatenate((x, realx))
         return [np.sort(x)]
 
     def checkResults(self, numExp, struc):
