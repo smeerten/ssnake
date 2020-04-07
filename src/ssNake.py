@@ -558,7 +558,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.savefigAct.setToolTip('Export as Figure')
         self.saveSimpsonAct = self.exportmenu.addAction(QtGui.QIcon(IconDirectory + 'simpson.png'), 'Simpson', self.saveSimpsonFile)
         self.saveSimpsonAct.setToolTip('Export as Simpson File')
-        self.saveASCIIAct = self.exportmenu.addAction(QtGui.QIcon(IconDirectory + 'ssnake.png'), 'ASCII (1D/2D)', self.saveASCIIFile)
+        self.saveASCIIAct = self.exportmenu.addAction(QtGui.QIcon(IconDirectory + 'ASCII.png'), 'ASCII (1D/2D)', self.saveASCIIFile)
         self.saveASCIIAct.setToolTip('Save as ASCII Text File')
         self.preferencesAct = self.filemenu.addAction(QtGui.QIcon(IconDirectory + 'preferences.png'), '&Preferences', lambda: PreferenceWindow(self))
         self.preferencesAct.setToolTip('Open Preferences Window')
