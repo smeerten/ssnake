@@ -1647,8 +1647,10 @@ class MainProgram(QtWidgets.QMainWindow):
 
     def closeEvent(self, event):
         quit_msg = "Are you sure you want to close ssNake?"
-        reply = QtWidgets.QMessageBox.question(self, 'Close', quit_msg, QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No)
-        if reply == QtWidgets.QMessageBox.Yes:
+        close = True
+        if len(self.workspaces) != 0:
+            close = QtWidgets.QMessageBox.Yes == QtWidgets.QMessageBox.question(self, 'Close', quit_msg, QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No)
+        if close:
             for item in fit.stopDict.keys():  # Send stop commands to all threads
                 fit.stopDict[item] = True
             event.accept()
