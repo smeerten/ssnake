@@ -7042,14 +7042,13 @@ class aboutWindow(wc.ToolWindow):
         self.logo = QtWidgets.QLabel(self)
         self.logo.setPixmap(QtGui.QPixmap(os.path.dirname(os.path.realpath(__file__)) + "/Icons/logo.gif"))
         self.tabs = QtWidgets.QTabWidget(self)
-        self.text = QtWidgets.QTextEdit(self)
-        self.text.setReadOnly(True)
-        self.license = QtWidgets.QTextEdit(self)
-        self.license.setReadOnly(True)
+        self.text = QtWidgets.QTextBrowser(self)
+        self.text.setOpenExternalLinks(True)
+        self.license = QtWidgets.QTextBrowser(self)
+        self.license.setOpenExternalLinks(True)
         licenseText = ''
         with open(os.path.dirname(os.path.realpath(__file__)) + os.path.sep + 'licenseHtml.txt') as f:
-            licenseTextTemp = f.read().split('\n')
-        licenseText = ' '.join(licenseTextTemp)
+            licenseText = f.read()
         self.license.setHtml(licenseText)
         pythonVersion = sys.version
         pythonVersion = pythonVersion[:pythonVersion.index(' ')]
@@ -7064,7 +7063,7 @@ class aboutWindow(wc.ToolWindow):
                           '<br>Qt ' + QtCore.QT_VERSION_STR)
         self.thanks = QtWidgets.QTextEdit(self)
         self.thanks.setReadOnly(True)
-        self.thanks.setHtml('<p><b>The ssNake team wishes to thank:</b></p>prof. Arno Kentgens<br>Koen Tijssen<br>Ole Brauckmann<br>Merijn Blaakmeer<br>Vincent Breukels<br>Ernst van Eck<br>Fleur van Zelst')
+        self.thanks.setHtml('<p><b>The ssNake team wishes to thank:</b></p>prof. Arno Kentgens<br>Koen Tijssen<br>Ole Brauckmann<br>Merijn Blaakmeer<br>Vincent Breukels<br>Ernst van Eck<br>Fleur van Zelst<br>Sander Lambregts')
         self.tabs.addTab(self.text, 'Version')
         self.tabs.addTab(self.thanks, 'Thanks')
         self.tabs.addTab(self.license, 'License')
