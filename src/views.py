@@ -1336,9 +1336,9 @@ class Current1D(PlotFrame):
         self.showFid()
         self.upd()
 
-    def baselinePolyFit(self, x, data, bArray, degree):
+    def baselineFunctionFit(self, x, data, bArray, degree, type):
         """
-        Fit a polynomial through the selected data.
+        Fit a function through the selected data.
 
         Parameters
         ----------
@@ -1350,17 +1350,29 @@ class Current1D(PlotFrame):
             The points that should be used
         degree: int
             Number of polynomial orders
+        type: str
+            Either 'poly' for polynomial fit, or 'sin/cos' for sine/cosine
 
         Returns
         -------
         ndarray:
             The fitted polynomial
         """
-        import numpy.polynomial.polynomial as poly
-        polyCoeff = poly.polyfit(x[bArray], data[bArray], degree)
-        return poly.polyval(x, polyCoeff)
+        if type == 'poly':
+            import numpy.polynomial.polynomial as poly
+            polyCoeff = poly.polyfit(x[bArray], data[bArray], degree)
+            return poly.polyval(x, polyCoeff)
+        elif type == 'sin/cos':
+            import numpy.linalg as ln
+            fit = np.ones([len(x),degree *2 + 1])
+            x_fake = np.linspace(0, 2 * np.pi, len(x)) #cos/sine always in 0-->2pi regime
+            for order in range(degree):
+                fit[:,order * 2 + 1] = np.cos((order + 1) * x_fake)
+                fit[:,order * 2 + 2] = np.sin((order + 1) * x_fake)
+            values = ln.lstsq(fit[bArray], data[bArray] ,rcond = None)[0] #Perform leats squares fit
+            return np.sum(fit * values, axis = 1)
 
-    def baselineCorrectionAll(self, degree, removeList, invert=False):
+    def baselineCorrectionAll(self, degree, removeList, type, invert=False):
         """
         Correct baseline of a series of data
 
@@ -1369,7 +1381,9 @@ class Current1D(PlotFrame):
         degree: int
             Polynomial degree
         removeList: list
-            Indexes of points not include in polyfit
+            Indexes of points not include in function fit
+        type: str
+            Either 'poly' for polynomial fit, or 'sin/cos' for sine/cosine
         invert (optional = False): boolean
             If True, the removeList is treated as an include list (i.e. inverting the selection)           
         """
@@ -1381,12 +1395,12 @@ class Current1D(PlotFrame):
             bArray = np.logical_and(bArray, np.logical_or((tmpAx < minVal), (tmpAx > maxVal)))
         if invert:
             bArray = np.logical_not(bArray)
-        y = np.apply_along_axis(lambda data: self.baselinePolyFit(self.xax(), data, bArray, degree), self.axes[-1], self.data.getHyperData(0))
+        y = np.apply_along_axis(lambda data: self.baselineFunctionFit(self.xax(), data, bArray, degree, type), self.axes[-1], self.data.getHyperData(0))
         y = np.real(self.getDataType(y))
         self.root.addMacro(['subtract', (y,)])
         self.data.subtract(y)
 
-    def baselineCorrection(self, degree, removeList, select=False, invert=False):
+    def baselineCorrection(self, degree, removeList, type, select=False, invert=False):
         """
         Correct baseline of spectrum/fid.
 
@@ -1395,7 +1409,9 @@ class Current1D(PlotFrame):
         degree: int
             Polynomial degree
         removeList: list
-            Indexes of points not include in polyfit
+            Indexes of points not include in function fit
+        type: str
+            Either 'poly' for polynomial fit, or 'sin/cos' for sine/cosine
         select (optional = False): boolean
             If True, apply only to the current slice.
         invert (optional = False): boolean
@@ -1415,12 +1431,12 @@ class Current1D(PlotFrame):
             bArray = np.logical_and(bArray, np.logical_or((tmpAx < minVal), (tmpAx > maxVal)))
         if invert:
             bArray = np.logical_not(bArray)
-        y = self.baselinePolyFit(self.xax(), tmpData, bArray, degree)
+        y = self.baselineFunctionFit(self.xax(), tmpData, bArray, degree, type)
         y = np.real(self.getDataType(y))
         self.root.addMacro(['baselineCorrection', (y, self.axes[-1] - self.data.ndim(), selectSlice)])
         self.data.baselineCorrection(y, self.axes[-1], select=selectSlice)
 
-    def previewBaselineCorrection(self, degree, removeList, invert=False):
+    def previewBaselineCorrection(self, degree, removeList, type, invert=False):
         """
         Preview the baseline correction of a spectrum/fid.
 
@@ -1429,7 +1445,9 @@ class Current1D(PlotFrame):
         degree: int
             Polynomial degree
         removeList: list
-            Indexes of points not include in polyfit
+            Indexes of points not include in function fit
+        type: str
+            Either 'poly' for polynomial fit, or 'sin/cos' for sine/cosine
         invert (optional = False): boolean
             If True, the removeList is treated as an include list (i.e. inverting the selection)           
         """
@@ -1443,7 +1461,7 @@ class Current1D(PlotFrame):
             bArray = np.logical_and(bArray, np.logical_or((tmpAx < minVal), (tmpAx > maxVal)))
         if invert:
             bArray = np.logical_not(bArray)
-        y = self.baselinePolyFit(self.xax(), tmpData, bArray, degree)
+        y = self.baselineFunctionFit(self.xax(), tmpData, bArray, degree, type)
         y = np.real(self.getDataType(y))
         self.resetPreviewRemoveList()
         if self.NDIM_PLOT > 1:

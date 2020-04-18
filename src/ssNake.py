@@ -4299,28 +4299,34 @@ class BaselineWindow(wc.ToolWindow):
 
     NAME = "Baseline correction"
     SINGLESLICE = True
+    TYPES = ['poly','sin/cos']
+    TYP_NAMES = ['Polynomial','sine/cosine']
 
     def __init__(self, parent):
         super(BaselineWindow, self).__init__(parent)
-        self.grid.addWidget(wc.QLabel("Polynomial Degree:"), 0, 0, 1, 2)
+        self.grid.addWidget(wc.QLabel("Type:"), 0, 0, 1, 2)
+        self.typeDropdown = QtWidgets.QComboBox()
+        self.typeDropdown.addItems(self.TYP_NAMES)
+        self.grid.addWidget(self.typeDropdown, 1, 0, 1, 2)
+        self.grid.addWidget(wc.QLabel("Degree:"), 2, 0, 1, 2)
         self.removeList = []
         self.degreeEntry = wc.SsnakeSpinBox()
-        self.degreeEntry.setMaximum(100)
+        self.degreeEntry.setMaximum(10000)
         self.degreeEntry.setMinimum(1)
         self.degreeEntry.setValue(3)
         self.degreeEntry.setAlignment(QtCore.Qt.AlignCenter)
-        self.grid.addWidget(self.degreeEntry, 1, 0, 1, 2)
+        self.grid.addWidget(self.degreeEntry, 3, 0, 1, 2)
         self.invertButton = QtWidgets.QCheckBox("Invert selection")
         self.invertButton.stateChanged.connect(self.preview)
-        self.grid.addWidget(self.invertButton, 2, 0, 1, 2)
+        self.grid.addWidget(self.invertButton, 4, 0, 1, 2)
         self.allFitButton = QtWidgets.QCheckBox("Fit traces separately")
-        self.grid.addWidget(self.allFitButton, 3, 0, 1, 2)
+        self.grid.addWidget(self.allFitButton, 5, 0, 1, 2)
         resetButton = QtWidgets.QPushButton("&Reset")
         resetButton.clicked.connect(self.reset)
-        self.grid.addWidget(resetButton, 4, 0)
+        self.grid.addWidget(resetButton, 6, 0)
         fitButton = QtWidgets.QPushButton("&Fit")
         fitButton.clicked.connect(self.preview)
-        self.grid.addWidget(fitButton, 4, 1)
+        self.grid.addWidget(fitButton, 6, 1)
         self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
         self.father.current.peakPick = True
 
@@ -4331,9 +4337,10 @@ class BaselineWindow(wc.ToolWindow):
         self.father.current.peakPick = True
 
     def preview(self, *args):
+        type = self.TYPES[self.typeDropdown.currentIndex()]
         inp = self.degreeEntry.value()
         self.father.current.previewRemoveList(self.removeList, invert=self.invertButton.isChecked())
-        self.father.current.previewBaselineCorrection(inp, self.removeList, invert=self.invertButton.isChecked())
+        self.father.current.previewBaselineCorrection(inp, self.removeList, type, invert=self.invertButton.isChecked())
         self.father.current.peakPickFunc = lambda pos, self=self: self.picked(pos)
         self.father.current.peakPick = True
 
@@ -4349,10 +4356,11 @@ class BaselineWindow(wc.ToolWindow):
 
     def applyFunc(self):
         inp = self.degreeEntry.value()
+        type = self.TYPES[self.typeDropdown.currentIndex()]
         if self.allFitButton.isChecked():
-            self.father.current.baselineCorrectionAll(inp, self.removeList, invert=self.invertButton.isChecked())
+            self.father.current.baselineCorrectionAll(inp, self.removeList, type, invert=self.invertButton.isChecked())
         else:
-            self.father.current.baselineCorrection(inp, self.removeList, self.singleSlice.isChecked(), invert=self.invertButton.isChecked())
+            self.father.current.baselineCorrection(inp, self.removeList, type, self.singleSlice.isChecked(), invert=self.invertButton.isChecked())
         self.father.current.peakPickReset()
         self.father.current.resetPreviewRemoveList()
 
