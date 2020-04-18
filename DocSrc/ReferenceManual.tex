@@ -792,13 +792,15 @@ When this is on, Fourier transforming does not multiply the first point by 0.5 (
 
 \subsection{Offset correction}
 Subtracts the average value of the selected data points from all data points.
-The Offset correction tool opens a new window.
-By default, the last 20\% of the time data is selected as containing only noise (of which the average is the offset which should be subtracted).
-Left clicking two times in the graph sets the limits between which the average value is calculated.
-Pushing apply subtracts this value from all time data points.
-If the data has more dimensions then 1, the average value is subtracted from all data points.
-Take note that the average is only calculated for the current graph.
-To apply the offset correction only to the displayed data/traces you can use the `Single slice' button.
+The Offset correction tool opens a new window. By default, the last 20\% of
+the time data is selected as containing only noise (of which the average is the
+offset which should be subtracted). Left clicking two times in the graph sets
+the limits between which the average value is calculated. Pushing apply
+subtracts this value from all time data points. If the data has more
+dimensions then 1, the average value is subtracted from all data points. Take
+note that the average is only calculated for the current graph. To apply the
+offset correction only to the displayed data/traces you can use the `Single
+slice' button.
 
 % \subsubsection*{Background}
 % It can sometimes happen that NMR data does not decay to zero, but to another value. In this case, a time signal with zero frequency and no decay can be thought to have been added to the NMR signal. Usually, this is due to issues with the electronics, and does not imply a NMR signal with these properties. For proper analysis of the signal, this offset should be removed, as it leads to a signal at 0 Hz, which can interfere with the spectrum. This can be solved by subtracting the average value of the last points of the time domain data from all the data points.
@@ -807,12 +809,39 @@ To apply the offset correction only to the displayed data/traces you can use the
 % Using the Offset correction tool opens a new window. By default, the last 20\% of the time data is selected as containing only noise (of which the average is the offset which should be subtracted). Left clicking two times in the graph sets the limits between which the average value is calculated. Pushing apply subtracts this value from all time data points. If the data has more dimensions then 1, the average value is subtracted from all data points. Take note that the average is only calculated for the current graph. If you want to correct the offset for each graph you can select the `Single slice' option, and do the correction separately in each desired trace.
 
 \subsection{Baseline correction}
-Fits a polynomial line of a given order through the current spectrum while ignoring the selected parts. This line is then subtracted from the spectrum.
-In ssNake, baseline correction is performed by fitting a $n$th degree polynomial through the spectrum, i.e.:
+Fits a function of a given order through the current spectrum while ignoring the
+selected parts.  This line is then subtracted from the spectrum. In ssNake,
+baseline correction is performed by either a polynomial function, or a
+combination of sine and cosine functions.
+
+Fitting these functions to the
+spectrum is a mathematical operation with a single unique solution. Prior to
+doing this, specific parts of the spectrum can be selectively ignored in the
+fitting procedure. This can be done by left clicking in the spectrum at the two
+limits of the area that is to be ignored. The area is then marked with a red
+background. This way, multiple areas can be selected. Pressing  `Fit' then
+performs and shows the fit. Apply subtracts the line from the spectrum. Note
+that by default this single fit is subtracted from \textit{all} the traces.
+This is useful if the background is identical in all of them. Alternatively,
+the box `Single slice' can be ticked to only apply the correction on the
+displayed spectrum.
+
+For the polynomial option, a $n$th degree polynomial is fitted to the spectrum,
+i.e.:
 \begin{equation*}
 S_\text{corr} = \sum_{i=0}^n a_i x^i ,
 \end{equation*}
-with $a_i$ the amplitude of the $i$th degree polynomial. Fitting this to the spectrum is a mathematical operation with a single unique solution. Prior to doing this, specific parts of the spectrum can be selectively ignored in the fitting procedure. This can be done by left clicking in the spectrum at the two limits of the area that is to be ignored. The area is then marked with a red background. This way, multiple areas can be selected. Pressing  `Fit' then performs and shows the fit. Apply subtracts the line from the spectrum. Note that by default this single fit is subtracted from \textit{all} the traces. This is useful if the background is identical in all of them. Alternatively, the box `Single slice' can be ticked to only apply the correction on the displayed spectrum.
+with $a_i$ the amplitude of the $i$th degree polynomial. 
+
+For the sine/cosine version, a series is made following:
+\begin{equation*}
+S_\text{corr} = a_0 + a_1\cos(x) + b_1\sin(x)+ a_2\cos(2x)  + b_2\sin(2x) \ldots
+\end{equation*}
+Note that in this case, the $x$-axis is redefined, with the full spectrum always
+in the interval $0 \rightarrow 2\pi$. The order is defined by only using the
+functions up to $a_\text{order}$ and $b_\text{order}$.
+
+
 
 
 % \subsubsection*{Background}
