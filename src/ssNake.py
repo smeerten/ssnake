@@ -853,7 +853,9 @@ class MainProgram(QtWidgets.QMainWindow):
         self.contourplotAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'contour.png'), "&Contour Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotContour()))
         self.contourplotAct.setToolTip('Contour Plot')
         self.multiDActions.append(self.contourplotAct)
-
+        self.multiContourplotAct = self.plotMenu.addAction("Mu&lti Contour Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotMultiContour()))
+        self.multiContourplotAct.setToolTip('Multi Contour Plot')
+        self.multiDActions.append(self.multiContourplotAct)
         self.colour2DplotAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + '2DColour.png'), "2D Colour Plot", lambda: self.mainWindowCheck(lambda mainWindow: mainWindow.plotColour2D()))
         self.colour2DplotAct.setToolTip('2D Colour Plot')
         self.multiDActions.append(self.colour2DplotAct)
@@ -865,8 +867,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.plotprefAct = self.plotMenu.addAction(QtGui.QIcon(IconDirectory + 'preferences.png'), "&Plot Settings", lambda: self.mainWindowCheck(lambda mainWindow: PlotSettingsWindow(mainWindow)))
         self.plotprefAct.setToolTip('Plot Settings')
         self.plotActList = [self.onedplotAct, self.scatterplotAct, self.stackplotAct,
-                            self.arrayplotAct, self.contourplotAct,self.colour2DplotAct, self.multiplotAct,
-                            self.setrefAct, self.delrefAct, self.userxAct, self.plotprefAct]
+                            self.arrayplotAct, self.contourplotAct, self.colour2DplotAct, self.multiplotAct,
+                            self.multiContourplotAct, self.setrefAct, self.delrefAct, self.userxAct, self.plotprefAct]
         # the history drop down menu
         self.historyMenu = QtWidgets.QMenu("&History", self)
         self.menubar.addMenu(self.historyMenu)
@@ -2046,6 +2048,16 @@ class Main1DWindow(QtWidgets.QWidget):
         self.updAllFrames()
         self.menuCheck()
 
+    def plotMultiContour(self):
+        if len(self.masterData.shape()) < 2:
+            raise SsnakeException("Data does not have enough dimensions")
+        tmpcurrent = views.CurrentMultiContour(self, self.fig, self.canvas, self.masterData, self.current)
+        self.current.kill()
+        del self.current
+        self.current = tmpcurrent
+        self.updAllFrames()
+        self.menuCheck()
+
     def plotColour2D(self):
         if len(self.masterData.shape()) < 2:
             raise SsnakeException("Data does not have enough dimensions")
@@ -2185,7 +2197,7 @@ class SideFrame(QtWidgets.QScrollArea):
                 if self.FITTING and num in current.axes:
                     self.entries[num].setDisabled(True)
                 self.entries[num].valueChanged.connect(lambda event, num=num: self.getSlice(num))
-            if type(current) is views.CurrentStacked or type(current) is views.CurrentArrayed:
+            if type(current) in (views.CurrentStacked, views.CurrentArrayed):
                 if current.viewSettings["stackBegin"] is not None:
                     from2D = current.viewSettings["stackBegin"]
                 else:
@@ -2223,7 +2235,7 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.spacingEntry.returnPressed.connect(self.setSpacing)
                 self.frame2.addWidget(self.spacingEntry, 8, 0)
             if isinstance(current, (views.CurrentContour)):
-                if type(current) is views.CurrentContour:
+                if type(current) in (views.CurrentContour, views.CurrentMultiContour):
                     self.contourTypeGroup = QtWidgets.QGroupBox('Contour type:')
                     self.contourTypeFrame = QtWidgets.QGridLayout()
                     self.contourNumberLabel = wc.QLeftLabel("Number:", self)
@@ -2412,10 +2424,12 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.buttons1Group.button(current.axes[-1]).toggle()
                 if self.plotIs2D:
                     self.buttons2Group.button(current.axes[-2]).toggle()
-        if isinstance(current, (views.CurrentMulti)):
+        if isinstance(current, (views.CurrentMulti, views.CurrentMultiContour)):
             self.extraEntries = []
             self.extraButtons1 = []
             self.extraButtons1Group = []
+            self.extraButtons2 = []
+            self.extraButtons2Group = []
             self.nameLabels = []
             iter1 = 0
             for i in range(len(current.viewSettings["extraData"])):
@@ -2437,59 +2451,73 @@ class SideFrame(QtWidgets.QScrollArea):
                 button.clicked.connect(lambda arg, num=i: self.delMultiSpec(num))
                 button.setToolTip(TOOLTIPS['multiplotX'])
                 frame.addWidget(button, 1, 1)
-                self.OOM = self.father.current.getOOM()  # Order of Magnitude
-                self.scaleLabel = wc.QLeftLabel("Scale:", self)
-                frame.addWidget(self.scaleLabel, 2, 0)
-                self.offsetLabel = wc.QLeftLabel(u"Offset (×1e" + str(self.OOM) + "):", self)
-                frame.addWidget(self.offsetLabel, 3, 0)
-                self.shiftLabel = wc.QLeftLabel("Shift:", self)
-                frame.addWidget(self.shiftLabel, 4, 0)
-                scaleEntry = wc.SsnakeDoubleSpinBox()
-                scaleEntry.setDecimals(4)
-                scaleEntry.setMaximum(1e3)
-                scaleEntry.setMinimum(-1e3)
-                scaleEntry.setSingleStep(0.1)
-                scaleEntry.setValue(self.father.current.viewSettings["extraScale"][i])
-                scaleEntry.valueChanged.connect(lambda arg, num=i: self.setScale(arg, num))
-                scaleEntry.setToolTip(TOOLTIPS['multiplotScale'])
-                frame.addWidget(scaleEntry, 2, 1)
-                offsetEntry = wc.SsnakeDoubleSpinBox()
-                offsetEntry.setDecimals(4)
-                offsetEntry.setMaximum(1e3)
-                offsetEntry.setMinimum(-1e3)
-                offsetEntry.setSingleStep(0.1)
-                offsetEntry.setValue(self.father.current.viewSettings["extraOffset"][i] / (10**self.OOM))
-                offsetEntry.valueChanged.connect(lambda arg, num=i: self.setOffset(arg, num))
-                offsetEntry.setToolTip(TOOLTIPS['multiplotOffset'])
-                frame.addWidget(offsetEntry, 3, 1)
-                shiftEntry = wc.SsnakeDoubleSpinBox()
-                shiftEntry.setDecimals(4)
-                shiftEntry.setMaximum(1e3)
-                shiftEntry.setMinimum(-1e3)
-                shiftEntry.setSingleStep(0.1)
-                shiftEntry.setValue(self.father.current.viewSettings["extraShift"][i])
-                shiftEntry.valueChanged.connect(lambda arg, num=i: self.setShift(arg, num))
-                shiftEntry.setToolTip(TOOLTIPS['multiplotShift'])
-                frame.addWidget(shiftEntry, 4, 1)
+                if isinstance(current, (views.CurrentMulti)):
+                    self.OOM = self.father.current.getOOM()  # Order of Magnitude
+                    self.scaleLabel = wc.QLeftLabel("Scale:", self)
+                    frame.addWidget(self.scaleLabel, 2, 0)
+                    self.offsetLabel = wc.QLeftLabel(u"Offset (×1e" + str(self.OOM) + "):", self)
+                    frame.addWidget(self.offsetLabel, 3, 0)
+                    self.shiftLabel = wc.QLeftLabel("Shift:", self)
+                    frame.addWidget(self.shiftLabel, 4, 0)
+                    scaleEntry = wc.SsnakeDoubleSpinBox()
+                    scaleEntry.setDecimals(4)
+                    scaleEntry.setMaximum(1e3)
+                    scaleEntry.setMinimum(-1e3)
+                    scaleEntry.setSingleStep(0.1)
+                    scaleEntry.setValue(self.father.current.viewSettings["extraScale"][i])
+                    scaleEntry.valueChanged.connect(lambda arg, num=i: self.setScale(arg, num))
+                    scaleEntry.setToolTip(TOOLTIPS['multiplotScale'])
+                    frame.addWidget(scaleEntry, 2, 1)
+                    offsetEntry = wc.SsnakeDoubleSpinBox()
+                    offsetEntry.setDecimals(4)
+                    offsetEntry.setMaximum(1e3)
+                    offsetEntry.setMinimum(-1e3)
+                    offsetEntry.setSingleStep(0.1)
+                    offsetEntry.setValue(self.father.current.viewSettings["extraOffset"][i] / (10**self.OOM))
+                    offsetEntry.valueChanged.connect(lambda arg, num=i: self.setOffset(arg, num))
+                    offsetEntry.setToolTip(TOOLTIPS['multiplotOffset'])
+                    frame.addWidget(offsetEntry, 3, 1)
+                    shiftEntry = wc.SsnakeDoubleSpinBox()
+                    shiftEntry.setDecimals(4)
+                    shiftEntry.setMaximum(1e3)
+                    shiftEntry.setMinimum(-1e3)
+                    shiftEntry.setSingleStep(0.1)
+                    shiftEntry.setValue(self.father.current.viewSettings["extraShift"][i])
+                    shiftEntry.valueChanged.connect(lambda arg, num=i: self.setShift(arg, num))
+                    shiftEntry.setToolTip(TOOLTIPS['multiplotShift'])
+                    frame.addWidget(shiftEntry, 4, 1)
                 entries = []
                 self.extraEntries.append(entries)
                 buttons1 = []
                 self.extraButtons1.append(buttons1)
                 self.extraButtons1Group.append(QtWidgets.QButtonGroup(self))
-                self.extraButtons1Group[i].buttonClicked.connect(self.setExtraAxes)
+                self.extraButtons1Group[i].buttonClicked.connect(lambda: self.setExtraAxes(True))
+                buttons2 = []
+                self.extraButtons2.append(buttons1)
+                self.extraButtons2Group.append(QtWidgets.QButtonGroup(self))
+                self.extraButtons2Group[i].buttonClicked.connect(lambda: self.setExtraAxes(False))
                 if current.viewSettings["extraData"][i].ndim() > 1:
                     for num in range(current.viewSettings["extraData"][i].ndim()):
+                        offset = 0
                         buttons1.append(QtWidgets.QRadioButton(''))
-                        buttons1[-1].setToolTip(TOOLTIPS['multiplotDim'])
+                        buttons1[-1].setToolTip(TOOLTIPS['multiplotDim1'])
                         self.extraButtons1Group[i].addButton(buttons1[num], num)
                         frame.addWidget(buttons1[num], num * 3 + 6, 0)
-                        frame.addWidget(wc.QLabel("D" + str(num + 1), self), num * 3 + 5, 1)
+                        if self.plotIs2D:
+                            offset = 1
+                            buttons2.append(QtWidgets.QRadioButton(''))
+                            buttons2[-1].setToolTip(TOOLTIPS['multiplotDim2'])
+                            self.extraButtons2Group[i].addButton(buttons2[num], num)
+                            frame.addWidget(buttons2[num], num * 3 + 6, 1)
+                        frame.addWidget(wc.QLabel("D" + str(num + 1), self), num * 3 + 5, 1 + offset)
                         entries.append(wc.SliceSpinBox(self, 0, current.viewSettings["extraData"][i].shape()[num] - 1))
                         entries[-1].setToolTip(TOOLTIPS['sideFrameDimensionSlice'])
-                        frame.addWidget(entries[num], num * 3 + 6, 1)
+                        frame.addWidget(entries[num], num * 3 + 6, 1 + offset)
                         entries[num].setValue(current.viewSettings["extraLoc"][i][num])
                         entries[num].valueChanged.connect(lambda event, num=num, i=i: self.getExtraSlice(num, i))
                     self.extraButtons1Group[i].button(current.viewSettings["extraAxes"][i][-1]).toggle()
+                    if self.plotIs2D:
+                        self.extraButtons2Group[i].button(current.viewSettings["extraAxes"][i][-2]).toggle()
                 iter1 += 1
             addButton = QtWidgets.QPushButton("Add plot", self)
             addButton.setToolTip(TOOLTIPS['multiplotAddPlot'])
@@ -2574,7 +2602,7 @@ class SideFrame(QtWidgets.QScrollArea):
             self.selectTraceButton.hide()
         if not self.FITTING:
             self.father.current.clearProj()
-            self.father.current.showProj()
+            self.father.current.showAllProj()
         else:
             self.father.current.showFid()
 
@@ -2582,7 +2610,7 @@ class SideFrame(QtWidgets.QScrollArea):
         self.father.current.setProjTraces(num, direc)
         if not self.FITTING:
             self.father.current.clearProj()
-            self.father.current.showProj()
+            self.father.current.showAllProj()
         else:
             self.father.current.showFid()
 
@@ -2602,7 +2630,7 @@ class SideFrame(QtWidgets.QScrollArea):
         self.father.current.setProjLimits(check, ranges)
         if not self.FITTING:
             self.father.current.clearProj()
-            self.father.current.showProj()
+            self.father.current.showAllProj()
         else:
             self.father.current.showFid()
 
@@ -2704,9 +2732,16 @@ class SideFrame(QtWidgets.QScrollArea):
                 self.father.menuCheck()
                 self.upd()
 
-    def setExtraAxes(self, *args):
+    def setExtraAxes(self, first=True):
         for i in range(len(self.extraButtons1Group)):
             axes = self.extraButtons1Group[i].checkedId()
+            if self.plotIs2D:
+                axes2 = self.extraButtons2Group[i].checkedId()
+                if axes == axes2:
+                    axes2 = self.father.current.viewSettings["extraAxes"][i][-1]
+                else:
+                    axes = self.father.current.viewSettings["extraAxes"][i][-2]
+                self.extraButtons2Group[i].button(axes2).toggle()
             self.getExtraSlice(axes, i, True)
         self.father.current.showFid()
 
@@ -2726,7 +2761,11 @@ class SideFrame(QtWidgets.QScrollArea):
         for num in range(length):
             locList[num] = self.extraEntries[entryi][num].value()
         self.extraButtons1Group[entryi].button(dimNum).toggle()
-        self.father.current.setExtraSlice(entryi, [dimNum], locList)
+        axes = np.array([self.extraButtons2Group[entryi].checkedId(), dimNum], dtype=int)
+        if self.plotIs2D:
+            self.father.current.setExtraSlice(entryi, axes, locList)
+        else:
+            self.father.current.setExtraSlice(entryi, np.array([dimNum]), locList)
         if not button:
             self.father.current.showFid()
         # self.upd()

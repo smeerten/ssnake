@@ -439,7 +439,7 @@ class Current1D(PlotFrame):
         canvas: matplotlib figure canvas
         data: spectrum class instance
         """
-        return Current1D(root, fig, canvas, data, self)
+        return self.__class__(root, fig, canvas, data, self)
 
     def upd(self):
         """
@@ -2383,7 +2383,7 @@ class Current1D(PlotFrame):
             tmp = np.real(self.getDataType(oldData.getHyperData(0)))
             self.line_xdata_extra.append(self.xax() * axMult)
             self.line_ydata_extra.append(tmp)
-            self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, c='k', alpha=0.2, linewidth=self.viewSettings["linewidth"], label=self.data.name + '_old', picker=True)
+            self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, c=(0,0,0,0.2), linewidth=self.viewSettings["linewidth"], label=self.data.name + '_old', picker=True)
         if extraX is not None:
             for num, _ in enumerate(extraX):
                 self.line_xdata_extra.append(extraX[num] * axMult)
@@ -2525,28 +2525,6 @@ class CurrentMulti(Current1D):
         """
         self.viewSettings["extraAxes"][extraNum] = axes
         self.viewSettings["extraLoc"][extraNum] = locList
-
-    def copyCurrent(self, root, fig, canvas, data):
-        """
-        Make a copy of the current data structure and the
-        associated canvas and axis information.
-
-        Parameters
-        ----------
-        root: main1Dwindow
-            The basic window
-        fig: matplotib figure
-            The figure
-        canvas: matplotlib canvas
-            The plot canvas
-        data: spectrum class instance
-            The data class
-
-        Returns
-        -------
-        CurrentMulti view class
-        """
-        return CurrentMulti(root, fig, canvas, data, self)
 
     def addExtraData(self, data, name):
         """
@@ -2748,7 +2726,7 @@ class CurrentMulti(Current1D):
             tmp = np.real(self.getDataType(oldData.getHyperData(0)))
             self.line_xdata_extra.append(self.xax() * axMult)
             self.line_ydata_extra.append(tmp)
-            self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, c='k', alpha=0.2, linewidth=self.viewSettings["linewidth"], label=self.data.name + '_old', picker=True)
+            self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, c=(0,0,0,0.2), linewidth=self.viewSettings["linewidth"], label=self.data.name + '_old', picker=True)
         if extraX is not None:
             for num, _ in enumerate(extraX):
                 self.line_xdata_extra.append(extraX[num] * axMult)
@@ -2807,28 +2785,6 @@ class CurrentStacked(Current1D):
         """
         self.showFid()
         self.plotReset(xReset, yReset)
-
-    def copyCurrent(self, root, fig, canvas, data):
-        """
-        Make a copy of the current data structure and the
-        associated canvas and axis information.
-
-        Parameters
-        ----------
-        root: main1Dwindow
-            The basic window
-        fig: matplotib figure
-            The figure
-        canvas: matplotlib canvas
-            The plot canvas
-        data: spectrum class instance
-            The data class
-
-        Returns
-        -------
-        CurrentStacked view class
-        """
-        return CurrentStacked(root, fig, canvas, data, self)
 
     def upd(self):  
         """
@@ -2964,7 +2920,7 @@ class CurrentStacked(Current1D):
                 tmp = np.real(self.getDataType(oldData.getHyperData(0)[num]))
                 self.line_xdata_extra.append(tmp_line_xdata)
                 self.line_ydata_extra.append(num * self.viewSettings["spacing"] + tmp)
-                self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, c='k', alpha=0.2, linewidth=self.viewSettings["linewidth"], label=self.data.name + '_old', picker=True)
+                self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, c=(0,0,0,0.2), linewidth=self.viewSettings["linewidth"], label=self.data.name + '_old', picker=True)
         if extraX is not None:
             tmpx = extraX[0] * axMult
             for num, _ in enumerate(extraY):
@@ -3048,28 +3004,6 @@ class CurrentArrayed(CurrentStacked):
         """
         self.showFid()
         self.plotReset(xReset, yReset)
-
-    def copyCurrent(self, root, fig, canvas, data):
-        """
-        Make a copy of the current data structure and the
-        associated canvas and axis information.
-
-        Parameters
-        ----------
-        root: main1Dwindow
-            The basic window
-        fig: matplotib figure
-            The figure
-        canvas: matplotlib canvas
-            The plot canvas
-        data: spectrum class instance
-            The data class
-
-        Returns
-        -------
-        CurrentArrayed view class
-        """
-        return CurrentArrayed(root, fig, canvas, data, self)
 
     def setAxType(self, val, update=True, num=-1):
         #Reimplement of base function. Prevent change of yaxis limits
@@ -3160,7 +3094,7 @@ class CurrentArrayed(CurrentStacked):
                 tmp = np.real(self.getDataType(oldData.getHyperData(0)[num]))
                 self.line_xdata_extra.append((num * self.viewSettings["spacing"] + self.xax()[xaxZlims]) * axMult)
                 self.line_ydata_extra.append(tmp[xaxZlims][direc])
-                self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, c='k', alpha=0.2, linewidth=self.viewSettings["linewidth"], label=self.data.name + '_old', picker=True)
+                self.ax.plot(self.line_xdata_extra[-1], self.line_ydata_extra[-1], marker=marker, linestyle=linestyle, c=(0,0,0,0.2), linewidth=self.viewSettings["linewidth"], label=self.data.name + '_old', picker=True)
         if extraX is not None:
             extraZlims = (extraX[0] > self.zminlim) & (extraX[0] < self.zmaxlim)
             for num, _ in enumerate(extraY):
@@ -3280,28 +3214,6 @@ class CurrentContour(CurrentStacked):
         self.root.sideframe.maxLEntry.setText(str(self.viewSettings["maxLevels"] * 100))
         self.showFid()
 
-    def copyCurrent(self, root, fig, canvas, data):
-        """
-        Make a copy of the current data structure and the
-        associated canvas and axis information.
-
-        Parameters
-        ----------
-        root: main1Dwindow
-            The basic window
-        fig: matplotib figure
-            The figure
-        canvas: matplotlib canvas
-            The plot canvas
-        data: spectrum class instance
-            The data class
-
-        Returns
-        -------
-        CurrenContour view class
-        """
-        return CurrentContour(root, fig, canvas, data, self)
-
     def setLevels(self, numLevels, maxLevels, minLevels, limitType, contourSign, contourType, multiValue):
         """
         Sets the contour settings
@@ -3414,42 +3326,8 @@ class CurrentContour(CurrentStacked):
             xmaxTmp = xax[xMax[i]] * xaxMult
             yminTmp = yax[yMin[i]] * yaxMult
             ymaxTmp = yax[yMax[i]] * yaxMult
-            self.removeListLines.append(self.ax.fill([xminTmp, xminTmp, xmaxTmp, xmaxTmp], [yminTmp, ymaxTmp, ymaxTmp, yminTmp],color=color, fill=False, linestyle='--')[0])
+            self.removeListLines.append(self.ax.fill([xminTmp, xminTmp, xmaxTmp, xmaxTmp], [yminTmp, ymaxTmp, ymaxTmp, yminTmp], color=color, fill=False, linestyle='--')[0])
         self.canvas.draw()
-
-    #def updateAxes(self, oldAx, newAx, axis):
-    #    """
-    #    Update the axis without recalculating the contours.
-    #    """
-    #    scale = newAx / oldAx
-    #    # Scale the path vertices, so no new contours need to be calculated
-    #    cols = self.ax.collections
-    #    for col in cols:
-    #        paths = col.get_paths()
-    #        for path in paths:
-    #            tmp = path.vertices
-    #            tmp[:, axis] = tmp[:, axis] * scale
-    #            path.vertices = tmp
-    #    # Scale the projections
-    #    if axis == 1: # Yaxis
-    #        line = self.y_ax.lines
-    #        line[0].set_ydata(line[0].get_ydata() * scale)
-    #    else:
-    #        line = self.x_ax.lines
-    #        line[0].set_xdata(line[0].get_xdata() * scale)
-    #    # Set the labels
-    #    self.ax.set_xlabel(self.getLabel(self.spec(), self.axes[-1], self.getAxType(), self.getppm()))
-    #    self.ax.set_ylabel(self.getLabel(self.spec(-2), self.axes[-2], self.getAxType(-2), self.getppm(-2)))
-    #    # Set the zoom
-    #    if axis == 1:
-    #        ylim = self.ax.get_ylim()
-    #        self.ax.set_ylim(ylim[0] * scale, ylim[1] * scale)
-    #        self.line_ydata = [item*scale for item in self.line_ydata]
-    #    else:
-    #        xlim = self.ax.get_xlim()
-    #        self.ax.set_xlim(xlim[0] * scale, xlim[1] * scale)
-    #        self.line_xdata = [item*scale for item in self.line_xdata]
-    #    self.canvas.draw()
 
     def showFid(self, oldData=None, extraX=None, extraY=None, extraZ=None, extraColor=None):
         """
@@ -3472,6 +3350,7 @@ class CurrentContour(CurrentStacked):
         self.line_xdata_extra = []
         self.line_ydata_extra = []
         self.line_zdata_extra = []
+        self.line_color_extra = []
         self.differ = None
         self.peakPickReset()
         tmpdata = np.real(self.getDataType(self.data1D.getHyperData(0)))
@@ -3481,6 +3360,35 @@ class CurrentContour(CurrentStacked):
             self.differ = np.max(np.abs(np.ravel(self.data.getHyperData(0))))
         self.ax.cla()
         self.clearProj()
+        for i in range(len(self.viewSettings["extraData"])):
+            data = self.viewSettings["extraData"][i]
+            try:
+                if self.viewSettings["extraData"][i].ndim() <= self.viewSettings["extraAxes"][i][-1]:
+                    self.viewSettings["extraAxes"][i][-1] = len(self.viewSettings["extraData"][i].shape()) - 1
+                    self.resetExtraLocList(i)
+                extraData1D = data.getSlice(self.viewSettings["extraAxes"][i], self.viewSettings["extraLoc"][i])
+            except Exception:
+                self.resetExtraLocList(i)
+                extraData1D = data.getSlice(self.viewSettings["extraAxes"][i], self.viewSettings["extraLoc"][i])
+            xax = extraData1D.xaxArray[-1]
+            spec = extraData1D.spec[-1]
+            freq = extraData1D.freq[-1]
+            if extraData1D.ref[-1] is not None:
+                ref = extraData1D.ref[-1]
+            else:
+                ref = extraData1D.freq[-1]
+            if extraData1D.ref[-2] is not None:
+                ref2 = extraData1D.ref[-2]
+            else:
+                ref2 = extraData1D.freq[-2]
+            axMult = self.getAxMult(extraData1D.spec[-1], self.getAxType(), self.getppm(), extraData1D.freq[-1], ref)
+            axMult2 = self.getAxMult(extraData1D.spec[-2], self.getAxType(-2), self.getppm(-2), extraData1D.freq[-2], ref2)
+            self.line_xdata_extra.append(extraData1D.xaxArray[-1] * axMult)
+            self.line_ydata_extra.append(extraData1D.xaxArray[-2] * axMult2)
+            extraData = np.real(self.getDataType(extraData1D.getHyperData(0)))
+            self.line_zdata_extra.append(extraData)
+            self.line_color_extra.append(self.viewSettings["extraColor"][i])
+            self.plotContour(self.line_xdata_extra[-1], self.line_ydata_extra[-1], self.line_zdata_extra[-1], color=[self.viewSettings["extraColor"][i],self.viewSettings["extraColor"][i]+(0.5,)])
         axMult = self.getAxMult(self.spec(), self.getAxType(), self.getppm(), self.freq(), self.ref())
         axMult2 = self.getAxMult(self.spec(-2), self.getAxType(-2), self.getppm(-2), self.freq(-2), self.ref(-2))
         if self.viewSettings["diagonalBool"]:
@@ -3490,28 +3398,32 @@ class CurrentContour(CurrentStacked):
             self.line_xdata_extra.append(self.xax() * axMult)
             self.line_ydata_extra.append(self.xax(-2) * axMult2)
             self.line_zdata_extra.append(tmp)
-            self.plotContour(self.line_xdata_extra[-1], self.line_ydata_extra[-1], self.line_zdata_extra[-1], color=['k', 'k'], alpha=0.2)
-            self.showProj(self.line_xdata_extra[-1], self.line_ydata_extra[-1], self.line_zdata_extra[-1], 'k')
+            self.line_color_extra.append('k')
+            self.plotContour(self.line_xdata_extra[-1], self.line_ydata_extra[-1], self.line_zdata_extra[-1], color=[(0,0,0,0.2), (0,0,0,0.2)])
         if extraX is not None:
             for num, _ in enumerate(extraX):
                 self.line_xdata_extra.append(extraX[num] * axMult)
                 self.line_ydata_extra.append(extraY[num] * axMult2)
                 self.line_zdata_extra.append(extraZ[num])
                 if extraColor is None:
+                    self.line_color_extra.append(extraColor)
                     self.plotContour(self.line_xdata_extra[-1], self.line_ydata_extra[-1], self.line_zdata_extra[-1])
-                    self.showProj(self.line_xdata_extra[-1], self.line_ydata_extra[-1], self.line_zdata_extra[-1])
                 else:
                     if len(extraColor) < len(extraY):
                         color = extraColor[0]
                     else:
                         color = extraColor[num]
-                    self.plotContour(self.line_xdata_extra[-1], self.line_ydata_extra[-1], self.line_zdata_extra[-1], color=[color, color])
-                    self.showProj(self.line_xdata_extra[-1], self.line_ydata_extra[-1], self.line_zdata_extra[-1], color)
+                    self.line_color_extra.append(color)
+                    self.plotContour(self.line_xdata_extra[-1], self.line_ydata_extra[-1], self.line_zdata_extra[-1], color=[color, color+(0.5,)])
         self.line_xdata = [self.xax() * axMult]
         self.line_ydata = [self.xax(-2) * axMult2]
         self.line_zdata = [tmpdata]
-        self.plotContour(self.line_xdata[-1], self.line_ydata[-1], self.line_zdata[-1])
-        self.showProj(self.line_xdata[-1], self.line_ydata[-1], self.line_zdata[-1])
+        if isinstance(self, CurrentMultiContour):
+            tmpColor = COLORCONVERTER.to_rgb(self.viewSettings["contourColors"][0])
+            self.plotContour(self.line_xdata[-1], self.line_ydata[-1], self.line_zdata[-1], color=[tmpColor, tmpColor+(0.5,)])
+        else:
+            self.plotContour(self.line_xdata[-1], self.line_ydata[-1], self.line_zdata[-1])
+        self.showAllProj()
         self.ax.set_xlabel(self.getLabel(self.spec(), self.axes[-1], self.getAxType(), self.getppm()))
         self.ax.set_ylabel(self.getLabel(self.spec(-2), self.axes[-2], self.getAxType(-2), self.getppm(-2)))
         if self.spec():
@@ -3530,8 +3442,8 @@ class CurrentContour(CurrentStacked):
         self.ax.yaxis.grid(self.viewSettings["grids"][1])
         self.setTicks()
         self.canvas.draw()
-
-    def plotContour(self, line_xdata, line_ydata, line_zdata, color=None, alpha=1, updateOnly=False):  
+    
+    def plotContour(self, line_xdata, line_ydata, line_zdata, color=None, updateOnly=False):  
         """
         Make the contour plot
 
@@ -3545,8 +3457,6 @@ class CurrentContour(CurrentStacked):
             Intensity (z) data
         color (optional = None): list of colors
             If not None, positive and negative contour colors should be in here
-        alpha (optional = 1): float
-            Opacity of the lines (1 is solid)
         updateOnly (optional = False): booleans
             If True, update only the contour plot
         """
@@ -3592,9 +3502,9 @@ class CurrentContour(CurrentStacked):
         vmin = -vmax
         if color is not None:
             if PlotPositive:
-                self.ax.contour(X[YposMax[:, None], XposMax], Y[YposMax[:, None], XposMax], line_zdata[YposMax[:, None], XposMax], colors=color[0], alpha=alpha, levels=contourLevels, vmax=vmax, vmin=vmin, linewidths=self.viewSettings["linewidth"], linestyles='solid')
+                self.ax.contour(X[YposMax[:, None], XposMax], Y[YposMax[:, None], XposMax], line_zdata[YposMax[:, None], XposMax], colors=[color[0]], levels=contourLevels, vmax=vmax, vmin=vmin, linewidths=self.viewSettings["linewidth"], linestyles='solid')
             if PlotNegative:
-                self.ax.contour(X[YposMin[:, None], XposMin], Y[YposMin[:, None], XposMin], line_zdata[YposMin[:, None], XposMin], colors=color[1], alpha=alpha, levels=-contourLevels[::-1], vmax=vmax, vmin=vmin, linewidths=self.viewSettings["linewidth"], linestyles='solid')
+                self.ax.contour(X[YposMin[:, None], XposMin], Y[YposMin[:, None], XposMin], line_zdata[YposMin[:, None], XposMin], colors=[color[1]], levels=-contourLevels[::-1], vmax=vmax, vmin=vmin, linewidths=self.viewSettings["linewidth"], linestyles='solid')
         else:
             if PlotPositive:
                 self.ax.contour(X[YposMax[:, None], XposMax], Y[YposMax[:, None], XposMax], line_zdata[YposMax[:, None], XposMax], cmap=get_cmap(self.viewSettings["colorMap"]), levels=contourLevels, vmax=vmax, vmin=vmin, linewidths=self.viewSettings["linewidth"], linestyles='solid')
@@ -3611,10 +3521,14 @@ class CurrentContour(CurrentStacked):
         self.x_ax.cla()
         self.y_ax.cla()
 
+    def showAllProj(self):
+        for i, _ in enumerate(self.line_xdata_extra):
+            self.showProj(self.line_xdata_extra[i], self.line_ydata_extra[i], self.line_zdata_extra[i], self.line_color_extra[i])
+        self.showProj()
+        
     def showProj(self, line_xdata=None, line_ydata=None, line_zdata=None, color=None):
         """
         Show the projections
-
 
         Parameters
         ----------
@@ -3631,7 +3545,7 @@ class CurrentContour(CurrentStacked):
         if line_xdata is None:
             x = self.line_xdata[-1]
             y = self.line_ydata[-1]
-            tmpdata = np.real(self.getDataType(self.data1D.getHyperData(0)))
+            tmpdata = self.line_zdata[-1]
         else:
             x = line_xdata
             y = line_ydata
@@ -3662,8 +3576,8 @@ class CurrentContour(CurrentStacked):
         elif self.viewSettings["projTop"] == 2:
             xprojdata = np.min(tmpdata[topSlice], axis=0)
         elif self.viewSettings["projTop"] == 4:
-            if self.viewSettings["projPos"][0] >= self.data.shape()[self.axes[-2]]:
-                self.viewSettings["projPos"][0] = self.data.shape()[self.axes[-2]] - 1
+            if self.viewSettings["projPos"][0] >= tmpdata.shape[self.axes[-2]]:
+                self.viewSettings["projPos"][0] = tmpdata.shape[self.axes[-2]] - 1
             elif self.viewSettings["projPos"][0] < 0:
                 self.viewSettings["projPos"][0] = 0
             xprojdata = tmpdata[self.viewSettings["projPos"][0]]
@@ -3691,8 +3605,8 @@ class CurrentContour(CurrentStacked):
         elif self.viewSettings["projRight"] == 2:
             yprojdata = np.min(tmpdata[rightSlice], axis=1)
         elif self.viewSettings["projRight"] == 4:
-            if self.viewSettings["projPos"][1] >= self.data.shape()[self.axes[-1]]:
-                self.viewSettings["projPos"][1] = self.data.shape()[self.axes[-1]] - 1
+            if self.viewSettings["projPos"][1] >= tmpdata.shape[self.axes[-1]]:
+                self.viewSettings["projPos"][1] = tmpdata.shape[self.axes[-1]] - 1
             elif self.viewSettings["projPos"][1] < 0:
                 self.viewSettings["projPos"][1] = 0
             yprojdata = tmpdata[:, self.viewSettings["projPos"][1]]
@@ -3769,7 +3683,6 @@ class CurrentContour(CurrentStacked):
         self.canvas.draw()
 
 
-
 class CurrentColour2D(CurrentContour):
     """
     2D colour plot class. Currently a child of CurrentContour. Probably a lower level 2D class
@@ -3781,7 +3694,8 @@ class CurrentColour2D(CurrentContour):
     GRID_PLOT = True
     INVERT_Y = True
     ZERO_SCROLL_ALLOWED = False
-    def plotContour(self, line_xdata, line_ydata, line_zdata, color=None, alpha=1, updateOnly=False):  
+    
+    def plotContour(self, line_xdata, line_ydata, line_zdata, color=None, updateOnly=False):  
         """
         Make the contour plot
 
@@ -3795,15 +3709,124 @@ class CurrentColour2D(CurrentContour):
             Intensity (z) data
         color (optional = None): list of colors
             If not None, positive and negative contour colors should be in here
-        alpha (optional = 1): float
-            Opacity of the lines (1 is solid)
         updateOnly (optional = False): booleans
             If True, update only the contour plot
         """
         if updateOnly:  # Set some extra stuff if only the contour plot needs updating
             del self.ax.collections[:]  # Clear all plot collections
 
-        self.ax.imshow(np.flipud(line_zdata),extent = [line_xdata[0],line_xdata[-1],line_ydata[0],line_ydata[-1]],aspect='auto')
+        self.ax.imshow(np.flipud(line_zdata), extent=[line_xdata[0],line_xdata[-1],line_ydata[0],line_ydata[-1]],aspect='auto')
         self.setTicks()
         if updateOnly:
             self.canvas.draw()
+
+            
+#########################################################################################################
+
+
+class CurrentMultiContour(CurrentContour):
+
+    def setExtraSlice(self, extraNum, axes, locList):
+        """
+        Change the slice of one of the extra data sets
+
+        Parameters
+        ----------
+        extraNum: int
+            Index of the extra data
+        axes: 1darray
+            The new axis
+        locList: list
+            New slice information for this data
+        """
+        self.viewSettings["extraAxes"][extraNum] = axes
+        self.viewSettings["extraLoc"][extraNum] = locList
+
+    def addExtraData(self, data, name):
+        """
+        Add extra data to the multiview
+
+        Parameters
+        ----------
+        data: spectrum class data
+            The extra data
+        name: str
+            The name of the extra data
+        """
+        self.viewSettings["extraName"].append(name)
+        self.viewSettings["extraData"].append(data)
+        self.viewSettings["extraLoc"].append([0] * (len(self.viewSettings["extraData"][-1].shape())))
+        self.viewSettings["extraColor"].append(COLORCONVERTER.to_rgb(COLORCYCLE[np.mod(len(self.viewSettings["extraData"]), len(COLORCYCLE))]['color']))  # find a good color system
+        self.viewSettings["extraAxes"].append([len(data.shape()) - 2, len(data.shape()) - 1])
+        self.showFid()
+
+    def delExtraData(self, num):
+        """
+        Delete extra data
+
+        Parameters
+        ----------
+        num: int
+            Index of the data to be removed.
+        """
+        del self.viewSettings["extraData"][num]
+        del self.viewSettings["extraLoc"][num]
+        del self.viewSettings["extraColor"][num]
+        del self.viewSettings["extraName"][num]
+        del self.viewSettings["extraAxes"][num]
+        self.showFid()
+
+    def setExtraColor(self, num, color):
+        """
+        Set the color of a specified extra data set
+
+        Parameters
+        ----------
+        num: int
+            Index of the extra data
+        color: tuple
+            Color tuple (R,G,B,Alpha) of the new color
+        """
+        self.viewSettings["extraColor"][num] = color
+        self.showFid()
+
+    def getExtraColor(self, num):
+        """
+        Returns the colour tuple for a specified extra data
+
+        Parameters
+        ----------
+        num: int
+            Index of the extra data
+
+        Returns
+        -------
+        tuple:
+            The colour tuple
+        """
+        return tuple(np.array(255 * np.array(self.viewSettings["extraColor"][num]), dtype=int))
+
+    def resetLocList(self):
+        """
+        Resets the location list (slices) of all data.
+        """
+        super(CurrentMultiContour, self).resetLocList()
+        self.resetExtraLocList()
+
+    def resetExtraLocList(self, num=None):
+        """
+        Resets the location list (active slice) of all extra data or
+        a specific data set.
+
+        Parameters
+        ----------
+        num (optional = None): int
+            Index of the data to be adjusted. If None, reset all.
+        """
+        if num is None:
+            for i in range(len(self.viewSettings["extraLoc"])):
+                self.viewSettings["extraLoc"][i] = [0] * (len(self.viewSettings["extraData"][i].shape()))
+        else:
+            self.viewSettings["extraLoc"][num] = [0] * (len(self.viewSettings["extraData"][num].shape()))
+
+
