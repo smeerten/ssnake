@@ -26,8 +26,10 @@ import spectrum as sc
 from spectrumFrame import PlotFrame
 import reimplement as reim
 
-COLORMAPLIST = ['seismic', 'BrBG', 'bwr', 'coolwarm', 'PiYG', 'PRGn', 'PuOr',
+COLORMAPLIST = ['seismic','gray', 'BrBG', 'bwr', 'coolwarm', 'PiYG', 'PRGn', 'PuOr',
                 'RdBu', 'RdGy', 'RdYlBu', 'RdYlGn', 'Spectral', 'rainbow', 'jet']
+
+
 COLORMAPLIST = [i for i in COLORMAPLIST if i in colormaps()]
 COLORRANGELIST = ['viridis', 'plasma', 'inferno', 'magma', 'cividis', 'coolwarm', 'Spectral', 'rainbow', 'jet']
 COLORRANGELIST = [i for i in COLORRANGELIST if i in colormaps()]
@@ -69,6 +71,7 @@ class Current1D(PlotFrame):
                                  "colorMap": self.root.father.defaultColorMap,
                                  "contourConst": self.root.father.defaultContourConst,
                                  "contourColors": [self.root.father.defaultPosColor, self.root.father.defaultNegColor],
+                                 "pColorMap": self.root.father.defaultPColorMap,
                                  "diagonalBool": self.root.father.defaultDiagonalBool,
                                  "diagonalMult": self.root.father.defaultDiagonalMult,
                                  "contourSign": 0,
@@ -2264,6 +2267,28 @@ class Current1D(PlotFrame):
         """
         self.viewSettings["colorMap"] = COLORMAPLIST[num]
 
+    def getPColorMap(self):
+        """
+        Get the current color map
+
+        Returns
+        -------
+        colormap object
+        """
+        return COLORMAPLIST.index(self.viewSettings["pColorMap"])
+
+    def setPColorMap(self, num):
+        """
+        Set the color map to an input number.
+
+        Parameters
+        ----------
+        num: int
+            The number of the color map.
+        """
+        self.viewSettings["pColorMap"] = COLORMAPLIST[num]
+
+
     def getColorRange(self):
         """
         Returns the name of the current color range.
@@ -3715,7 +3740,7 @@ class CurrentColour2D(CurrentContour):
         if updateOnly:  # Set some extra stuff if only the contour plot needs updating
             del self.ax.collections[:]  # Clear all plot collections
 
-        self.ax.imshow(np.flipud(line_zdata), extent=[line_xdata[0],line_xdata[-1],line_ydata[0],line_ydata[-1]],aspect='auto')
+        self.ax.imshow(np.flipud(line_zdata), extent=[line_xdata[0],line_xdata[-1],line_ydata[0],line_ydata[-1]],aspect='auto',cmap=get_cmap(self.viewSettings["pColorMap"]))
         self.setTicks()
         if updateOnly:
             self.canvas.draw()

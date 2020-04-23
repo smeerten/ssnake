@@ -256,6 +256,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.defaultZoomStep = 1
         self.defaultColorRange = 'none'
         self.defaultColorMap = 'seismic'
+        self.defaultPColorMap = 'gray'
         self.defaultWidthRatio = 3.0
         self.defaultHeightRatio = 3.0
         self.defaultContourConst = True
@@ -330,9 +331,13 @@ class MainProgram(QtWidgets.QMainWindow):
         self.defaultContourConst = settings.value("contour/constantcolours", self.defaultContourConst, bool)
         self.defaultPosColor = settings.value("contour/poscolour", self.defaultPosColor, str)
         self.defaultNegColor = settings.value("contour/negcolour", self.defaultNegColor, str)
+        self.defaultPColorMap = settings.value("2Dcolor/colourmap", self.defaultPColorMap, str)
         if not str(self.defaultColorMap) in views.COLORMAPLIST:
             self.dispMsg("Incorrect colourmap in config file")
             self.defaultColorMap = views.COLORMAPLIST[0]
+        if not str(self.defaultPColorMap) in views.COLORMAPLIST:
+            self.dispMsg("Incorrect pcolourmap in config file")
+            self.defaultPColorMap = views.COLORMAPLIST[0]
         self.defaultDiagonalBool = settings.value("contour/diagonalbool", self.defaultDiagonalBool, bool)
         try:
             self.defaultDiagonalMult = settings.value("contour/diagonalmult", self.defaultDiagonalMult, float)
@@ -395,6 +400,7 @@ class MainProgram(QtWidgets.QMainWindow):
         settings.setValue("contour/height_ratio", self.defaultHeightRatio)
         settings.setValue("contour/diagonalbool", self.defaultDiagonalBool)
         settings.setValue("contour/diagonalmult", self.defaultDiagonalMult)
+        settings.setValue("2Dcolor/colourmap", self.defaultPColorMap)
 
     def dispMsg(self, msg, color='black'):
         if color == 'red':
@@ -6619,16 +6625,22 @@ class PlotSettingsWindow(wc.ToolWindow):
         tabWidget = QtWidgets.QTabWidget()
         tab1 = QtWidgets.QWidget()
         tab2 = QtWidgets.QWidget()
+        tab3 = QtWidgets.QWidget()
         tabWidget.addTab(tab1, "Plot")
         tabWidget.addTab(tab2, "Contour")
+        tabWidget.addTab(tab3, "2D Colour")
         grid1 = QtWidgets.QGridLayout()
         grid2 = QtWidgets.QGridLayout()
+        grid3 = QtWidgets.QGridLayout()
         tab1.setLayout(grid1)
         tab2.setLayout(grid2)
+        tab3.setLayout(grid3)
         grid1.setColumnStretch(10, 1)
         grid1.setRowStretch(10, 1)
         grid2.setColumnStretch(10, 1)
         grid2.setRowStretch(10, 1)
+        grid3.setColumnStretch(10, 1)
+        grid3.setRowStretch(10, 1)
         grid1.addWidget(QtWidgets.QLabel("Linewidth:"), 1, 0)
         self.lwSpinBox = wc.SsnakeDoubleSpinBox()
         self.lwSpinBox.setSingleStep(0.1)
@@ -6681,6 +6693,14 @@ class PlotSettingsWindow(wc.ToolWindow):
         negColorButton = QtWidgets.QPushButton("Negative colour")
         negColorButton.clicked.connect(self.setNegColor)
         grid2.addWidget(negColorButton, 3, 0)
+
+        grid3.addWidget(QtWidgets.QLabel("Colourmap:"), 0, 0)
+        self.cmEntry2D = QtWidgets.QComboBox(self)
+        self.cmEntry2D.addItems(views.COLORMAPLIST)
+        self.cmEntry2D.setCurrentIndex(self.father.current.getPColorMap())
+        self.cmEntry2D.currentIndexChanged.connect(self.preview)
+        grid3.addWidget(self.cmEntry2D, 0, 1)
+
         self.grid.addWidget(tabWidget, 0, 0)
 
     def preview(self, *args):
@@ -6700,6 +6720,8 @@ class PlotSettingsWindow(wc.ToolWindow):
         tmpContourConst = self.father.current.viewSettings["contourConst"]
         self.father.current.setContourConst(self.constColorCheck.isChecked())
         tmpContourColors = self.father.current.viewSettings["contourColors"]
+        tmpColorMap2D = self.father.current.getPColorMap()
+        self.father.current.setPColorMap(self.cmEntry2D.currentIndex())
         self.father.current.setContourColors([self.posColor, self.negColor])
         self.father.current.showFid()
         self.father.current.setLw(tmpLw)
@@ -6710,6 +6732,7 @@ class PlotSettingsWindow(wc.ToolWindow):
         self.father.current.setGrids(tmpGrids)
         self.father.current.setContourConst(tmpContourConst)
         self.father.current.setContourColors(tmpContourColors)
+        self.father.current.setPColorMap(tmpColorMap2D)
 
     def setColor(self, *args):
         tmp = QtWidgets.QColorDialog.getColor(QtGui.QColor(self.color))
@@ -6738,6 +6761,7 @@ class PlotSettingsWindow(wc.ToolWindow):
         self.father.current.setColorMap(self.cmEntry.currentIndex())
         self.father.current.setContourConst(self.constColorCheck.isChecked())
         self.father.current.setContourColors([self.posColor, self.negColor])
+        self.father.current.setPColorMap(self.cmEntry2D.currentIndex())
 
 ##############################################################################
 
@@ -6793,21 +6817,27 @@ class PreferenceWindow(QtWidgets.QWidget):
         tab1 = QtWidgets.QWidget()
         tab2 = QtWidgets.QWidget()
         tab3 = QtWidgets.QWidget()
+        tab4 = QtWidgets.QWidget()
         tabWidget.addTab(tab1, "Window")
         tabWidget.addTab(tab2, "Plot")
         tabWidget.addTab(tab3, "Contour")
+        tabWidget.addTab(tab4, "2D Colour")
         grid1 = QtWidgets.QGridLayout()
         grid2 = QtWidgets.QGridLayout()
         grid3 = QtWidgets.QGridLayout()
+        grid4 = QtWidgets.QGridLayout()
         tab1.setLayout(grid1)
         tab2.setLayout(grid2)
         tab3.setLayout(grid3)
+        tab4.setLayout(grid4)
         grid1.setColumnStretch(10, 1)
         grid1.setRowStretch(10, 1)
         grid2.setColumnStretch(10, 1)
         grid2.setRowStretch(10, 1)
         grid3.setColumnStretch(10, 1)
         grid3.setRowStretch(10, 1)
+        grid4.setColumnStretch(10, 1)
+        grid4.setRowStretch(10, 1)
         # grid1.addWidget(wc.QLabel("Window size:"), 0, 0, 1, 2)
         grid1.addWidget(wc.QLabel("Width:"), 1, 0)
         self.widthSpinBox = wc.SsnakeSpinBox()
@@ -6931,6 +6961,13 @@ class PreferenceWindow(QtWidgets.QWidget):
         self.HRSpinBox.setSingleStep(0.1)
         self.HRSpinBox.setValue(self.father.defaultHeightRatio)
         grid3.addWidget(self.HRSpinBox, 5, 1)
+        # 2D Colour defs
+        grid4.addWidget(QtWidgets.QLabel("Colourmap:"), 0, 0)
+        self.cmEntry2D = QtWidgets.QComboBox(self)
+        self.cmEntry2D.addItems(views.COLORMAPLIST)
+        self.cmEntry2D.setCurrentIndex(views.COLORMAPLIST.index(self.father.defaultPColorMap))
+        grid4.addWidget(self.cmEntry2D, 0, 1)
+        # Others
         layout = QtWidgets.QGridLayout(self)
         layout.addWidget(tabWidget, 0, 0, 1, 4)
         cancelButton = QtWidgets.QPushButton("&Cancel")
@@ -6995,6 +7032,7 @@ class PreferenceWindow(QtWidgets.QWidget):
         self.father.defaultNegColor = self.negColor
         self.father.defaultWidthRatio = self.WRSpinBox.value()
         self.father.defaultHeightRatio = self.HRSpinBox.value()
+        self.father.defaultPColorMap = self.cmEntry2D.currentText()
         self.father.saveDefaults()
         self.closeEvent()
 
