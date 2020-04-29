@@ -2744,9 +2744,10 @@ class SideFrame(QtWidgets.QScrollArea):
             if self.plotIs2D:
                 axes2 = self.extraButtons2Group[i].checkedId()
                 if axes == axes2:
-                    axes2 = self.father.current.viewSettings["extraAxes"][i][-1]
-                else:
-                    axes = self.father.current.viewSettings["extraAxes"][i][-2]
+                    if first:
+                        axes2 = self.father.current.viewSettings["extraAxes"][i][-1]
+                    else:
+                        axes = self.father.current.viewSettings["extraAxes"][i][-2]
                 self.extraButtons2Group[i].button(axes2).toggle()
             self.getExtraSlice(axes, i, True)
         self.father.current.showFid()

@@ -3413,7 +3413,7 @@ class CurrentContour(CurrentStacked):
             extraData = np.real(self.getDataType(extraData1D.getHyperData(0)))
             self.line_zdata_extra.append(extraData)
             self.line_color_extra.append(self.viewSettings["extraColor"][i])
-            self.plotContour(self.line_xdata_extra[-1], self.line_ydata_extra[-1], self.line_zdata_extra[-1], color=[self.viewSettings["extraColor"][i],self.viewSettings["extraColor"][i]+(0.5,)])
+            self.plotContour(self.line_xdata_extra[-1], self.line_ydata_extra[-1], self.line_zdata_extra[-1], color=[self.viewSettings["extraColor"][i],tuple(j+(1-j)*0.5 for j  in self.viewSettings["extraColor"][i])])
         axMult = self.getAxMult(self.spec(), self.getAxType(), self.getppm(), self.freq(), self.ref())
         axMult2 = self.getAxMult(self.spec(-2), self.getAxType(-2), self.getppm(-2), self.freq(-2), self.ref(-2))
         if self.viewSettings["diagonalBool"]:
@@ -3439,13 +3439,13 @@ class CurrentContour(CurrentStacked):
                     else:
                         color = extraColor[num]
                     self.line_color_extra.append(color)
-                    self.plotContour(self.line_xdata_extra[-1], self.line_ydata_extra[-1], self.line_zdata_extra[-1], color=[color, color+(0.5,)])
+                    self.plotContour(self.line_xdata_extra[-1], self.line_ydata_extra[-1], self.line_zdata_extra[-1], color=[color, tuple(j+(1-j)*0.5 for j  in color)])
         self.line_xdata = [self.xax() * axMult]
         self.line_ydata = [self.xax(-2) * axMult2]
         self.line_zdata = [tmpdata]
         if isinstance(self, CurrentMultiContour):
             tmpColor = COLORCONVERTER.to_rgb(self.viewSettings["contourColors"][0])
-            self.plotContour(self.line_xdata[-1], self.line_ydata[-1], self.line_zdata[-1], color=[tmpColor, tmpColor+(0.5,)])
+            self.plotContour(self.line_xdata[-1], self.line_ydata[-1], self.line_zdata[-1], color=[tmpColor, tuple(j+(1-j)*0.5 for j  in tmpColor)])
         else:
             self.plotContour(self.line_xdata[-1], self.line_ydata[-1], self.line_zdata[-1])
         self.showAllProj()
