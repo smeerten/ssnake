@@ -95,6 +95,7 @@ class Current1D(PlotFrame):
                                  "extraScale": [],
                                  "extraOffset": [],
                                  "extraShift": [],
+                                 "extraShift2": [],
                                  # CurrentStacked variables
                                  "stackBegin": None,
                                  "stackEnd": None,
@@ -118,7 +119,8 @@ class Current1D(PlotFrame):
                                       "extraAxes": [],
                                       "extraScale": [],
                                       "extraOffset": [],
-                                      "extraShift": []})
+                                      "extraShift": [],
+                                      "extraShift2": []})
             if len(self.viewSettings['axType']) != self.NDIM_PLOT:
                 diff = self.NDIM_PLOT - len(self.viewSettings['axType'])
                 self.viewSettings['axType'] = np.append(np.array([self.root.father.defaultUnits] * diff, dtype=int), self.viewSettings['axType'][-self.NDIM_PLOT:])
@@ -2658,7 +2660,7 @@ class CurrentMulti(Current1D):
 
     def setExtraShift(self, num, shift):
         """
-        Set the horizontal offset of additional plotted data.
+        Set the x offset of additional plotted data.
 
         Parameters
         ----------
@@ -2669,7 +2671,7 @@ class CurrentMulti(Current1D):
         """
         self.viewSettings["extraShift"][num] = shift
         self.showFid()
-
+        
     def resetExtraLocList(self, num=None):
         """
         Resets the location list (active slice) of all extra data or
@@ -3408,9 +3410,9 @@ class CurrentContour(CurrentStacked):
                 ref2 = extraData1D.freq[-2]
             axMult = self.getAxMult(extraData1D.spec[-1], self.getAxType(), self.getppm(), extraData1D.freq[-1], ref)
             axMult2 = self.getAxMult(extraData1D.spec[-2], self.getAxType(-2), self.getppm(-2), extraData1D.freq[-2], ref2)
-            self.line_xdata_extra.append(extraData1D.xaxArray[-1] * axMult)
-            self.line_ydata_extra.append(extraData1D.xaxArray[-2] * axMult2)
-            extraData = np.real(self.getDataType(extraData1D.getHyperData(0)))
+            self.line_xdata_extra.append(self.viewSettings["extraShift"][i] + extraData1D.xaxArray[-1] * axMult)
+            self.line_ydata_extra.append(self.viewSettings["extraShift2"][i] + extraData1D.xaxArray[-2] * axMult2)
+            extraData = np.real(self.getDataType(extraData1D.getHyperData(0))) * self.viewSettings["extraScale"][i]
             self.line_zdata_extra.append(extraData)
             self.line_color_extra.append(self.viewSettings["extraColor"][i])
             self.plotContour(self.line_xdata_extra[-1], self.line_ydata_extra[-1], self.line_zdata_extra[-1], color=[self.viewSettings["extraColor"][i],tuple(j+(1-j)*0.5 for j  in self.viewSettings["extraColor"][i])])
@@ -3783,6 +3785,9 @@ class CurrentMultiContour(CurrentContour):
         self.viewSettings["extraLoc"].append([0] * (len(self.viewSettings["extraData"][-1].shape())))
         self.viewSettings["extraColor"].append(COLORCONVERTER.to_rgb(COLORCYCLE[np.mod(len(self.viewSettings["extraData"]), len(COLORCYCLE))]['color']))  # find a good color system
         self.viewSettings["extraAxes"].append([len(data.shape()) - 2, len(data.shape()) - 1])
+        self.viewSettings["extraScale"].append(1.0)
+        self.viewSettings["extraShift"].append(0.0)
+        self.viewSettings["extraShift2"].append(0.0)
         self.showFid()
 
     def delExtraData(self, num):
@@ -3799,6 +3804,9 @@ class CurrentMultiContour(CurrentContour):
         del self.viewSettings["extraColor"][num]
         del self.viewSettings["extraName"][num]
         del self.viewSettings["extraAxes"][num]
+        del self.viewSettings["extraScale"][num]
+        del self.viewSettings["extraShift"][num]
+        del self.viewSettings["extraShift2"][num]
         self.showFid()
 
     def setExtraColor(self, num, color):
@@ -3831,6 +3839,48 @@ class CurrentMultiContour(CurrentContour):
         """
         return tuple(np.array(255 * np.array(self.viewSettings["extraColor"][num]), dtype=int))
 
+    def setExtraScale(self, num, scale):
+        """
+        Set the vertical scaling of additional plotted data.
+
+        Parameters
+        ----------
+        num: int
+            Index of the extra data
+        scale: float
+            The new scaling factor
+        """
+        self.viewSettings["extraScale"][num] = scale
+        self.showFid()
+
+    def setExtraShift(self, num, shift):
+        """
+        Set the x offset of additional plotted data.
+
+        Parameters
+        ----------
+        num: int
+            Index of the extra data
+        shift: float
+            The new shift in units of the current axis
+        """
+        self.viewSettings["extraShift"][num] = shift
+        self.showFid()
+
+    def setExtraShift2(self, num, shift):
+        """
+        Set the y offset of additional plotted data.
+
+        Parameters
+        ----------
+        num: int
+            Index of the extra data
+        shift: float
+            The new shift in units of the current axis
+        """
+        self.viewSettings["extraShift2"][num] = shift
+        self.showFid()
+    
     def resetLocList(self):
         """
         Resets the location list (slices) of all data.

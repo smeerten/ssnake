@@ -2490,7 +2490,42 @@ class SideFrame(QtWidgets.QScrollArea):
                     shiftEntry.setSingleStep(0.1)
                     shiftEntry.setValue(self.father.current.viewSettings["extraShift"][i])
                     shiftEntry.valueChanged.connect(lambda arg, num=i: self.setShift(arg, num))
-                    shiftEntry.setToolTip(TOOLTIPS['multiplotShift'])
+                    shiftEntry.setToolTip(TOOLTIPS['multiplotShift1'])
+                    frame.addWidget(shiftEntry, 4, 1)
+                elif isinstance(current, (views.CurrentMultiContour)):
+                    self.OOM = self.father.current.getOOM()  # Order of Magnitude
+                    self.scaleLabel = wc.QLeftLabel("Scale:", self)
+                    frame.addWidget(self.scaleLabel, 2, 0)
+                    self.shift1Label = wc.QLeftLabel("x Shift:", self)
+                    frame.addWidget(self.shift1Label, 3, 0)
+                    self.shift2Label = wc.QLeftLabel("y Shift:", self)
+                    frame.addWidget(self.shift2Label, 4, 0)
+                    scaleEntry = wc.SsnakeDoubleSpinBox()
+                    scaleEntry.setDecimals(4)
+                    scaleEntry.setMaximum(1e3)
+                    scaleEntry.setMinimum(-1e3)
+                    scaleEntry.setSingleStep(0.1)
+                    scaleEntry.setValue(self.father.current.viewSettings["extraScale"][i])
+                    scaleEntry.valueChanged.connect(lambda arg, num=i: self.setScale(arg, num))
+                    scaleEntry.setToolTip(TOOLTIPS['multiplotScale'])
+                    frame.addWidget(scaleEntry, 2, 1)
+                    shiftEntry = wc.SsnakeDoubleSpinBox()
+                    shiftEntry.setDecimals(4)
+                    shiftEntry.setMaximum(1e3)
+                    shiftEntry.setMinimum(-1e3)
+                    shiftEntry.setSingleStep(0.1)
+                    shiftEntry.setValue(self.father.current.viewSettings["extraShift"][i])
+                    shiftEntry.valueChanged.connect(lambda arg, num=i: self.setShift(arg, num))
+                    shiftEntry.setToolTip(TOOLTIPS['multiplotShift1'])
+                    frame.addWidget(shiftEntry, 3, 1)
+                    shiftEntry = wc.SsnakeDoubleSpinBox()
+                    shiftEntry.setDecimals(4)
+                    shiftEntry.setMaximum(1e3)
+                    shiftEntry.setMinimum(-1e3)
+                    shiftEntry.setSingleStep(0.1)
+                    shiftEntry.setValue(self.father.current.viewSettings["extraShift2"][i])
+                    shiftEntry.valueChanged.connect(lambda arg, num=i: self.setShift2(arg, num))
+                    shiftEntry.setToolTip(TOOLTIPS['multiplotShift2'])
                     frame.addWidget(shiftEntry, 4, 1)
                 entries = []
                 self.extraEntries.append(entries)
@@ -2785,6 +2820,9 @@ class SideFrame(QtWidgets.QScrollArea):
 
     def setShift(self, shift, num):
         self.father.current.setExtraShift(num, shift)
+
+    def setShift2(self, shift, num):
+        self.father.current.setExtraShift2(num, shift)
 
     def switchDiagonal(self, val):
         self.father.current.setDiagonal(bool(val))
