@@ -3780,6 +3780,8 @@ class CurrentMultiContour(CurrentContour):
         name: str
             The name of the extra data
         """
+        if data.ndim() < 2:
+            raise sc.SpectrumException("Data requires at least 2 dimensions to be added")
         self.viewSettings["extraName"].append(name)
         self.viewSettings["extraData"].append(data)
         self.viewSettings["extraLoc"].append([0] * (len(self.viewSettings["extraData"][-1].shape())))
