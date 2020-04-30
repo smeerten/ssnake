@@ -2447,7 +2447,7 @@ class SideFrame(QtWidgets.QScrollArea):
                 if len(name) > 20:
                     name = name[:20]
                 self.nameLabels.append(wc.QLabel(name, self))
-                frame.addWidget(self.nameLabels[i], 0, 0, 1, 2)
+                frame.addWidget(self.nameLabels[i], 0, 0, 1, 3)
                 self.nameLabels[i].setStyleSheet("QLabel { color: rgb" + str(current.getExtraColor(i)) + ";}")
                 colorbutton = QtWidgets.QPushButton("Colour", self)
                 colorbutton.clicked.connect(lambda arg, num=i: self.setExtraColor(num))
@@ -2456,8 +2456,8 @@ class SideFrame(QtWidgets.QScrollArea):
                 button = QtWidgets.QPushButton("x", self)
                 button.clicked.connect(lambda arg, num=i: self.delMultiSpec(num))
                 button.setToolTip(TOOLTIPS['multiplotX'])
-                frame.addWidget(button, 1, 1)
                 if isinstance(current, (views.CurrentMulti)):
+                    frame.addWidget(button, 1, 1)
                     self.OOM = self.father.current.getOOM()  # Order of Magnitude
                     self.scaleLabel = wc.QLeftLabel("Scale:", self)
                     frame.addWidget(self.scaleLabel, 2, 0)
@@ -2493,6 +2493,7 @@ class SideFrame(QtWidgets.QScrollArea):
                     shiftEntry.setToolTip(TOOLTIPS['multiplotShift1'])
                     frame.addWidget(shiftEntry, 4, 1)
                 elif isinstance(current, (views.CurrentMultiContour)):
+                    frame.addWidget(button, 1, 1, 1, 2)
                     self.OOM = self.father.current.getOOM()  # Order of Magnitude
                     self.scaleLabel = wc.QLeftLabel("Scale:", self)
                     frame.addWidget(self.scaleLabel, 2, 0)
@@ -2508,7 +2509,7 @@ class SideFrame(QtWidgets.QScrollArea):
                     scaleEntry.setValue(self.father.current.viewSettings["extraScale"][i])
                     scaleEntry.valueChanged.connect(lambda arg, num=i: self.setScale(arg, num))
                     scaleEntry.setToolTip(TOOLTIPS['multiplotScale'])
-                    frame.addWidget(scaleEntry, 2, 1)
+                    frame.addWidget(scaleEntry, 2, 1, 1, 2)
                     shiftEntry = wc.SsnakeDoubleSpinBox()
                     shiftEntry.setDecimals(4)
                     shiftEntry.setMaximum(1e3)
@@ -2517,7 +2518,7 @@ class SideFrame(QtWidgets.QScrollArea):
                     shiftEntry.setValue(self.father.current.viewSettings["extraShift"][i])
                     shiftEntry.valueChanged.connect(lambda arg, num=i: self.setShift(arg, num))
                     shiftEntry.setToolTip(TOOLTIPS['multiplotShift1'])
-                    frame.addWidget(shiftEntry, 3, 1)
+                    frame.addWidget(shiftEntry, 3, 1, 1, 2)
                     shiftEntry = wc.SsnakeDoubleSpinBox()
                     shiftEntry.setDecimals(4)
                     shiftEntry.setMaximum(1e3)
@@ -2526,7 +2527,7 @@ class SideFrame(QtWidgets.QScrollArea):
                     shiftEntry.setValue(self.father.current.viewSettings["extraShift2"][i])
                     shiftEntry.valueChanged.connect(lambda arg, num=i: self.setShift2(arg, num))
                     shiftEntry.setToolTip(TOOLTIPS['multiplotShift2'])
-                    frame.addWidget(shiftEntry, 4, 1)
+                    frame.addWidget(shiftEntry, 4, 1, 1, 2)
                 entries = []
                 self.extraEntries.append(entries)
                 buttons1 = []
