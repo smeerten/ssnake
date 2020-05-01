@@ -62,8 +62,14 @@ class PlotFrame(object):
         self.xmaxlim = 1
         self.yminlim = -1
         self.ymaxlim = 1
+        self.zminlim_x_ax = -1
+        self.zmaxlim_x_ax = 1
+        self.zminlim_y_ax = -1
+        self.zmaxlim_y_ax = 1
         self.logx = False
         self.logy = False
+        self.x_ax = None
+        self.y_ax = None
         if self.GRID_PLOT:
             self.gs = gridspec.GridSpec(2, 2, width_ratios=[self.root.father.defaultWidthRatio, 1], height_ratios=[1, self.root.father.defaultHeightRatio])
             self.ax = self.fig.add_subplot(self.gs[2])
@@ -84,10 +90,12 @@ class PlotFrame(object):
         self.leftMouse = False  # is the left mouse button currently pressed
         self.panX = None  # start position of dragging the spectrum
         self.panY = None  # start position of dragging the spectrum
+        self.panAx = None # The ax instance from which dragging was started
         self.zoomX1 = None  # first corner of the zoombox
         self.zoomY1 = None  # first corner of the zoombox
         self.zoomX2 = None  # second corner of the zoombox
         self.zoomY2 = None  # second corner of the zoombox
+        self.zoomAx = None # The ax instance from which zooming was started
         self.rect = [None, None, None, None]  # lines for zooming or peak picking
         self.rightMouse = False  # is the right mouse button currently pressed
         self.peakPick = False  # currently peakPicking (if 2 display cross)
@@ -142,18 +150,31 @@ class PlotFrame(object):
         modifiers = QtWidgets.QApplication.keyboardModifiers()
         if modifiers == QtCore.Qt.ShiftModifier:
             self.altScroll(event)
+            return
+        if modifiers == QtCore.Qt.ControlModifier:
+            scaler = 0.6
         else:
-            if self.rightMouse:
+            scaler = 0.9
+        if self.rightMouse:
+            if event.inaxes == self.y_ax:
+                if not self.root.father.defaultZeroScroll:
+                    middle = (self.zmaxlim_y_ax + self.zminlim_y_ax) / 2.0
+                    width = self.zmaxlim_y_ax - self.zminlim_y_ax
+                    width *= scaler**event.step
+                    self.zmaxlim_y_ax = middle + width / 2.0
+                    self.zminlim_y_ax = middle - width / 2.0
+                else:
+                    self.zmaxlim_y_ax *= scaler**event.step
+                    self.zminlim_y_ax *= scaler**event.step
+                self.y_ax.set_xlim(self.zminlim_y_ax, self.zmaxlim_y_ax)
+            else:
                 if self.logx:
                     middle = (self.xmaxlim + self.xminlim) / 2.0
                     width = self.xmaxlim - self.xminlim
                 else:
                     middle = (self.xmaxlim + self.xminlim) / 2.0
                     width = self.xmaxlim - self.xminlim
-                if modifiers == QtCore.Qt.ControlModifier:
-                    width = width * 0.6**event.step
-                else:
-                    width = width * 0.9**event.step
+                width *= scaler**event.step
                 if self.logx:
                     self.xmaxlim = np.exp(middle + width / 2.0)
                     self.xminlim = np.exp(middle - width / 2.0)
@@ -164,6 +185,18 @@ class PlotFrame(object):
                     self.ax.set_xlim(self.xmaxlim, self.xminlim)
                 else:
                     self.ax.set_xlim(self.xminlim, self.xmaxlim)
+        else:
+            if event.inaxes == self.x_ax:
+                if not self.root.father.defaultZeroScroll:
+                    middle = (self.zmaxlim_x_ax + self.zminlim_x_ax) / 2.0
+                    width = self.zmaxlim_x_ax - self.zminlim_x_ax
+                    width *= scaler**event.step
+                    self.zmaxlim_x_ax = middle + width / 2.0
+                    self.zminlim_x_ax = middle - width / 2.0
+                else:
+                    self.zmaxlim_x_ax *= scaler**event.step
+                    self.zminlim_x_ax *= scaler**event.step
+                self.x_ax.set_ylim(self.zminlim_x_ax, self.zmaxlim_x_ax)
             else:
                 noZeroScroll = not self.ZERO_SCROLL_ALLOWED or not self.root.father.defaultZeroScroll
                 if noZeroScroll:
@@ -173,10 +206,7 @@ class PlotFrame(object):
                     else:
                         middle = (self.ymaxlim + self.yminlim) / 2.0
                         width = self.ymaxlim - self.yminlim
-                    if modifiers == QtCore.Qt.ControlModifier:
-                        width = width * 0.6**event.step
-                    else:
-                        width = width * 0.9**event.step
+                    width *= scaler**event.step
                     if self.logy:
                         self.ymaxlim = np.exp(middle + width / 2.0)
                         self.yminlim = np.exp(middle - width / 2.0)
@@ -184,18 +214,14 @@ class PlotFrame(object):
                         self.ymaxlim = middle + width / 2.0
                         self.yminlim = middle - width / 2.0
                 else:
-                    if modifiers == QtCore.Qt.ControlModifier:
-                        self.ymaxlim *= 0.6**event.step
-                        self.yminlim *= 0.6**event.step
-                    else:
-                        self.ymaxlim *= 0.9**event.step
-                        self.yminlim *= 0.9**event.step
+                    self.ymaxlim *= scaler**event.step
+                    self.yminlim *= scaler**event.step
                 self.ax.set_ylim(self.yminlim, self.ymaxlim)
                 if self.INVERT_Y:
                     if self.spec(-2) > 0:
                         self.ax.set_ylim(self.ymaxlim, self.yminlim)
-            self.canvas.update()
-            self.canvas.draw_idle()
+        self.canvas.update()
+        self.canvas.draw_idle()
 
     def altScroll(self, event):
         """Dummy method"""
@@ -219,6 +245,7 @@ class PlotFrame(object):
             self.leftMouse = True
             self.zoomX1 = event.xdata
             self.zoomY1 = event.ydata
+            self.zoomAx = event.inaxes
         elif (event.button == 3) and event.dblclick:
             modifiers = QtWidgets.QApplication.keyboardModifiers()
             if modifiers == QtCore.Qt.ShiftModifier:
@@ -229,6 +256,7 @@ class PlotFrame(object):
             self.rightMouse = True
             self.panX = event.xdata
             self.panY = event.ydata
+            self.panAx = event.inaxes
 
     def buttonRelease(self, event):
         """
@@ -271,11 +299,21 @@ class PlotFrame(object):
                         self.rect[3].remove()
                 finally:
                     self.rect = [None, None, None, None]
-                if self.zoomX2 is not None and self.zoomY2 is not None:
-                    self.xminlim = min([self.zoomX1, self.zoomX2])
-                    self.xmaxlim = max([self.zoomX1, self.zoomX2])
-                    self.yminlim = min([self.zoomY1, self.zoomY2])
-                    self.ymaxlim = max([self.zoomY1, self.zoomY2])
+                if self.zoomX2 is not None and self.zoomY2 is not None:                    
+                    if self.zoomAx == self.y_ax:
+                        self.zminlim_y_ax = min([self.zoomX1, self.zoomX2])
+                        self.zmaxlim_y_ax = max([self.zoomX1, self.zoomX2])
+                        self.y_ax.set_xlim(self.zminlim_y_ax, self.zmaxlim_y_ax)
+                    else:
+                        self.xminlim = min([self.zoomX1, self.zoomX2])
+                        self.xmaxlim = max([self.zoomX1, self.zoomX2])
+                    if self.zoomAx == self.x_ax:
+                        self.zminlim_x_ax = min([self.zoomY1, self.zoomY2])
+                        self.zmaxlim_x_ax = max([self.zoomY1, self.zoomY2])
+                        self.x_ax.set_ylim(self.zminlim_x_ax, self.zmaxlim_x_ax)
+                    else:
+                        self.yminlim = min([self.zoomY1, self.zoomY2])
+                        self.ymaxlim = max([self.zoomY1, self.zoomY2])
                     if self.spec() > 0 and self.INVERT_X:
                         self.ax.set_xlim(self.xmaxlim, self.xminlim)
                     else:
@@ -309,26 +347,38 @@ class PlotFrame(object):
                 if x is None or y is None:
                     return
             else:
-                inv = self.ax.transData.inverted()
+                inv = self.panAx.transData.inverted()
                 point = inv.transform((event.x, event.y))
                 x = point[0]
                 y = point[1]
-            if self.logx:
-                diffx = np.log(x) - np.log(self.panX)
-                self.xmaxlim = np.exp(np.log(self.xmaxlim) - diffx)
-                self.xminlim = np.exp(np.log(self.xminlim) - diffx)
-            else:
+            if self.panAx == self.y_ax:
                 diffx = x - self.panX
-                self.xmaxlim = self.xmaxlim - diffx
-                self.xminlim = self.xminlim - diffx
-            if self.logy:
-                diffy = np.log(y) - np.log(self.panY)
-                self.ymaxlim = np.exp(np.log(self.ymaxlim) - diffy)
-                self.yminlim = np.exp(np.log(self.yminlim) - diffy)
+                self.zmaxlim_y_ax -= diffx
+                self.zminlim_y_ax -= diffx
+                self.y_ax.set_xlim(self.zminlim_y_ax, self.zmaxlim_y_ax)
             else:
+                if self.logx:
+                    diffx = np.log(x) - np.log(self.panX)
+                    self.xmaxlim = np.exp(np.log(self.xmaxlim) - diffx)
+                    self.xminlim = np.exp(np.log(self.xminlim) - diffx)
+                else:
+                    diffx = x - self.panX
+                    self.xmaxlim -= diffx
+                    self.xminlim -= diffx
+            if self.panAx == self.x_ax:
                 diffy = y - self.panY
-                self.ymaxlim = self.ymaxlim - diffy
-                self.yminlim = self.yminlim - diffy
+                self.zmaxlim_x_ax -= diffy
+                self.zminlim_x_ax -= diffy
+                self.x_ax.set_ylim(self.zminlim_x_ax, self.zmaxlim_x_ax)
+            else:
+                if self.logy:
+                    diffy = np.log(y) - np.log(self.panY)
+                    self.ymaxlim = np.exp(np.log(self.ymaxlim) - diffy)
+                    self.yminlim = np.exp(np.log(self.yminlim) - diffy)
+                else:
+                    diffy = y - self.panY
+                    self.ymaxlim -= diffy
+                    self.yminlim -= diffy
             if self.spec() > 0 and self.INVERT_X:
                 self.ax.set_xlim(self.xmaxlim, self.xminlim)
             else:
@@ -374,7 +424,7 @@ class PlotFrame(object):
                 if self.zoomX2 is None or self.zoomY2 is None:
                     return
             else:
-                inv = self.ax.transData.inverted()
+                inv = self.zoomAx.transData.inverted()
                 point = inv.transform((event.x, event.y))
                 self.zoomX2 = point[0]
                 self.zoomY2 = point[1]
@@ -390,10 +440,10 @@ class PlotFrame(object):
                         self.rect[3].remove()
                 finally:
                     self.rect = [None, None, None, None]
-            self.rect[0], = self.ax.plot([self.zoomX1, self.zoomX2], [self.zoomY2, self.zoomY2], 'k', clip_on=False)
-            self.rect[1], = self.ax.plot([self.zoomX1, self.zoomX2], [self.zoomY1, self.zoomY1], 'k', clip_on=False)
-            self.rect[2], = self.ax.plot([self.zoomX1, self.zoomX1], [self.zoomY1, self.zoomY2], 'k', clip_on=False)
-            self.rect[3], = self.ax.plot([self.zoomX2, self.zoomX2], [self.zoomY1, self.zoomY2], 'k', clip_on=False)
+            self.rect[0], = self.zoomAx.plot([self.zoomX1, self.zoomX2], [self.zoomY2, self.zoomY2], 'k', clip_on=False)
+            self.rect[1], = self.zoomAx.plot([self.zoomX1, self.zoomX2], [self.zoomY1, self.zoomY1], 'k', clip_on=False)
+            self.rect[2], = self.zoomAx.plot([self.zoomX1, self.zoomX1], [self.zoomY1, self.zoomY2], 'k', clip_on=False)
+            self.rect[3], = self.zoomAx.plot([self.zoomX2, self.zoomX2], [self.zoomY1, self.zoomY2], 'k', clip_on=False)
             self.canvas.draw_idle()
 
     def getAxMult(self, spec, axType, ppm, freq, ref=None):

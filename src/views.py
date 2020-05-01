@@ -2489,6 +2489,8 @@ class Current1D(PlotFrame):
             miny -= 0.01
             maxy += 0.01
         if isinstance(self, CurrentContour):
+            self.plotReset_x_ax()
+            self.plotReset_y_ax()            
             differ = 0
         else:
             differ = 0.05 * (maxy - miny)  # amount to add to show all datapoints (10%)
@@ -3241,6 +3243,34 @@ class CurrentContour(CurrentStacked):
         self.root.sideframe.maxLEntry.setText(str(self.viewSettings["maxLevels"] * 100))
         self.showFid()
 
+    def plotReset_x_ax(self):
+        if not self.line_xProjData:
+            return
+        minz = min([min(i) for i in self.line_xProjData])
+        maxz = max([max(i) for i in self.line_xProjData])
+        if minz == maxz: # Prevents setting the limits equal
+            minz -= 0.01
+            maxz += 0.01
+        differ = 0.05 * (maxz - minz)  # amount to add to show all datapoints (10%)
+        self.zminlim_x_ax = minz - differ
+        self.zmaxlim_x_ax = maxz + differ
+        self.x_ax.set_ylim(self.zminlim_x_ax, self.zmaxlim_x_ax)
+        self.canvas.draw()
+
+    def plotReset_y_ax(self):
+        if not self.line_yProjData:
+            return
+        minz = min([min(i) for i in self.line_yProjData])
+        maxz = max([max(i) for i in self.line_yProjData])
+        if minz == maxz: # Prevents setting the limits equal
+            minz -= 0.01
+            maxz += 0.01
+        differ = 0.05 * (maxz - minz)  # amount to add to show all datapoints (10%)
+        self.zminlim_y_ax = minz - differ
+        self.zmaxlim_y_ax = maxz + differ
+        self.y_ax.set_xlim(self.zminlim_y_ax, self.zmaxlim_y_ax)
+        self.canvas.draw()
+
     def setLevels(self, numLevels, maxLevels, minLevels, limitType, contourSign, contourType, multiValue):
         """
         Sets the contour settings
@@ -3284,6 +3314,8 @@ class CurrentContour(CurrentStacked):
         """
         self.viewSettings["projLimits"] = Limits
         self.viewSettings["projLimitsBool"] = ProjBool
+        self.clearProj()
+        self.showAllProj()
 
     def setProjPos(self, pos):
         """
@@ -3295,6 +3327,8 @@ class CurrentContour(CurrentStacked):
             The slices to be taken
         """
         self.viewSettings["projPos"] = pos
+        self.clearProj()
+        self.showAllProj()
 
     def setProjType(self, val, direc):
         """
@@ -3309,8 +3343,14 @@ class CurrentContour(CurrentStacked):
         """
         if direc == 1:
             self.viewSettings["projTop"] = val
+            self.clearProj()
+            self.showAllProj()
+            self.plotReset_x_ax()
         if direc == 2:
             self.viewSettings["projRight"] = val
+            self.clearProj()
+            self.showAllProj()
+            self.plotReset_y_ax()
 
     def setProjTraces(self, val, direc):
         """
@@ -3324,6 +3364,8 @@ class CurrentContour(CurrentStacked):
             1: top 2: right
         """
         self.viewSettings["projPos"][direc] = val
+        self.clearProj()
+        self.showAllProj()
 
     def integralsPreview(self, xMin, xMax, yMin, yMax):
         """
@@ -3549,6 +3591,8 @@ class CurrentContour(CurrentStacked):
         self.y_ax.cla()
 
     def showAllProj(self):
+        self.line_xProjData = []
+        self.line_yProjData = []
         for i, _ in enumerate(self.line_xdata_extra):
             self.showProj(self.line_xdata_extra[i], self.line_ydata_extra[i], self.line_zdata_extra[i], self.line_color_extra[i])
         self.showProj()
@@ -3621,9 +3665,11 @@ class CurrentContour(CurrentStacked):
             xprojdata[x > np.max(y)] = np.nan
             xprojdata[x < np.min(y)] = np.nan
         if self.viewSettings["projTop"] != 3:
-            self.x_ax.plot(x, xprojdata, color=color, linewidth=self.viewSettings["linewidth"], picker=True)
-            xmin, xmax = np.nanmin(xprojdata), np.nanmax(xprojdata)
-            self.x_ax.set_ylim([xmin - 0.15 * (xmax - xmin), xmax + 0.05 * (xmax - xmin)])  # Set projection limits, and force 15% whitespace below plot
+            self.line_xProjData.append(xprojdata)
+            self.x_ax.plot(x, self.line_xProjData[-1], color=color, linewidth=self.viewSettings["linewidth"], picker=True)
+            #xmin, xmax = np.nanmin(xprojdata), np.nanmax(xprojdata)
+            #self.x_ax.set_ylim([xmin - 0.15 * (xmax - xmin), xmax + 0.05 * (xmax - xmin)])  # Set projection limits, and force 15% whitespace below plot
+            self.x_ax.set_ylim(self.zminlim_x_ax, self.zmaxlim_x_ax)
             self.x_ax.set_xlim(xLimOld)
         if self.viewSettings["projRight"] == 0:
             yprojdata = np.sum(tmpdata[rightSlice], axis=1)
@@ -3650,9 +3696,11 @@ class CurrentContour(CurrentStacked):
             yprojdata[y > np.max(x)] = np.nan
             yprojdata[y < np.min(x)] = np.nan
         if self.viewSettings["projRight"] != 3:
-            self.y_ax.plot(yprojdata, y, color=color, linewidth=self.viewSettings["linewidth"], picker=True)
-            ymin, ymax = np.nanmin(yprojdata), np.nanmax(yprojdata)
-            self.y_ax.set_xlim([ymin - 0.15 * (ymax - ymin), ymax + 0.05 * (ymax - ymin)])  # Set projection limits, and force 15% whitespace below plot
+            self.line_yProjData.append(yprojdata)
+            self.y_ax.plot(self.line_yProjData[-1], y, color=color, linewidth=self.viewSettings["linewidth"], picker=True)
+            #ymin, ymax = np.nanmin(yprojdata), np.nanmax(yprojdata)
+            #self.y_ax.set_xlim([ymin - 0.15 * (ymax - ymin), ymax + 0.05 * (ymax - ymin)])  # Set projection limits, and force 15% whitespace below plot
+            self.y_ax.set_xlim(self.zminlim_y_ax, self.zmaxlim_y_ax)
             self.y_ax.set_ylim(yLimOld)
         self.setTicks()
         self.canvas.draw()
@@ -3689,10 +3737,20 @@ class CurrentContour(CurrentStacked):
                     self.rect[3].remove()
                 self.rect = [None, None, None, None]
                 if self.zoomX2 is not None and self.zoomY2 is not None:
-                    self.xminlim = min([self.zoomX1, self.zoomX2])
-                    self.xmaxlim = max([self.zoomX1, self.zoomX2])
-                    self.yminlim = min([self.zoomY1, self.zoomY2])
-                    self.ymaxlim = max([self.zoomY1, self.zoomY2])
+                    if self.zoomAx == self.y_ax:
+                        self.zminlim_y_ax = min([self.zoomX1, self.zoomX2])
+                        self.zmaxlim_y_ax = max([self.zoomX1, self.zoomX2])
+                        self.y_ax.set_xlim(self.zminlim_y_ax, self.zmaxlim_y_ax)
+                    else:
+                        self.xminlim = min([self.zoomX1, self.zoomX2])
+                        self.xmaxlim = max([self.zoomX1, self.zoomX2])
+                    if self.zoomAx == self.x_ax:
+                        self.zminlim_x_ax = min([self.zoomY1, self.zoomY2])
+                        self.zmaxlim_x_ax = max([self.zoomY1, self.zoomY2])
+                        self.x_ax.set_ylim(self.zminlim_x_ax, self.zmaxlim_x_ax)
+                    else:
+                        self.yminlim = min([self.zoomY1, self.zoomY2])
+                        self.ymaxlim = max([self.zoomY1, self.zoomY2])
                     if self.spec() > 0:
                         self.ax.set_xlim(self.xmaxlim, self.xminlim)
                     else:

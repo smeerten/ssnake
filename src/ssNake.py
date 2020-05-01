@@ -2642,19 +2642,19 @@ class SideFrame(QtWidgets.QScrollArea):
             self.selectTraceButton.show()
         else:
             self.selectTraceButton.hide()
-        if not self.FITTING:
-            self.father.current.clearProj()
-            self.father.current.showAllProj()
-        else:
-            self.father.current.showFid()
+        # if not self.FITTING:
+        #     self.father.current.clearProj()
+        #     self.father.current.showAllProj()
+        # else:
+        #     self.father.current.showFid()
 
     def changeTrace(self, num, direc):
         self.father.current.setProjTraces(num, direc)
-        if not self.FITTING:
-            self.father.current.clearProj()
-            self.father.current.showAllProj()
-        else:
-            self.father.current.showFid()
+        # if not self.FITTING:
+        #     self.father.current.clearProj()
+        #     self.father.current.showAllProj()
+        # else:
+        #     self.father.current.showFid()
 
     def selectTraces(self, *args):
         self.father.current.peakPickFunc = lambda pos, self=self: self.pickedTraces(pos)
@@ -2670,11 +2670,11 @@ class SideFrame(QtWidgets.QScrollArea):
         check = self.rangeCheckbox.isChecked()
         ranges = [self.projTopRangeMax.value(), self.projTopRangeMin.value(), self.projRightRangeMax.value(), self.projRightRangeMin.value()]
         self.father.current.setProjLimits(check, ranges)
-        if not self.FITTING:
-            self.father.current.clearProj()
-            self.father.current.showAllProj()
-        else:
-            self.father.current.showFid()
+        # if not self.FITTING:
+        #     self.father.current.clearProj()
+        #     self.father.current.showAllProj()
+        # else:
+        #     self.father.current.showFid()
 
     def activateRanges(self, state):
         if state:
