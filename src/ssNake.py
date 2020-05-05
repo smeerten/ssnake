@@ -2621,6 +2621,8 @@ class SideFrame(QtWidgets.QScrollArea):
             self.father.father.dispMsg('Invalid value for contour multiplier')
         else:
             multi = abs(float(multi))
+        if multi < 1:
+            multi = 1.0
         self.multiValue.setText(str(multi))
         limitType = self.contourLimType.currentIndex()
         self.father.current.setLevels(var1, maxC / 100.0, minC / 100.0, limitType, cSign, cType, multi)

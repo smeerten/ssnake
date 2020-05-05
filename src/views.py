@@ -3292,6 +3292,8 @@ class CurrentContour(CurrentStacked):
         multiValue: float
             Value of the multiplier
         """
+        if multiValue < 1:
+            raise sc.SpectrumException("Contour level multiplier cannot be below 1")
         self.viewSettings["numLevels"] = numLevels
         self.viewSettings["maxLevels"] = maxLevels
         self.viewSettings["minLevels"] = minLevels
