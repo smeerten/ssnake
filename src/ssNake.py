@@ -213,7 +213,7 @@ class MainProgram(QtWidgets.QMainWindow):
         QtWidgets.QShortcut(QtGui.QKeySequence.Copy, self).activated.connect(self.handleCopy)
 
     def dispError(self, error):
-        self.dispMsg("Python Error", color="red")
+        self.dispMsg("Program error. Please report.", color="red")
         CurTime = datetime.datetime.now()
         TimeStr = '{0:02d}'.format(CurTime.hour) + ':' + '{0:02d}'.format(CurTime.minute) + ':' + '{0:02d}'.format(CurTime.second)
         self.errors.append([TimeStr, error])
@@ -2616,13 +2616,11 @@ class SideFrame(QtWidgets.QScrollArea):
             self.multiValue.show()
             self.multiValueLabel.show()
         multi = safeEval(self.multiValue.text(), length=self.father.current.len(), Type='FI')
-        if multi is None:
+        if multi is None or multi <= 1.0:
             multi = self.father.current.viewSettings["multiValue"]
             self.father.father.dispMsg('Invalid value for contour multiplier')
         else:
             multi = abs(float(multi))
-        if multi < 1:
-            multi = 1.0
         self.multiValue.setText(str(multi))
         limitType = self.contourLimType.currentIndex()
         self.father.current.setLevels(var1, maxC / 100.0, minC / 100.0, limitType, cSign, cType, multi)
@@ -6821,7 +6819,7 @@ class errorWindow(wc.ToolWindow):
         self.errorQList.currentRowChanged.connect(self.rowChange)
         for error in self.father.errors:
             if len(error[1]) == 3:
-                tmp = QtWidgets.QListWidgetItem(error[0] + ': Python error', self.errorQList)
+                tmp = QtWidgets.QListWidgetItem(error[0] + ': Program error. Please report.', self.errorQList)
                 tmp.setForeground(QtGui.QBrush(QtGui.QColor('red')))
             elif len(error[1]) == 1:
                 QtWidgets.QListWidgetItem(error[0] + ': ' + error[1][0], self.errorQList)
