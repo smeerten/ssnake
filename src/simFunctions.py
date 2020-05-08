@@ -584,7 +584,7 @@ def peakSim(x, freq, sw, axMult, extra, bgrnd, mult, pos, amp, lor, gauss):
     gauss = np.abs(gauss)
     length = len(x)
     t = np.fft.fftfreq(length, sw[-1]/float(length))
-    return float(mult) * float(amp) / sw[-1] * np.exp(2j * np.pi * (pos - x[length//2]) * t - np.pi * np.abs(lor * t) - ((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
+    return float(mult) * float(amp) / abs(sw[-1]) * np.exp(2j * np.pi * (pos - x[length//2]) * t - np.pi * np.abs(lor * t) - ((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
 
 def makeSpectrum(x, sw, v, gauss, lor, weight):
     """
@@ -618,7 +618,7 @@ def makeSpectrum(x, sw, v, gauss, lor, weight):
     final, _ = np.histogram(v, length, range=[x[0]-diff, x[-1]+diff], weights=weight)
     apod = np.exp(-np.pi * np.abs(lor) * t - ((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
     inten = np.fft.ifft(final) * apod
-    inten *= len(inten)  / sw
+    inten *= len(inten)  / abs(sw)
     return inten
 
 def makeMQMASSpectrum(x, sw, v, gauss, lor, weight):
@@ -661,7 +661,7 @@ def makeMQMASSpectrum(x, sw, v, gauss, lor, weight):
     final = np.fft.ifftn(final)
     apod2 = np.exp(-np.pi * np.abs(lor[1] * t2) - ((np.pi * np.abs(gauss[1]) * t2)**2) / (4 * np.log(2)))
     apod1 = np.exp(-np.pi * np.abs(lor[0] * t1) - ((np.pi * np.abs(gauss[0]) * t1)**2) / (4 * np.log(2)))
-    final *= apod1 * apod2 * length1 / sw[-2] * length2 / sw[-1]
+    final *= apod1 * apod2 * length1 / abs(sw[-2]) * length2 / abs(sw[-1])
     return final
 
 def carouselAveraging(spinspeed, v, weight, vConstant):
@@ -1141,7 +1141,7 @@ def mqmasCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, mult, pos, sigma, sigmaCS
     sigma *= 1e6
     czjzek = Czjzek.czjzekIntensities(sigma, d, cq, eta, cq0, eta0)
     length2 = len(x[-1])
-    czjzek *= length2 / sw[-2]
+    czjzek *= length2 / abs(sw[-2])
     newLib = czjzek[..., np.newaxis]*lib
     length1 = len(x[-2])
     t1 = np.fft.fftfreq(length1, sw[-2]/float(length1))
