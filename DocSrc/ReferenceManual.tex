@@ -195,7 +195,7 @@ using the mouse. Below, a list of these is given:
 \item Dragging a box while holding the left mouse button creates a zoombox, and will zoom to that region.
 \item Dragging while holding the right mouse button drags (i.e.\ pans) the spectrum. Doing this while holding the Control button pans only the x-axis, holding Shift pans only the y-axis.
 \item Double clicking with the right mouse button resets the view to fit the whole plot (both x and y).
-\item Scrolling with the mouse wheel zooms the y-axis. Doing this while also holding the right mouse button zooms the x-axis. By holding Control the zooming will use a larger step size.
+\item Scrolling with the mouse wheel zooms the y-axis. Doing this while also holding the right mouse button zooms the x-axis. By holding Control the zooming will use a larger step size. In a Contour plot, the projections can also be zoomed by scrolling when the mouse pointer is over one of these plots. The top projection can be zoomed using normal scrolling, while the right projection can be zoomed using scrolling while holding the right mouse button.
 \item \textit{Special}: Scrolling while holding shift changes the spacing between the different plots in the Array or Stack plot. In the Contour plot, the contour levels are zoomed.
 \end{itemize}
 
@@ -1325,7 +1325,7 @@ With these problems, there is no direct mathematical solution.
 We are searching a parameter space for the solution that best fits the experimental spectrum.
 This is done by trying different settings, and qualifying how well these fit.
 Based on these attempts, a new setting is tested. This is continued until an optimum has been found.
-There are several ways to do such an iterative fitting: ssNake uses the Nelder-Mead algorithm \cite{nelder1965simplex} (also known as ``Simplex'').
+There are several ways to do such an iterative fitting: ssNake uses the Nelder-Mead algorithm \cite{nelder1965simplex} (also known as ``Simplex''). The fitting goal is to minimize the root-mean-square (RMS) distance between the experimental and simulated spectrum. This RMS value is displayed in the fitting window.
 
 \subsubsection*{Powder distributions and line shape fitting}
 ssNake supports fitting procedures for several idealized lineshapes commonly encountered in solid
@@ -2049,12 +2049,19 @@ Ticking this box draws a diagonal line across the 2D data at x = y. Note that th
 Therefore, if a data set with two identical axes is plot, only if the two units are the same, the diagonal is plot in a way that (probably) is the correct way.
 Alternatively, there is a box called `Multiplier', in which a value can be put that multiplies the x-axis (only for the calculation of the diagonal).
 
+\subsection{Multi Contour Plot}
+This plot type can be used to plot several contour plots in the same image. It works in a similar way as the Multi plot described below. In this case, a shift in both the x and the y-axis can be supplied.
+
+Each data set is plot using a constant contour colour, with a lighter colour representing negative contours.
+
 \subsection{2D Colour Plot}
 A 2D Colour plot shows the height profile of the data using a colour scheme.
 This plot type essentially show the same information as a Contour plot, but might
 be more applicable for certain types of data. It is used often for viewing NMR imaging (MRI) data.
 
 As with the Contour plot, the 2D Colour plot shows projections, of which the settings can be changed in the side frame (see the Section on Contour Plot for more information).
+
+The colour scheme of the plot can be changed in the plot settings, or in the general preferences.
 
 \subsection{Multi plot}
 A multi plot is on overlay of multiple workspaces. It shows the 1D Plot of the active workspace, and a button
