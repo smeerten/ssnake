@@ -6733,14 +6733,12 @@ class PlotSettingsWindow(wc.ToolWindow):
         negColorButton = QtWidgets.QPushButton("Negative colour")
         negColorButton.clicked.connect(self.setNegColor)
         grid2.addWidget(negColorButton, 3, 0)
-
         grid3.addWidget(QtWidgets.QLabel("Colourmap:"), 0, 0)
         self.cmEntry2D = QtWidgets.QComboBox(self)
         self.cmEntry2D.addItems(views.COLORMAPLIST)
         self.cmEntry2D.setCurrentIndex(self.father.current.getPColorMap())
         self.cmEntry2D.currentIndexChanged.connect(self.preview)
         grid3.addWidget(self.cmEntry2D, 0, 1)
-
         self.grid.addWidget(tabWidget, 0, 0)
 
     def preview(self, *args):

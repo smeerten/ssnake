@@ -2465,9 +2465,9 @@ class Current1D(PlotFrame):
         """
         if  matplotlib.__version__[0] > '1':
             if Xset:
-                self.ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins='auto', steps=[1, 2, 2.5, 5, 10], min_n_ticks=self.viewSettings["minXTicks"]))
+                self.ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=1, steps=[1, 2, 2.5, 5, 10], min_n_ticks=self.viewSettings["minXTicks"]))
             if Yset:
-                self.ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins='auto', steps=[1, 2, 2.5, 5, 10], min_n_ticks=self.viewSettings["minYTicks"]))
+                self.ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=1, steps=[1, 2, 2.5, 5, 10], min_n_ticks=self.viewSettings["minYTicks"]))
 
     def plotReset(self, xReset=True, yReset=True):  
         """
