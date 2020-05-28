@@ -353,6 +353,14 @@ class SaveFigureWindow(QtWidgets.QWidget):
         """
         Updates the plot.
         """
+        if not self.xlimLeftEntry.text():
+            self.xlimLeftEntry.setText(str(self.xlimBackup[0]))
+        if not self.xlimRightEntry.text():
+            self.xlimRightEntry.setText(str(self.xlimBackup[1]))
+        if not self.ylimLeftEntry.text():
+            self.ylimLeftEntry.setText(str(self.ylimBackup[0]))
+        if not self.ylimRightEntry.text():
+            self.ylimRightEntry.setText(str(self.ylimBackup[1]))
         if self.fontDetailsCheck.checkState():  # If details checked
             self.fig.suptitle(self.titleEntry.text(), fontsize=self.titleFontSizeEntry.value())
             self.ax.set_xlabel(self.xlabelEntry.text(), fontsize=self.xlabelFontSizeEntry.value())
@@ -378,6 +386,14 @@ class SaveFigureWindow(QtWidgets.QWidget):
         xticksbool = self.xticksToggle.isChecked()
         yticksbool = self.yticksToggle.isChecked()
         self.ax.tick_params(bottom=xticksbool, labelbottom=xticksbool, left=yticksbool, labelleft=yticksbool)
+        if not xticksbool:
+            self.ax.xaxis.get_offset_text().set_visible(False)
+        else:
+            self.ax.xaxis.get_offset_text().set_visible(True)
+        if not yticksbool:
+            self.ax.yaxis.get_offset_text().set_visible(False)
+        else:
+            self.ax.yaxis.get_offset_text().set_visible(True)
         self.updateLegend()
         self.fig.set_size_inches(self.widthEntry.value() / 2.54, self.heightEntry.value() / 2.54)
         self.canvas.draw()
@@ -455,6 +471,8 @@ class SaveFigureWindow(QtWidgets.QWidget):
         if self.legend is not None:
             self.legend.set_visible(False)
         self.ax.tick_params(bottom=True, labelbottom=True, left=True, labelleft=True)
+        self.ax.xaxis.get_offset_text().set_visible(True)
+        self.ax.yaxis.get_offset_text().set_visible(True)
         self.fig.set_size_inches((self.widthBackup / 2.54, self.heightBackup / 2.54))
         self.grid.deleteLater()
         self.canvas.draw()
