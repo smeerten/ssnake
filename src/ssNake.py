@@ -1492,7 +1492,7 @@ class MainProgram(QtWidgets.QMainWindow):
                 return
             masterData = io.autoLoad(filePath)
             if masterData is None:
-                return
+                raise SsnakeException("Could not load data")
             if masterData == -1:
                 dialog = AsciiLoadWindow(self, filePath)
                 if dialog.exec_():
