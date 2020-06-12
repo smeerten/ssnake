@@ -4874,7 +4874,7 @@ class regionWindowStep(wc.ToolWindow):
             self.stepVal = 1
         elif self.stepVal > dataLength:
             self.stepVal = dataLength
-        self.endEntry.setText(str(self.stepVal))
+        self.stepEntry.setText(str(self.stepVal))
         self.preview(self.startVal, self.endVal, self.stepVal)
 
     def applyFunc(self):
