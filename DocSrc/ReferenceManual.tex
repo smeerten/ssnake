@@ -1101,7 +1101,7 @@ Do not forget the about the mirroring in the frequency domain (see Diff)!
 
 \subsection{Normalize}
 A tool to scale a selected region to a particular maximum, minimum, or integral.
-This is essentially the same as the `Multiply' tool, only ssNake calculates the multiplication factor for you.
+This is essentially the same as the `Multiply' tool, only ssNake calculates the multiplication factor for you. Note that this also means that `Normalize' does not work as expected when recorded in a macro: the scaling factor is not changed to any new data the macro is applied on, only the old, saved scaling factor is applied.
 
 \subsection{Reorder}
 Reorders the data in the active dimension.
