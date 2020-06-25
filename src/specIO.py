@@ -196,6 +196,8 @@ def loadFile(filePath, realpath=False, asciiInfo=None):
         masterData = loadBrukerImaging(filePath)
     elif num == 18:
         masterData = loadBrukerImagingTime(filePath)
+    elif num == 19:
+        masterData = loadDMfit(filePath)
     masterData.rename(name)
     return masterData
 
@@ -229,7 +231,7 @@ def fileTypeCheck(filePath):
             if check == 0:
                 return 8, filePath  # Suspected NMRpipe format
             return 4, filePath # SIMPSON
-        if filename.endswith('.ft') or filename.endswith('.ft1') or filename.endswith('.ft2') or filename.endswith('.ft3') or filename.endswith('.ft4'):
+        if filename.endswith(('.ft', '.ft1', '.ft2', '.ft3', '.ft4')):
             with open(filePath, 'r') as f:
                 check = int(np.fromfile(f, np.float32, 1))
             if check == 0:
@@ -240,16 +242,21 @@ def fileTypeCheck(filePath):
             return 6, filePath
         elif filename.endswith('.jdf'):  # JEOL delta format
             return 9, filePath
-        elif filename.endswith('.dx') or filename.endswith('.jdx') or filename.endswith('.jcamp'):  # JCAMP format
+        elif filename.endswith(('.dx', '.jdx', '.jcamp')):  # JCAMP format
             return 10, filePath
         elif filename.endswith('.sig'):  # Bruker minispec
             return 12, filePath
         elif filename.lower().endswith('.ima'):  # Siemens ima format
             return 14, filePath
-        elif filename.lower().endswith('.1r') or filename.lower().endswith('.1i'):  # Bruker WinNMR format
+        elif filename.lower().endswith(('.1r', '.1i')):  # Bruker WinNMR format
             return 15, filePath
         elif filename.lower().endswith('.mrc'):  # MestreC
             return 16, filePath
+        elif filename.lower().lower().endswith('.txt'):
+            with open(filePath, 'r') as f:
+                check = (f.readline()[:3] == 'ti:' and f.readline()[:6] == '##freq')
+            if check:
+                return 19, filePath
         direc = os.path.dirname(filePath)
     if os.path.exists(direc + os.path.sep + 'procpar') and os.path.exists(direc + os.path.sep + 'fid'):
         return 0, direc
@@ -2164,9 +2171,6 @@ def scrubber(item):
     item = item.split(chr(0))[0]
     return item.strip()
 
-
-
-
 def loadMestreC(filePath):
     """
     Loads MestreC type data. MestreC data ends on .mrc, and is essentially XML data.
@@ -2229,4 +2233,42 @@ def loadMestreC(filePath):
         for i, _ in enumerate(data):
             data[i] = data[i].reshape(*points[-1::-1])
     masterData = sc.Spectrum(hc.HComplexData(np.array(data), hyper), (filePath, None), freq, sw, [spec] * dim, ref=ref, dFilter=dFilter[0])
+    return masterData
+
+def loadDMfit(filePath):
+    """
+    Loads DMfit spectral data.
+    The data is assumed to be in the frequency domain with evenly spaced datapoints
+
+    Parameters
+    ----------
+    filePath: string
+        Path to the file that should be loaded
+
+    Returns
+    -------
+    SpectrumClass
+        SpectrumClass object of the loaded data
+    """
+    with open(filePath, 'r') as f:
+        f.readline()
+        freqline = f.readline()
+        if freqline[:6] == "##freq":
+            try:
+                freq = float(freqline[6:].lstrip().split()[0]) * 1e6
+            except ValueError:
+                freq = 0.0
+    matrix = np.loadtxt(filePath, dtype=None, delimiter='\t', skiprows=2)
+    sw = abs(matrix[0, 0] - matrix[-1, 0]) / (matrix.shape[0] - 1) * matrix.shape[0]
+    xaxis = matrix[:, 0]
+    data = matrix[:, 1]
+    if xaxis[1] < xaxis [0]: # The datapoints are in decreasing order
+        xaxis = xaxis[::-1]
+        data = data[::-1]
+    if freq != 0.0:
+        center = xaxis[len(xaxis)//2]
+        if center != 0.0:
+            ref = freq - center
+    masterData = sc.Spectrum(data, (filePath, None), [freq], [sw], [True], ref=[ref], xaxArray=[xaxis])
+    masterData.addHistory("DMfit data loaded from " + filePath)
     return masterData
