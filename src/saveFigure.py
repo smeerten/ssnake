@@ -261,6 +261,10 @@ class SaveFigureWindow(QtWidgets.QWidget):
         self.yticksToggle.setChecked(True)
         self.yticksToggle.stateChanged.connect(self.updatePlot)
         self.optionFrame.addWidget(self.yticksToggle, 6, 0)
+        self.frameToggle = QtWidgets.QCheckBox('Box')
+        self.frameToggle.setChecked(True)
+        self.frameToggle.stateChanged.connect(self.updatePlot)
+        self.optionFrame.addWidget(self.frameToggle, 7, 0)
         self.inFrame = QtWidgets.QGridLayout()
         self.frame1.addLayout(self.inFrame, 1, 0)
         self.inFrame.addWidget(wc.QLabel("File type:"), 0, 0, 1, 2)
@@ -385,6 +389,22 @@ class SaveFigureWindow(QtWidgets.QWidget):
                 self.legend.prop = {'size': self.mainFontSizeEntry.value()}
         xticksbool = self.xticksToggle.isChecked()
         yticksbool = self.yticksToggle.isChecked()
+        if self.frameToggle.isChecked():
+            self.ax.spines['top'].set_visible(True)
+            self.ax.spines['right'].set_visible(True)
+            self.ax.spines['bottom'].set_visible(True)
+            self.ax.spines['left'].set_visible(True)
+        else:
+            self.ax.spines['top'].set_visible(False)
+            self.ax.spines['right'].set_visible(False)
+            if xticksbool:
+                self.ax.spines['bottom'].set_visible(True)
+            else:
+                self.ax.spines['bottom'].set_visible(False)
+            if yticksbool:
+                self.ax.spines['left'].set_visible(True)
+            else:
+                self.ax.spines['left'].set_visible(False)
         self.ax.tick_params(bottom=xticksbool, labelbottom=xticksbool, left=yticksbool, labelleft=yticksbool)
         if not xticksbool:
             self.ax.xaxis.get_offset_text().set_visible(False)
@@ -470,6 +490,10 @@ class SaveFigureWindow(QtWidgets.QWidget):
         self.ax.yaxis.get_offset_text().set_fontsize(self.ytickFontSizeBackup)
         if self.legend is not None:
             self.legend.set_visible(False)
+        self.ax.spines['top'].set_visible(True)
+        self.ax.spines['right'].set_visible(True)
+        self.ax.spines['bottom'].set_visible(True)
+        self.ax.spines['left'].set_visible(True)
         self.ax.tick_params(bottom=True, labelbottom=True, left=True, labelleft=True)
         self.ax.xaxis.get_offset_text().set_visible(True)
         self.ax.yaxis.get_offset_text().set_visible(True)
