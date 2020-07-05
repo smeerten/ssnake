@@ -447,7 +447,7 @@ class Spectrum(object):
         if not self.noUndo:
             if not isinstance(data, hc.HComplexData):
                 returnValue = lambda self: self.subtract(data, axis, select=select)
-            elif self.data.hyper == data.hyper: # If both sets have same hyper: easy subtract can be used for undo
+            elif np.all(self.data.hyper == data.hyper): # If both sets have same hyper: easy subtract can be used for undo
                 returnValue = lambda self: self.subtract(data, axis, select=select)
             else: # Otherwise: do a deep copy of the class
                 copyData = copy.deepcopy(self)
