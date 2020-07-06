@@ -356,7 +356,7 @@ class Spectrum(object):
         if self.noUndo:
             returnValue = None
         else:
-            if self.data.hyper == data.hyper: # If both sets have same hyper: easy undo can be used
+            if np.all(self.data.hyper == data.hyper): # If both sets have same hyper: easy undo can be used
                 returnValue = lambda self: self.delete(range(pos, pos + data.shape()[axis]), axis)
             else: # Otherwise: do a deep copy of the class
                 copyData = copy.deepcopy(self)
@@ -501,7 +501,7 @@ class Spectrum(object):
         if not self.noUndo:
             if not isinstance(data, hc.HComplexData):
                 returnValue = lambda self: self.add(data, axis, select=select)
-            elif self.data.hyper == data.hyper: #If both sets have same hyper: easy subtract can be used for undo
+            elif np.all(self.data.hyper == data.hyper): #If both sets have same hyper: easy subtract can be used for undo
                 returnValue = lambda self: self.add(data, axis, select=select)
             else: # Otherwise: do a deep copy of the class
                 copyData = copy.deepcopy(self)
@@ -555,7 +555,7 @@ class Spectrum(object):
         if not self.noUndo:
             if not isinstance(data, hc.HComplexData):
                 returnValue = lambda self: self.divide(data, axis, select=select)
-            elif self.data.hyper == data.hyper: # If both sets have same hyper: easy subtract can be used for undo
+            elif np.all(self.data.hyper == data.hyper): # If both sets have same hyper: easy subtract can be used for undo
                 returnValue = lambda self: self.divide(data, axis, select=select)
             else: # Otherwise: do a deep copy of the class
                 copyData = copy.deepcopy(self)
@@ -608,7 +608,7 @@ class Spectrum(object):
         if not self.noUndo:
             if not isinstance(data, hc.HComplexData):
                 returnValue = lambda self: self.multiply(data, axis, select=select)
-            elif self.data.hyper == data.hyper: #If both sets have same hyper: easy subtract can be used for undo
+            elif np.all(self.data.hyper == data.hyper): #If both sets have same hyper: easy subtract can be used for undo
                 returnValue = lambda self: self.multiply(data, axis, select=select)
             else: # Otherwise: do a deep copy of the class
                 copyData = copy.deepcopy(self)
