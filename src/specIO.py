@@ -2059,20 +2059,31 @@ def loadBrukerEPR(filePath):
     SpectrumClass
         SpectrumClass object of the loaded data
     """
-    with open(filePath + '.par', mode='r') as f:
-        textdata = [row.split() for row in f.read().replace('\r', '\n').split('\n')]
+    with open(filePath + '.par', mode='rb') as f:
+        textdata = [row.split() for row in f.read().decode("utf-8", 'backslashreplace').replace('\r', '\n').split('\n')]
+    dataIs2D = False
     for row in textdata:
         if len(row) < 2:
             continue
         if row[0] == 'ANZ':
             numOfPoints = int(row[1])
-        elif row[0] == 'GSI':
+        elif row[0] == 'HSW':
             sweepWidth = float(row[1])
-        elif row[0] == 'GST':
-            leftX = float(row[1])
+        elif row[0] == 'HCF':
+            centerField = float(row[1])
+        elif row[0] == 'SSX':
+            numXPoints = int(row[1])
+            dataIs2D = True
+        elif row[0] == 'SSY':
+            numYPoints = int(row[1])
+            dataIs2D = True
     with open(filePath + '.spc', mode='rb') as f:
         data = np.fromfile(f, np.float32, numOfPoints)
-    masterData = sc.Spectrum(data, (filePath, None), [(sweepWidth + 2 * leftX) / 2], [sweepWidth], [True], ref=[0])
+    if dataIs2D:
+        data = np.reshape(data, (numYPoints, numXPoints))
+        masterData = sc.Spectrum(data, (filePath, None), [centerField, centerField], [sweepWidth, sweepWidth], [False, True], ref=[None,0])
+    else:
+        masterData = sc.Spectrum(data, (filePath, None), [centerField], [sweepWidth], [True], ref=[0])
     masterData.addHistory("Bruker EPR data loaded from " + filePath)
     return masterData
 
