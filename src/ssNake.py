@@ -80,6 +80,7 @@ importList = [['matplotlib.figure', 'Figure', 'Figure'],
               ['traceback', 'tb', None],
               ['numpy', 'np', None],
               ['copy', 'copy', None],
+              ['gc', 'gc', None],
               ['multiprocessing', 'multiprocessing', None],
               ['datetime', 'datetime', None],
               ['webbrowser', 'webbrowser', None],
@@ -1743,6 +1744,7 @@ class Main1DWindow(QtWidgets.QWidget):
         self.sideframe.kill()
         del self.sideframe
         self.deleteLater()
+        gc.collect()
 
     def rescue(self):
         self.current.kill()
