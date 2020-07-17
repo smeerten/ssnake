@@ -1839,6 +1839,7 @@ class Main1DWindow(QtWidgets.QWidget):
         self.current.reload()
         self.updAllFrames()
         self.menuCheck()
+        gc.collect()
 
     def monitorLoad(self, filePath, delay=0.5):
         self.monitor.blockSignals(True)
