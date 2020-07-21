@@ -309,13 +309,16 @@ Bruker & Topspin and XWinNMR (\texttt{fid} \& \texttt{ser},\texttt{1r/i} \& \tex
 Bruker ParaVision & processed data (\texttt{2dseq})\\
 Bruker minispec  & \texttt{.sig} file\\
 \rowcolor{gray!30!white}
+Bruker EPR & \texttt{.spc} and \texttt{.par} files. 1D and 2D.\\
 JEOL Delta & 1D and 2D only at the moment \\
+\rowcolor{gray!30!white}
 Chemagnetics & -- \\
-\rowcolor{gray!30!white}
 Magritek & Both 1D and 2D data \\
-SIMPSON & 1D and 2D, -ascii and -binary \\
 \rowcolor{gray!30!white}
+SIMPSON & 1D and 2D, -ascii and -binary \\
 JCAMP & 1D JCAMP-DX file\\
+\rowcolor{gray!30!white}
+DMFIT & \texttt{.txt}; 1D spectra only at the moment\\
 Siemens ima & single voxel only\\
 \rowcolor{gray!30!white}
 JSON & ssNake JSON file (ascii)\\
@@ -342,6 +345,9 @@ Loads processed data acquired via Bruker ParaVision. This feature is experimenta
 \subsubsection*{Bruker minispec}
 In some cases, the Bruker minispec also outputs a \texttt{.sig} data file. These can be loaded in ssNake, although this is experimental at the moment.
 
+\subsubsection*{Bruker EPR}
+Loads Bruker EPR data. Can load both 1D and and 2D (series of 1D data). Needs \texttt{.spc} and \texttt{.par} files.
+
 \subsubsection*{JEOL Delta}
 JEOL Delta data is contained in a single \texttt{.jdf} file. Currently only 1D and 2D data is
  supported. This is because we have no access to a JEOL spectrometer for testing
@@ -361,6 +367,9 @@ JCAMP (or JCAMP-DX) is a general format for storing spectroscopic data. Although
 
 \subsubsection*{JSON}
 Loads a JSON file that is saved from ssNake. The file must have the \textit{.json} or \textit{.JSON} extension.
+
+\subsubsection*{DMFIT}
+Loads 1D spectrum data from the DMFIT software. File must end in \textit{.txt}, end the first line must start with \texttt{TI:}, and second line with \texttt{\#\#freq}. The x-axis must be in Hz, and equally spaced.
 
 \subsubsection*{Siemens ima}
 IMA files are dicom formatted files with additional entries from Siemens. Important: it requires pydicom > 1.0 python module to be installed. The problem in reading Siemens ima files is that there is limited documentation available on the relevant Siemens parts. In the current implementation it is assumed that all relevant spectral information is stored in the CSA Siemens header with dicom tag: '0029','1110' and that the binary signal data is stored in '7fe1','1010'. This might be different for other Siemens spectrometers currently tested. Furthermore, it is assumed that the data is in complex conjugate form; real minus imaginary. Acknowledgment is in place, this is a rewrite of the relevant part of the following source: VeSPA, versatile simulation pulses and analysis for magnetic resonance spectroscopy.
