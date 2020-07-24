@@ -1432,6 +1432,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
                 printLocList[i] = '*'
             else:
                 printLocList[i] = str(printLocList[i])
+        locList = self.getRedLocList()
         printLocList = "(" + ", ".join(printLocList) + ")"
         report = "#########" + '#'*len(VERSION) + "##\n"
         report += "# ssNake " + VERSION + " #\n"
@@ -1441,14 +1442,21 @@ class AbstractParamFrame(QtWidgets.QWidget):
         report += "# Saved: " + datetime.datetime.now().strftime("%y-%m-%d %H:%M:%S") + "\n"
         report += "# Data: " + self.parent.data.name + "\n"
         report += "# Trace: " + printLocList + "\n"
-        report += "# Dimension: D" + str(self.parent.axes[-1]+1) + "\n#\n"
+        report += "# Dimension: D" + str(self.parent.axes[-1]+1) + "\n"
+        if self.removeLimits[locList]["limits"]:
+            report += "# Excluded: "
+            limitStr = str(self.removeLimits[locList]["limits"])
+            limitStr = limitStr.replace("\n", "").replace("\r", "")
+            report += limitStr + "\n"
+        if self.removeLimits[locList]["invert"]:
+            report += "# Excluded: invert \n"            
+        report += "#\n"
         extraParam, postParam = self.extraParamToFile()
         # TODO: order of extra params
         for key in extraParam:
             report += "#! " + key + '=' + str(extraParam[key]) + "\n"
         report += "#\n#? "
         nspace = 20
-        locList = self.getRedLocList()
         for name in self.SINGLENAMES:
             report += name.ljust(nspace) + " "
         report += "\n  "
@@ -1517,11 +1525,17 @@ class AbstractParamFrame(QtWidgets.QWidget):
         splitReport = re.split("#\?", splitReport[0])
         preReport = splitReport[0].split('\n')
         preParams = {}
+        removeLimits = {'invert' : False, 'limits': []}
         for line in preReport:
             tmp = line.strip()
-            if re.match("#!", tmp):
+            if tmp.startswith("#!"):
                 tmp = tmp[2:].strip().split('=')
                 preParams[tmp[0].strip()] = tmp[1].strip()
+            elif tmp.startswith("# Excluded:"):
+                if "invert" in tmp:
+                    removeLimits["invert"] = True
+                else:
+                    removeLimits["limits"] = safeEval(tmp.split(":")[1])
         singleReport = splitReport[1].split('\n')
         multiReport = splitReport[2].split('\n')
         singleNames = singleReport[0].split()
@@ -1541,8 +1555,9 @@ class AbstractParamFrame(QtWidgets.QWidget):
                 multiVals.append(tmp.split())
         multiVals = self.__interpretParam(multiVals)
         self.extraFileToParam(preParams, postParams)
-        self.setParamFromList(singleNames, singleVals, multiNames, multiVals)
+        self.setParamFromList(singleNames, singleVals, multiNames, multiVals, removeLimits)
         self.dispParams()
+        self.parent.showFid()
         return True
 
     def __interpretParam(self, strList):
@@ -1571,7 +1586,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
             data.append(tmp)
         return data
 
-    def setParamFromList(self, singleNames, singleVals, multiNames, multiVals):
+    def setParamFromList(self, singleNames, singleVals, multiNames, multiVals, removeLimits=None):
         """
         Set the values in the fit parameter list to the given values.
 
@@ -1585,6 +1600,8 @@ class AbstractParamFrame(QtWidgets.QWidget):
             The names of the parameters for individual sites.
         multiVals : list
             The fit values corresponding to multiNames.
+        removeLimits : dict, optional
+            The removeLimits for these parameters. When None no changes are made to the limits.
         """
         locList = self.getRedLocList()
         keys = self.fitParamList[locList].keys()
@@ -1602,6 +1619,8 @@ class AbstractParamFrame(QtWidgets.QWidget):
                 if multiNames[i] in keys:
                     self.fitParamList[locList][multiNames[i]][j] = multiVals[j][i]
         self.fitNumList[locList] = len(multiVals) - 1
+        if removeLimits is not None:
+            self.removeLimits[locList] = removeLimits
 
     def paramToWorkspaceWindow(self):
         """
