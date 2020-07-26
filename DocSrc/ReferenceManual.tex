@@ -1334,7 +1334,7 @@ With these problems, there is no direct mathematical solution.
 We are searching a parameter space for the solution that best fits the experimental spectrum.
 This is done by trying different settings, and qualifying how well these fit.
 Based on these attempts, a new setting is tested. This is continued until an optimum has been found.
-There are several ways to do such an iterative fitting: ssNake uses the Nelder-Mead algorithm \cite{nelder1965simplex} (also known as ``Simplex''). The fitting goal is to minimize the root-mean-square (RMS) distance between the experimental and simulated spectrum. This RMS value is displayed in the fitting window.
+There are several ways to do such an iterative fitting: ssNake uses the Nelder-Mead algorithm \cite{nelder1965simplex} (also known as ``Simplex''). The fitting goal is to minimize the root-mean-square deviation (RMSD) between the experimental and simulated spectrum. This RMSD value is displayed in the fitting window.
 
 \subsubsection*{Powder distributions and line shape fitting}
 ssNake supports fitting procedures for several idealized lineshapes commonly encountered in solid
@@ -1426,8 +1426,8 @@ affected by rotations: they are scalars.
 The Hamiltonian of a rotated interaction is therefore just calculated using the rotated spin part
 $\Lambda^\prime_n$ for each rank $n$, following \autoref{eq:HamSphere}.
 
-
-
+\subsection{Exluding regions}
+For each fitting routine, specific regions can be excluded from the fit. This means that the deviation between the data and the simulation in this region is not taken into account during fitting. Regions can be excluded by pushing the `Exclude' button in the fitting window. When this window is open, regions can be selected by left clicking in the plot. Pushing `Ok' saves the changes.
 
 \subsection{Connecting parameters}
 In all iterative fitting routines supported by ssNake, it is possible to connect parameters, thereby using
