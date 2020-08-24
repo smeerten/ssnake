@@ -4236,7 +4236,11 @@ class ExternalFitDeconvParamFrame(AbstractParamFrame):
         """
         matches = np.unique(re.findall("(@\w+@)", inFile))
         self.script = inFile
-        for n in self.SINGLENAMES+self.MULTINAMES:
+        for n in self.SINGLENAMES:
+            self.labels[n][0].deleteLater()
+            self.ticks[n][0].deleteLater()
+            self.entries[n][0].deleteLater()
+        for n in self.MULTINAMES:
             self.labels[n][0].deleteLater()
             self.labels[n][1].deleteLater()
             for i in range(self.FITNUM):
@@ -4247,15 +4251,15 @@ class ExternalFitDeconvParamFrame(AbstractParamFrame):
         for name in self.MULTINAMES:
             self.DEFAULTS[name] = [0.0, False]
         self.MULTINAMES.extend(["Integral", "Lorentz", "Gauss"])
-        self.labels = {}
+        self.labels = {"Offset": [wc.QLabel("Offset:")], "Multiplier": [wc.QLabel("Multiplier:")]}
         self.ticks = {"Offset": [], "Multiplier": []}
         self.entries = {"Offset": [], "Multiplier": []}
-        self.frame2.addWidget(wc.QLabel("Offset:"), 1, 0, 1, 2)
+        self.frame2.addWidget(self.labels["Offset"][0], 1, 0, 1, 2)
         self.ticks["Offset"].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks["Offset"][-1], 2, 0)
         self.entries["Offset"].append(wc.QLineEdit("0.0"))
         self.frame2.addWidget(self.entries["Offset"][-1], 2, 1)
-        self.frame2.addWidget(wc.QLabel("Multiplier:"), 3, 0, 1, 2)
+        self.frame2.addWidget(self.labels["Multiplier"][0], 3, 0, 1, 2)
         self.ticks["Multiplier"].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks["Multiplier"][-1], 4, 0)
         self.entries["Multiplier"].append(wc.QLineEdit("1.0"))
