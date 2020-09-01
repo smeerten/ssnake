@@ -846,6 +846,7 @@ def saveMatlabFile(filePath, spectrum, name='spectrum'):
     matlabStruct = {name: struct}
     scipy.io.savemat(filePath, matlabStruct)
 
+    
 def loadMatlabFile(filePath):
     """
     Loads a ssNake .mat file.
@@ -868,6 +869,8 @@ def loadMatlabFile(filePath):
         matlabStruct = scipy.io.loadmat(filePath)
         var = [k for k in matlabStruct.keys() if not k.startswith('__')][0]
         mat = matlabStruct[var]
+        if not 'data' in mat.dtype.names and not 'xaxArray' in mat.dtype.names and not 'ref' in mat.dtype.names:
+            return loadMatNMRFile(filePath)
         if 'hyper' in mat.dtype.names:
             if len(mat['hyper'][0, 0]) == 0:
                 hyper = [0]
@@ -981,7 +984,6 @@ def loadMatlabFile(filePath):
             for val in names:
                 tmp = ''.join([chr(x) for x in mat['metaData'][val].value.flatten()])
                 metaData[val] = tmp
-
         masterData = sc.Spectrum(hc.HComplexData(data, hyper),
                                  (filePath, None),
                                  list(np.array(mat['freq'])[:, 0]),
@@ -997,6 +999,46 @@ def loadMatlabFile(filePath):
         return masterData
 
 
+def loadMatNMRFile(filePath):
+    """
+    Loads a MatNMR .mat file.
+
+    Parameters
+    ----------
+    filePath: string
+        Path to the file that should be loaded
+
+    Returns
+    -------
+    SpectrumClass
+        SpectrumClass object of the loaded data
+    """
+    import scipy.io
+    with open(filePath, 'rb') as inputfile:  # read first several bytes the check .mat version
+        teststring = inputfile.read(13)
+    version = float(teststring.decode("utf-8")[7:10])  # extract version from the binary array
+    if version < 7.3:  # all versions below 7.3 are supported
+        matlabStruct = scipy.io.loadmat(filePath)
+        var = [k for k in matlabStruct.keys() if not k.startswith('__')][0]
+        mat = matlabStruct[var]
+        data = np.array(mat['Spectrum'][0][0])
+        dim = 2
+        if len(data) == 1:
+            data = data[0]
+            dim = 1
+            freq = [mat['SpectralFrequencyTD2'][0][0][0][0] * 1e6]
+            sw = [mat['SweepWidthTD2'][0][0][0][0] * 1e3]
+            spec = [mat['FIDstatusTD2'][0][0][0][0] == 1]
+        else:
+            freq = [mat['SpectralFrequencyTD1'][0][0][0][0] * 1e6, mat['SpectralFrequencyTD2'][0][0][0][0] * 1e6]
+            sw = [mat['SweepWidthTD1'][0][0][0][0] * 1e3, mat['SweepWidthTD2'][0][0][0][0] * 1e3]
+            spec = [mat['FIDstatusTD1'][0][0][0][0] == 1, mat['FIDstatusTD2'][0][0][0][0] == 1]
+        history = list(mat['History'][0][0])
+        masterData = sc.Spectrum(data, (filePath, None), freq, sw, spec, history=history)
+        masterData.addHistory("MatNMR data loaded from " + filePath)
+        return masterData
+
+    
 def brukerTopspinGetPars(file):
     """
     Loads Bruker Topspin parameter file.
