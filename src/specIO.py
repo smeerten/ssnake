@@ -1022,19 +1022,25 @@ def loadMatNMRFile(filePath):
         var = [k for k in matlabStruct.keys() if not k.startswith('__')][0]
         mat = matlabStruct[var]
         data = np.array(mat['Spectrum'][0][0])
-        dim = 2
         if len(data) == 1:
             data = data[0]
-            dim = 1
             freq = [mat['SpectralFrequencyTD2'][0][0][0][0] * 1e6]
             sw = [mat['SweepWidthTD2'][0][0][0][0] * 1e3]
             spec = [mat['FIDstatusTD2'][0][0][0][0] == 1]
+            ref = None
+            if mat['DefaultAxisRefkHzTD2'][0][0][0][0]:
+                ref = [freq[0] + 1e3*mat['DefaultAxisRefkHzTD2'][0][0][0][0]]
         else:
             freq = [mat['SpectralFrequencyTD1'][0][0][0][0] * 1e6, mat['SpectralFrequencyTD2'][0][0][0][0] * 1e6]
             sw = [mat['SweepWidthTD1'][0][0][0][0] * 1e3, mat['SweepWidthTD2'][0][0][0][0] * 1e3]
             spec = [mat['FIDstatusTD1'][0][0][0][0] == 1, mat['FIDstatusTD2'][0][0][0][0] == 1]
+            ref = [None, None]
+            if mat['DefaultAxisRefkHzTD1'][0][0][0][0]:
+                ref[0] = freq[0] + 1e3*mat['DefaultAxisRefkHzTD1'][0][0][0][0]
+            if mat['DefaultAxisRefkHzTD2'][0][0][0][0]:
+                ref[1] = freq[1] + 1e3*mat['DefaultAxisRefkHzTD2'][0][0][0][0]
         history = list(mat['History'][0][0])
-        masterData = sc.Spectrum(data, (filePath, None), freq, sw, spec, history=history)
+        masterData = sc.Spectrum(data, (filePath, None), freq, sw, spec, ref=ref, history=history)
         masterData.addHistory("MatNMR data loaded from " + filePath)
         return masterData
 
