@@ -1107,7 +1107,7 @@ def loadBrukerTopspin(filePath):
             pars.append(brukerTopspinGetPars(Dir + os.path.sep + File))
     SIZE = [x['TD'] for x in pars]
     FREQ = [x['SFO1'] * 1e6 for x in pars]
-    SW = [x['SW_h'] for x in pars]
+    SW = [x['SW']*x['SFO1'] for x in pars]
     REF = [x['O1'] for x in pars]
     ByteOrder = ['l', 'b'][pars[0]['BYTORDA']] #The byte orders that is used
     REF = list(- np.array(REF) + np.array(FREQ))
@@ -1182,7 +1182,7 @@ def loadBrukerImagingTime(filePath):
         SIZE.insert(1,pars['NI'])
     dim = len(SIZE)
     FREQ = [pars['SFO1']] * dim
-    SW = [pars['SW_h']] * dim
+    SW = [pars['SW'] * pars['SFO1']] * dim
     if pars['BYTORDA'] == 'little':
         ByteOrder = 'l'
     else:
@@ -1240,7 +1240,7 @@ def loadBrukerWinNMR(filePath):
         pars = brukerTopspinGetPars(base + names[1])
         SIZE = pars['TD']
         FREQ = pars['SFO1'] * 1e6
-        SW = pars['SW_h']
+        SW = pars['SW'] * pars['SFO1']
         REF = pars['O1']
         REF = - REF+ FREQ
         ByteOrder = ['l', 'b'][pars['BYTORDA']] #The byte orders that is used
