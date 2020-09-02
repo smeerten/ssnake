@@ -1483,8 +1483,8 @@ class Spectrum(object):
         Message = "Autophase: phase0 = " + str(phase0 * 180 / np.pi) + " and phase1 = " + str(phase1 * 180 / np.pi) + " for dimension " + str(axis + 1)
         self.addHistory(Message)
         if returnPhases:
-            if phaseNum == 0:
-                return [phases['x']]
+            if not phases['x'].ndim:
+                return phases['x'].reshape((1,))
             return phases['x']
         self.redoList = []
         if not self.noUndo:

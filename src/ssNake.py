@@ -3542,7 +3542,6 @@ class PhaseWindow(wc.ToolWindow):
             step = step / multiplier
         else:
             step = step * multiplier
-
         phase0 = step * phase0
         phase1 = step * phase1
         inp = safeEval(self.zeroEntry.text(), length=self.father.current.len(), Type='FI')
