@@ -879,7 +879,7 @@ def loadMatlabFile(filePath):
         else:
             hyper = None
         if 'dFilter' in mat.dtype.names:
-            dFilter = mat['dFilter']
+            dFilter = mat['dFilter'][0][0][0][0]
         else:
             dFilter = None
         data = []
