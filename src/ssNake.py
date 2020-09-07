@@ -8131,6 +8131,8 @@ if __name__ == '__main__':
     if not quit:
         mainProgram = MainProgram(root)
         mainProgram.setWindowTitle("ssNake - " + VERSION)
+        if len(sys.argv) > 1:
+            mainProgram.loadData([sys.argv[1]])
         mainProgram.show()
         if not error:
             splash.finish(mainProgram)
