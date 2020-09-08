@@ -61,11 +61,11 @@ def d2tens(b):
     d12 = -2 * sinb2 * cosb2**3
     # 2
     d22 = cosb2**4
-    d = np.array([[d22, d12, d02, dm12, dm22],
-                  [-d12, d11, d01, dm11, dm12],
-                  [d02, -d01, d00, d01, d02],
-                  [-dm12, dm11, -d01, d11, d12],
-                  [dm22, -dm12, d02, -d12, d22]])
+    d = np.array([[ d22,   d12,   d02,  dm12, dm22],
+                  [-d12,   d11,   d01,  dm11, dm12],
+                  [ d02,  -d01,   d00,  d01,  d02 ],
+                  [-dm12,  dm11, -d01,  d11,  d12 ],
+                  [ dm22, -dm12,  d02, -d12,  d22 ]])
     return np.rollaxis(d, 2, 0)
 
 def D2tens(a, b, g):
@@ -145,16 +145,16 @@ def d4tens(b):
     d34 = -2 * np.sqrt(2) * sinb2 * cosb2**7
     # 4
     d44 = cosb2**8
-    d = np.array([[d44, d34, d24, d14, d04, dm14, dm24, dm34, dm44],
-                  [-d34, d33, d23, d13, d03, dm13, dm23, dm33, dm34],
-                  [d24, -d23, d22, d12, d02, dm12, dm22, dm23, dm24],
-                  [-d14, d13, -d12, d11, d01, dm11, dm12, dm13, dm14],
-                  [d04, -d03, d02, -d01, d00, d01, d02, d03, d04],
-                  [-dm14, dm13, -dm12, dm11, -d01, d11, d12, d13, d14],
-                  [dm24, -dm23, dm22, -dm12, d02, -d12, d22, d23, d24],
-                  [-dm34, dm33, -dm23, dm13, -d03, d13, -d23, d33, d34],
-                  [dm44, -dm34, dm24, -dm14, d04, -d14, d24, -d34, d44]])
-    return np.rollaxis(d, 2, 0)
+    d = np.array([[d44,   d34,  d24,  d14,  d04, dm14, dm24, dm34, dm44],
+                  [-d34,  d33,  d23,  d13,  d03, dm13, dm23, dm33, dm34],
+                  [ d24, -d23,  d22,  d12,  d02, dm12, dm22, dm23, dm24],
+                  [-d14,  d13, -d12,  d11,  d01, dm11, dm12, dm13, dm14],
+                  [ d04, -d03,  d02, -d01,  d00, d01,  d02,  d03,  d04 ],
+                  [-dm14, dm13,-dm12, dm11,-d01, d11,  d12,  d13,  d14 ],
+                  [ dm24,-dm23, dm22,-dm12, d02,-d12,  d22,  d23,  d24 ],
+                  [-dm34, dm33,-dm23, dm13,-d03, d13, -d23,  d33,  d34 ],
+                  [ dm44,-dm34, dm24,-dm14, d04,-d14,  d24, -d34,  d44 ]])
+    return np.rollaxis(d, 2, 0) # make the b values lie along the first dim
 
 def D4tens(a, b, g):
     """
