@@ -8135,6 +8135,8 @@ if __name__ == '__main__':
         if not error:
             splash.finish(mainProgram)
         sys._excepthook = sys.excepthook
+        if len(sys.argv) > 1:
+            mainProgram.loadData(sys.argv[1:])
 
         def exception_hook(exctype, value, traceback):
             if not isinstance(value, Exception): # Do not catch keyboard interrupts
