@@ -1157,20 +1157,20 @@ def loadBrukerTopspin(filePath):
     FREQ = [x['SFO1'] * 1e6 for x in pars]
     SW = [x['SW']*x['SFO1'] for x in pars]
     REF = [x['O1'] for x in pars]
-    ByteOrder = ['l', 'b'][pars[0]['BYTORDA']] #The byte orders that is used
+    DtypeA = [np.dtype(np.int32), np.dtype(np.float32), np.dtype(np.float64)][pars[0]['DTYPA']] #The byte orders that is used
+    DtypeA = DtypeA.newbyteorder(['L', 'B'][pars[0]['BYTORDA']]) #The byte orders that is used 'L' =little endian, 'B' = big endian
     REF = list(- np.array(REF) + np.array(FREQ))
     dFilter = getBrukerFilter(pars[0])
     totsize = np.prod(SIZE)
     dim = len(SIZE)
-    directSize = int(np.ceil(float(SIZE[0]) / 256)) * 256 #Size of direct dimension including
-    #blocking size of 256 data points
+    directSize = int(np.ceil(float(SIZE[0]*DtypeA.itemsize) / 1024)) * 1024 #Size of direct dimension including
+    #blocking size of 1kb that is 256 int32 data points or 128 float64
     for file in ['fid', 'ser']:
         if os.path.exists(Dir + os.path.sep + file):
             if file == 'ser':
                 totsize = int(totsize / SIZE[0]) * directSize #Always load full 1024 byte blocks (256 data points) for >1D
             with open(Dir + os.path.sep + file, "rb") as f:
-                raw = np.fromfile(f, np.int32, totsize)
-            raw = raw.newbyteorder(ByteOrder) #Load with right byte order
+                raw = np.fromfile(f, DtypeA, totsize)
     ComplexData = np.array(raw[0:len(raw):2]) + 1j * np.array(raw[1:len(raw):2])
     if dim >= 2:
         newSize = list(SIZE)
@@ -1351,7 +1351,10 @@ def loadBrukerSpectrum(filePath):
     SW = [x['SW_p'] for x in pars]
     FREQ = [x['SF'] * 1e6 for x in pars]
     OFFSET = [x['OFFSET'] for x in pars]
-    ByteOrder = ['l', 'b'][pars[0]['BYTORDP']] #The byte orders that is used
+    DtypeP = [np.dtype(np.int32), np.dtype(np.float32), np.dtype(np.float64)][pars[0]['DTYPP']] #The byte orders that is used
+    DtypeP = DtypeP.newbyteorder(['L', 'B'][pars[0]['BYTORDP']]) 
+    # The byte orders that is used as stored in BYTORDP proc parameter:
+    #  '< or L' =little endian, '>' or 'B' = big endian
     REF = []
     for index, _ in enumerate(SIZE): #For each axis
         pos = np.fft.fftshift(np.fft.fftfreq(SIZE[index], 1.0 / SW[index]))[-1] #Get last point of axis
@@ -1365,8 +1368,7 @@ def loadBrukerSpectrum(filePath):
     for file in files[dim - 1]: # For all the files
         if os.path.exists(Dir + os.path.sep + file):
             with open(Dir + os.path.sep + file, "rb") as f:
-                raw = np.fromfile(f, np.int32, totsize)
-                raw = raw.newbyteorder(ByteOrder) # Set right byteorder
+                raw = np.fromfile(f, DtypeP, totsize)
                 if counter % 2 == 0: # If even, data is real part
                     DATA.append(np.flipud(raw))
                 else: # If odd, data is imag, and needs to be add to the previous
