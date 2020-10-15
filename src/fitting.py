@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright 2016 - 2019 Bas van Meerten and Wouter Franssen
+# Copyright 2016 - 2020 Bas van Meerten and Wouter Franssen
 
 # This file is part of ssNake.
 #
@@ -27,6 +27,7 @@ import copy
 import numpy as np
 import matplotlib as mpl
 from matplotlib.figure import Figure
+import matplotlib.patches as mppatches
 import scipy.optimize
 from safeEval import safeEval
 from views import Current1D, CurrentContour
@@ -37,6 +38,8 @@ import specIO as io
 import spectrum as sc
 from ssNake import SideFrame, VERSION, QtGui, QtCore, QtWidgets, FigureCanvas
 import Czjzek
+
+COLORCONVERTER = mpl.colors.ColorConverter()
 
 stopDict = {}  # Global dictionary with stopping commands for fits
 
@@ -113,6 +116,17 @@ class TabFittingWindow(QtWidgets.QWidget):
         grid3.setColumnStretch(0, 1)
         grid3.setRowStretch(0, 1)
 
+    def rename(self, name):
+        """
+        Renames the workspace.
+
+        Parameters
+        ----------
+        name : str
+            The new name of the workspace.
+        """
+        self.oldMainWindow.rename(name)
+        
     def getTabNames(self):
         """
         Returns a list of the tab names.
@@ -192,7 +206,7 @@ class TabFittingWindow(QtWidgets.QWidget):
                 self.tabs.removeTab(num)
                 del self.subFitWindows[num - 1]
 
-    def fitProcess(self, xax, data1D, guess, args, funcs):
+    def fitProcess(self, xax, data1D, maskList, guess, args, funcs):
         """
         Creates a new process to fit the spectra.
 
@@ -214,7 +228,7 @@ class TabFittingWindow(QtWidgets.QWidget):
             The results of the fit.
         """
         self.queue = multiprocessing.Queue()
-        self.process1 = multiprocessing.Process(target=mpFit, args=(xax, data1D, guess, args, self.queue, funcs, self.MINMETHOD, self.NUMFEVAL))
+        self.process1 = multiprocessing.Process(target=mpFit, args=(xax, data1D, maskList, guess, args, self.queue, funcs, self.MINMETHOD, self.NUMFEVAL))
         self.process1.start()
         self.running = True
         self.mainFitWindow.paramframe.stopButton.show()
@@ -283,16 +297,18 @@ class TabFittingWindow(QtWidgets.QWidget):
         value = self.mainFitWindow.paramframe.getFitParams()
         if value is None:
             return
-        xax, data1D, guess, args, out = value
+        xax, data1D, guess, args, out, mask = value
         xax = [xax]
         data1D = [data1D]
+        maskList = [mask]
         selectList = [slice(0, len(guess))]
         funcs = [self.mainFitWindow.paramframe.FITFUNC]
         for i in range(len(self.subFitWindows)):
-            xax_tmp, data1D_tmp, guess_tmp, args_tmp, out_tmp = self.subFitWindows[i].paramframe.getFitParams()
+            xax_tmp, data1D_tmp, guess_tmp, args_tmp, out_tmp, mask = self.subFitWindows[i].paramframe.getFitParams()
             xax.append(xax_tmp)
             selectList.append(slice(len(guess), len(guess) + len(guess_tmp)))
             data1D.append(data1D_tmp)
+            maskList.append(mask)
             funcs.append(self.subFitWindows[i].paramframe.FITFUNC)
             guess += guess_tmp
             new_args = ()
@@ -300,7 +316,7 @@ class TabFittingWindow(QtWidgets.QWidget):
                 new_args += (args[n] + args_tmp[n],)
             args = new_args  # tuples are immutable
         new_args = (selectList,) + args
-        allFitVal = self.fitProcess(xax, np.array(data1D), guess, new_args, funcs)
+        allFitVal = self.fitProcess(xax, np.array(data1D), maskList, guess, new_args, funcs)
         if allFitVal is None:
             return
         allFitVal = allFitVal['x']
@@ -649,6 +665,7 @@ class FittingWindow(QtWidgets.QWidget):
         self.canvas = FigureCanvas(self.fig)
         grid = QtWidgets.QGridLayout(self)
         grid.addWidget(self.canvas, 0, 0)
+        self.paramframe = None
         self.current = FITTYPEDICT[self.fitType][1](self, self.fig, self.canvas, self.oldMainWindow.get_current())
         self.paramframe = FITTYPEDICT[self.fitType][2](self.current, self, isMain=self.isMain)
         self.buttonPress = self.current.buttonPress                # Connect functions
@@ -760,18 +777,6 @@ class FittingWindow(QtWidgets.QWidget):
                                         np.append(None, self.current.data1D.ref),
                                         [np.arange(len(data))] + self.current.data1D.xaxArray,
                                         0)
-
-    def rename(self, name):
-        """
-        Renames the workspace.
-
-        Parameters
-        ----------
-        name : str
-            The new name of the workspace.
-        """
-        self.canvas.draw()
-        self.oldMainWindow.rename(name)
 
     def get_mainWindow(self):
         """
@@ -903,6 +908,25 @@ class FitPlotFrame(Current1D):
             super(FitPlotFrame, self).showFid(extraX=extraX, extraY=extraY, extraColor=colorList)
         else:
             super(FitPlotFrame, self).showFid(extraX=extraX, extraY=extraY)
+        if self.rootwindow.paramframe is not None:
+            self.showRemoveList()
+
+    def showRemoveList(self):
+        """
+        Display the regions excluded from the fit.
+        """
+        removeLimits = self.rootwindow.paramframe.removeLimits[self.getRedLocList()]
+        axMult = self.getCurrentAxMult()
+        lineColor = 'r'
+        if removeLimits['invert']:
+            lineColor = 'w'
+            self.ax.axvspan(self.xax()[0]*axMult, self.xax()[-1]*axMult, color='r')
+        for limits in removeLimits['limits']:
+            if len(limits[0]) == 1:
+                self.ax.axvline(limits[0][0]*axMult, c=lineColor, linestyle='--')
+            else:
+                self.ax.axvspan(min(limits[0])*axMult, max(limits[0])*axMult, color=lineColor)
+        self.canvas.draw()
 
 #################################################################################
 
@@ -920,6 +944,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
     FFT_AXES = ()       # Which axes should be transformed after simulation
     FFTSHIFT_AXES = ()  # Which axes should be transformed after simulation
     DIM = 1             # Number of dimensions of the fit
+    FUNC_LABEL = None   # Function string to show in the window
 
     def __init__(self, parent, rootwindow, isMain=True):
         """
@@ -946,6 +971,9 @@ class AbstractParamFrame(QtWidgets.QWidget):
         tmp = np.delete(tmp, self.parent.axes)
         self.fitParamList = np.zeros(tmp, dtype=object)
         self.fitNumList = np.zeros(tmp, dtype=int)
+        self.removeLimits = np.empty(tmp, dtype=object)
+        for elem in np.nditer(self.removeLimits, flags=["refs_ok"], op_flags=['readwrite']):
+            elem[...] = {'invert' : False, 'limits': []}
         grid = QtWidgets.QGridLayout(self)
         self.setLayout(grid)
         self.axMult = self.parent.getAxMult(self.parent.spec(),
@@ -966,7 +994,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.optframe = QtWidgets.QGridLayout()
         self.frame2 = QtWidgets.QGridLayout()
         self.frame3 = QtWidgets.QGridLayout()
-        grid.addLayout(self.frame1, 0, 0)
+        grid.addLayout(self.frame1, 0, 0, 2, 1)
         paramgrid = QtWidgets.QGridLayout()
         paramgrid.addLayout(self.optframe, 0, 0)
         paramgrid.addLayout(self.frame2, 0, 1)
@@ -977,7 +1005,11 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.scrollArea = QtWidgets.QScrollArea()
         self.scrollArea.setWidgetResizable(True)
         self.scrollArea.setWidget(self.gridLayoutWidget)
-        grid.addWidget(self.scrollArea, 0, 1)
+        if self.FUNC_LABEL is not None:
+            grid.addWidget(QtWidgets.QLabel(self.FUNC_LABEL), 0, 1)
+            grid.addWidget(self.scrollArea, 1, 1)
+        else:
+            grid.addWidget(self.scrollArea, 0, 1, 2, 1)
         grid.setColumnStretch(1, 1)
         grid.setAlignment(QtCore.Qt.AlignLeft)
         self.frame1.setAlignment(QtCore.Qt.AlignTop)
@@ -1020,7 +1052,10 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.frame1.addWidget(copyParamsButton, 2, 0,)
         exportResultButton = QtWidgets.QPushButton("Export/Import")
         exportResultButton.clicked.connect(self.exportResultWindow)
-        self.frame1.addWidget(exportResultButton, 3, 0, 1, 2)
+        self.frame1.addWidget(exportResultButton, 3, 0)
+        excludeButton = QtWidgets.QPushButton("Exclude")
+        excludeButton.clicked.connect(self.createExcludeWindow)
+        self.frame1.addWidget(excludeButton, 3, 1)
         if self.isMain:
             cancelButton = QtWidgets.QPushButton("&Cancel")
             cancelButton.clicked.connect(self.closeWindow)
@@ -1028,6 +1063,14 @@ class AbstractParamFrame(QtWidgets.QWidget):
             cancelButton = QtWidgets.QPushButton("&Delete")
             cancelButton.clicked.connect(self.rootwindow.removeSpectrum)
         self.frame1.addWidget(cancelButton, 4, 0, 1, 2)
+        rmsdFrame = QtWidgets.QGridLayout()
+        self.frame1.addLayout(rmsdFrame, 5, 0, 1, 2)
+        self.rmsdLabel = QtWidgets.QLabel('RMSD:')
+        rmsdFrame.addWidget(self.rmsdLabel, 0, 0)
+        self.rmsdEdit = wc.QLineEdit()
+        self.rmsdEdit.setReadOnly(True)
+        rmsdFrame.addWidget(self.rmsdEdit, 0, 1)
+        self.setRMSD()
         self.checkFitParamList(self.getRedLocList())
 
     def togglePick(self):
@@ -1080,6 +1123,21 @@ class AbstractParamFrame(QtWidgets.QWidget):
                 tmpVal[name] = np.repeat([np.array([0.0, False], dtype=object)], self.FITNUM, axis=0)
         return tmpVal
 
+    def setRMSD(self, val=None):
+        """
+        Set the RMSD label to val.
+
+        Parameters
+        ----------
+        val : float
+            RMSD values
+        """
+        if val is None:
+            self.rmsdEdit.setText("")
+        else:
+            self.rmsdEdit.setText(('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % val)
+            self.rmsdEdit.setCursorPosition(0)
+    
     def addMultiLabel(self, name, text, num):
         """
         Creates a label for a parameter with multiple sites and adds it to frame3.
@@ -1141,6 +1199,8 @@ class AbstractParamFrame(QtWidgets.QWidget):
             elem[...] = copy.deepcopy(self.fitParamList[locList])
         for elem in np.nditer(self.fitNumList, flags=["refs_ok"], op_flags=['readwrite']):
             elem[...] = self.fitNumList[locList]
+        for elem in np.nditer(self.removeLimits, flags=["refs_ok"], op_flags=['readwrite']):
+            elem[...] = self.removeLimits[locList]
 
     def dispParams(self):
         """
@@ -1288,7 +1348,8 @@ class AbstractParamFrame(QtWidgets.QWidget):
         out, extraArgu = self.getExtraParams(out)
         argu.append(extraArgu)
         args = ([numExp], [struc], [argu], [self.parent.data1D.freq], [self.parent.data1D.sw], [self.axMult], [self.FFT_AXES], [self.FFTSHIFT_AXES], [self.SINGLENAMES], [self.MULTINAMES])
-        return (self.parent.data1D.xaxArray[-self.DIM:], self.parent.getData1D(), guess, args, out)
+        mask = self.genMask()
+        return (self.parent.data1D.xaxArray[-self.DIM:], self.parent.getData1D(), guess, args, out, mask)
 
     def setResults(self, fitVal, args):
         """
@@ -1371,6 +1432,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
                 printLocList[i] = '*'
             else:
                 printLocList[i] = str(printLocList[i])
+        locList = self.getRedLocList()
         printLocList = "(" + ", ".join(printLocList) + ")"
         report = "#########" + '#'*len(VERSION) + "##\n"
         report += "# ssNake " + VERSION + " #\n"
@@ -1380,14 +1442,21 @@ class AbstractParamFrame(QtWidgets.QWidget):
         report += "# Saved: " + datetime.datetime.now().strftime("%y-%m-%d %H:%M:%S") + "\n"
         report += "# Data: " + self.parent.data.name + "\n"
         report += "# Trace: " + printLocList + "\n"
-        report += "# Dimension: D" + str(self.parent.axes[-1]+1) + "\n#\n"
+        report += "# Dimension: D" + str(self.parent.axes[-1]+1) + "\n"
+        if self.removeLimits[locList]["limits"]:
+            report += "# Excluded: "
+            limitStr = str(self.removeLimits[locList]["limits"])
+            limitStr = limitStr.replace("\n", "").replace("\r", "")
+            report += limitStr + "\n"
+        if self.removeLimits[locList]["invert"]:
+            report += "# Excluded: invert \n"            
+        report += "#\n"
         extraParam, postParam = self.extraParamToFile()
         # TODO: order of extra params
         for key in extraParam:
             report += "#! " + key + '=' + str(extraParam[key]) + "\n"
         report += "#\n#? "
         nspace = 20
-        locList = self.getRedLocList()
         for name in self.SINGLENAMES:
             report += name.ljust(nspace) + " "
         report += "\n  "
@@ -1456,11 +1525,17 @@ class AbstractParamFrame(QtWidgets.QWidget):
         splitReport = re.split("#\?", splitReport[0])
         preReport = splitReport[0].split('\n')
         preParams = {}
+        removeLimits = {'invert' : False, 'limits': []}
         for line in preReport:
             tmp = line.strip()
-            if re.match("#!", tmp):
+            if tmp.startswith("#!"):
                 tmp = tmp[2:].strip().split('=')
                 preParams[tmp[0].strip()] = tmp[1].strip()
+            elif tmp.startswith("# Excluded:"):
+                if "invert" in tmp:
+                    removeLimits["invert"] = True
+                else:
+                    removeLimits["limits"] = safeEval(tmp.split(":")[1])
         singleReport = splitReport[1].split('\n')
         multiReport = splitReport[2].split('\n')
         singleNames = singleReport[0].split()
@@ -1480,8 +1555,9 @@ class AbstractParamFrame(QtWidgets.QWidget):
                 multiVals.append(tmp.split())
         multiVals = self.__interpretParam(multiVals)
         self.extraFileToParam(preParams, postParams)
-        self.setParamFromList(singleNames, singleVals, multiNames, multiVals)
+        self.setParamFromList(singleNames, singleVals, multiNames, multiVals, removeLimits)
         self.dispParams()
+        self.parent.showFid()
         return True
 
     def __interpretParam(self, strList):
@@ -1510,7 +1586,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
             data.append(tmp)
         return data
 
-    def setParamFromList(self, singleNames, singleVals, multiNames, multiVals):
+    def setParamFromList(self, singleNames, singleVals, multiNames, multiVals, removeLimits=None):
         """
         Set the values in the fit parameter list to the given values.
 
@@ -1524,6 +1600,8 @@ class AbstractParamFrame(QtWidgets.QWidget):
             The names of the parameters for individual sites.
         multiVals : list
             The fit values corresponding to multiNames.
+        removeLimits : dict, optional
+            The removeLimits for these parameters. When None no changes are made to the limits.
         """
         locList = self.getRedLocList()
         keys = self.fitParamList[locList].keys()
@@ -1541,6 +1619,8 @@ class AbstractParamFrame(QtWidgets.QWidget):
                 if multiNames[i] in keys:
                     self.fitParamList[locList][multiNames[i]][j] = multiVals[j][i]
         self.fitNumList[locList] = len(multiVals) - 1
+        if removeLimits is not None:
+            self.removeLimits[locList] = removeLimits
 
     def paramToWorkspaceWindow(self):
         """
@@ -1712,7 +1792,11 @@ class AbstractParamFrame(QtWidgets.QWidget):
     def createPrefWindow(self, *args):
         PrefWindow(self.rootwindow.tabWindow)
 
+    def createExcludeWindow(self, *args):
+        ExcludeWindow(self)
+
     def getDispX(self, *args):
+        # Only one dimensional data can have an x-axis which has additional datapoints
         return self.parent.data1D.xaxArray[-self.DIM:]
 
     def disp(self, params, num, display=True):
@@ -1778,11 +1862,39 @@ class AbstractParamFrame(QtWidgets.QWidget):
         locList = self.getRedLocList()
         self.parent.fitDataList[locList] = [plotx, outCurve, x, outCurvePart]
         if display:
+            if self.DIM == 1: # One dimensional data can have additional datapoints for plot
+                if len(plotx) > len(self.parent.xax()):
+                    rmsd = np.sum((outCurve[np.searchsorted(plotx, self.parent.xax())] - self.parent.getData1D())**2)
+                else:
+                    rmsd = np.sum((outCurve - self.parent.getData1D())**2)
+            else:
+                rmsd = np.sum((outCurve - self.parent.getData1D())**2)
+            rmsd = np.sqrt(rmsd/float(self.parent.getData1D().size))
+            self.setRMSD(rmsd)
             self.parent.showFid()
 
+    def genMask(self):
+        removeLimits = self.removeLimits[self.getRedLocList()]
+        if not removeLimits['limits']:
+            return 1.0
+        else:
+            mask = np.ones_like(self.parent.getData1D())
+            tmpx = self.parent.data1D.xaxArray[-self.DIM:]
+            for limits in removeLimits['limits']:
+                sliceTuple = tuple()
+                for i, xax in enumerate(tmpx):
+                    minInd = np.searchsorted(xax, min(limits[i]))
+                    maxInd = np.searchsorted(xax, max(limits[i]))
+                    sliceTuple += (slice(minInd, maxInd),)
+                mask[sliceTuple] = 0.0
+            if removeLimits['invert']:
+                mask = np.abs(mask-1.0)
+            return mask
+            
+            
 ##############################################################################
 
-def lstSqrs(dataList, *args):
+def lstSqrs(dataList, maskList, *args):
     """
     Simulates spectra and calculates the least squares value with a given list of data.
 
@@ -1803,10 +1915,10 @@ def lstSqrs(dataList, *args):
         return np.inf
     costValue = 0
     for i,_ in enumerate(dataList):
-        costValue += np.sum((dataList[i] - simData[i])**2)
+        costValue += np.sum(maskList[i]*(dataList[i] - simData[i])**2)
     return costValue
 
-def mpFit(xax, data1D, guess, args, queue, funcs, minmethod, numfeval):
+def mpFit(xax, data1D, maskList, guess, args, queue, funcs, minmethod, numfeval):
     """
     The minimization function running in an separate process.
 
@@ -1833,7 +1945,7 @@ def mpFit(xax, data1D, guess, args, queue, funcs, minmethod, numfeval):
         The maximum number of function evaluations.
     """
     try:
-        fitVal = scipy.optimize.minimize(lambda *param: lstSqrs(data1D, funcs, param, xax, args), guess, method=minmethod, options={'maxfev': numfeval})
+        fitVal = scipy.optimize.minimize(lambda *param: lstSqrs(data1D, maskList, funcs, param, xax, args), guess, method=minmethod, options={'maxfev': numfeval})
     except simFunc.SimException as e:
         fitVal = str(e)
     except Exception:
@@ -1994,6 +2106,109 @@ class PrefWindow(QtWidgets.QWidget):
 ##############################################################################
 
 
+class ExcludeWindow(QtWidgets.QWidget):
+    """
+    Window for excluding regions from the fit.
+    """
+
+    def __init__(self, paramFrame):
+        """
+        Initializes the exclude window.
+
+        Parameters
+        ----------
+        paramFrame : AbstractParamFrame
+            The parameter frame from which the exclude window was opened.
+        """
+        super(ExcludeWindow, self).__init__(paramFrame)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.Tool)
+        self.paramFrame = paramFrame
+        self.setWindowTitle("Exclude")
+        layout = QtWidgets.QGridLayout(self)
+        grid = QtWidgets.QGridLayout()
+        layout.addLayout(grid, 0, 0, 1, 2)
+        resetButton = QtWidgets.QPushButton("&Reset")
+        resetButton.clicked.connect(self.reset)
+        grid.addWidget(resetButton, 0, 0)
+        self.invertButton = QtWidgets.QCheckBox("Invert selection")
+        self.invertButton.stateChanged.connect(self.invert)
+        grid.addWidget(self.invertButton, 4, 0, 1, 2)
+        cancelButton = QtWidgets.QPushButton("&Cancel")
+        cancelButton.clicked.connect(self.closeEvent)
+        layout.addWidget(cancelButton, 4, 0)
+        okButton = QtWidgets.QPushButton("&Ok", self)
+        okButton.clicked.connect(self.applyAndClose)
+        okButton.setFocus()
+        layout.addWidget(okButton, 4, 1)
+        grid.setRowStretch(100, 1)
+        self.show()
+        self.setGeometry(self.frameSize().width() - self.geometry().width(), self.frameSize().height() - self.geometry().height(), 0, 0)
+        self.paramFrame.parent.peakPickFunc = lambda pos, self=self: self.picked(pos)
+        if self.paramFrame.DIM == 1:
+            self.paramFrame.parent.peakPick = 1
+        else:
+            self.paramFrame.parent.peakPick = 2
+        self.removeLimits = self.paramFrame.removeLimits[self.paramFrame.getRedLocList()]
+        self.backupRemoveLimits = copy.deepcopy(self.removeLimits)
+
+    def picked(self, pos):
+        axMult = self.paramFrame.parent.getCurrentAxMult()
+        if self.paramFrame.DIM == 1:
+            if not self.removeLimits['limits']:
+                self.removeLimits['limits'].append([[pos[1]/axMult]])
+            elif len(self.removeLimits['limits'][-1][0]) == 1:
+                self.removeLimits['limits'][-1][0].append(pos[1]/axMult)
+            else:
+                self.removeLimits['limits'].append([[pos[1]/axMult]])
+        elif self.paramFrame.DIM == 2:
+            axMult2 = self.paramFrame.parent.getCurrentAxMult(-2)
+            if not self.removeLimits['limits']:
+                self.removeLimits['limits'].append([[pos[4]/axMult2],[pos[1]/axMult]])
+            elif len(self.removeLimits['limits'][-1][0]) == 1:
+                self.removeLimits['limits'][-1][0].append(pos[4]/axMult2)
+                self.removeLimits['limits'][-1][1].append(pos[1]/axMult)
+            else:
+                self.removeLimits['limits'].append([[pos[4]/axMult2],[pos[1]/axMult]])
+        self.preview()
+
+    def preview(self):
+        self.paramFrame.parent.showFid()
+        self.paramFrame.parent.peakPickFunc = lambda pos, self=self: self.picked(pos)
+        if self.paramFrame.DIM == 1:
+            self.paramFrame.parent.peakPick = 1
+        else:
+            self.paramFrame.parent.peakPick = 2
+        
+    def reset(self):
+        """
+        Resets the exclude regions
+        """
+        self.removeLimits['limits'] = []
+        self.removeLimits['invert'] = False
+        self.preview()
+
+    def invert(self, *args):
+        self.removeLimits['invert'] = self.invertButton.isChecked()
+        self.preview()
+        
+    def closeEvent(self, *args):
+        """
+        Closes the window.
+        """
+        self.paramFrame.removeLimits[self.paramFrame.getRedLocList()] = self.backupRemoveLimits
+        self.paramFrame.parent.showFid()
+        self.deleteLater()
+
+    def applyAndClose(self, *args):
+        """
+        Sets the exclude regions and closes.
+        """
+        self.paramFrame.parent.showFid()
+        self.deleteLater()
+        
+##############################################################################
+
+
 class RelaxFrame(FitPlotFrame):
 
     MARKER = 'o'
@@ -2006,6 +2221,7 @@ class RelaxParamFrame(AbstractParamFrame):
 
     SINGLENAMES = ['Amplitude', 'Constant']
     MULTINAMES = ['Coefficient', 'T']
+    FUNC_LABEL = "Amplitude * (Constant + Coefficient * exp(-x / abs(T)))"
 
     def __init__(self, parent, rootwindow, isMain=True):
         """
@@ -2096,7 +2312,8 @@ class RelaxParamFrame(AbstractParamFrame):
             x = np.logspace(np.log(minx), np.log(maxx), numCurve)
         else:
             x = np.linspace(minx, maxx, numCurve)
-        return [x]
+        x = np.concatenate((x, realx))
+        return [np.sort(x)]
 
     def checkResults(self, numExp, struc):
         """
@@ -2115,6 +2332,7 @@ class DiffusionParamFrame(AbstractParamFrame):
 
     SINGLENAMES = ['Amplitude', 'Constant']
     MULTINAMES = ['Coefficient', 'D']
+    FUNC_LABEL = u"Amplitude * (Constant + Coefficient * exp(-(γ * δ * x)² * D * (Δ - δ / 3.0)))"
 
     def __init__(self, parent, rootwindow, isMain=True):
         """
@@ -2242,7 +2460,8 @@ class DiffusionParamFrame(AbstractParamFrame):
             x = np.logspace(np.log(minx), np.log(maxx), numCurve)
         else:
             x = np.linspace(minx, maxx, numCurve)
-        return [x]
+        x = np.concatenate((x, realx))
+        return [np.sort(x)]
 
     def checkResults(self, numExp, struc):
         """
@@ -2459,7 +2678,7 @@ class CsaDeconvParamFrame(AbstractParamFrame):
         self.entries['spinType'][-1].addItems(self.MASTYPES)
         self.entries['spinType'][-1].currentIndexChanged.connect(self.MASChange)
         self.optframe.addWidget(self.entries['spinType'][-1], 1, 0)
-        self.angleLabel = wc.QLabel("Rotor Angle:")
+        self.angleLabel = wc.QLabel("Rotor Angle [rad]:")
         self.optframe.addWidget(self.angleLabel, 2, 1)
         self.entries['angle'].append(wc.QLineEdit())
         self.entries['angle'][-1].setEnabled(False)
@@ -2798,7 +3017,7 @@ class QuadDeconvParamFrame(AbstractParamFrame):
         self.optframe.addWidget(self.entries['spinType'][-1], 3, 0)
         self.entries['satBool'].append(QtWidgets.QCheckBox("Satellites"))
         self.optframe.addWidget(self.entries['satBool'][-1], 4, 0)
-        self.angleLabel = wc.QLabel("Rotor Angle:")
+        self.angleLabel = wc.QLabel("Rotor Angle [rad]:")
         self.optframe.addWidget(self.angleLabel, 2, 1)
         self.entries['angle'].append(wc.QLineEdit())
         self.optframe.addWidget(self.entries['angle'][-1], 3, 1)
@@ -3015,7 +3234,7 @@ class QuadCSADeconvParamFrame(AbstractParamFrame):
         self.optframe.addWidget(self.entries['spinType'][-1], 3, 0)
         self.entries['satBool'].append(QtWidgets.QCheckBox("Satellites"))
         self.optframe.addWidget(self.entries['satBool'][-1], 6, 0)
-        self.angleLabel = wc.QLabel("Rotor Angle:")
+        self.angleLabel = wc.QLabel("Rotor Angle [rad]:")
         self.optframe.addWidget(self.angleLabel, 2, 1)
         self.entries['angle'].append(wc.QLineEdit())
         self.optframe.addWidget(self.entries['angle'][-1], 3, 1)
@@ -3401,7 +3620,7 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
             self.masEntry.addItems(self.MASTYPES)
             self.masEntry.currentIndexChanged.connect(self.MASChange)
             grid.addWidget(self.masEntry, 9, 0)
-            self.angleLabel = wc.QLabel("Rotor Angle:")
+            self.angleLabel = wc.QLabel("Rotor Angle [rad]:")
             self.angleLabel.setEnabled(False)
             grid.addWidget(self.angleLabel, 8, 1)
             self.angleEntry = wc.QLineEdit(self.father.angle)
@@ -4017,7 +4236,11 @@ class ExternalFitDeconvParamFrame(AbstractParamFrame):
         """
         matches = np.unique(re.findall("(@\w+@)", inFile))
         self.script = inFile
-        for n in self.SINGLENAMES+self.MULTINAMES:
+        for n in self.SINGLENAMES:
+            self.labels[n][0].deleteLater()
+            self.ticks[n][0].deleteLater()
+            self.entries[n][0].deleteLater()
+        for n in self.MULTINAMES:
             self.labels[n][0].deleteLater()
             self.labels[n][1].deleteLater()
             for i in range(self.FITNUM):
@@ -4028,15 +4251,15 @@ class ExternalFitDeconvParamFrame(AbstractParamFrame):
         for name in self.MULTINAMES:
             self.DEFAULTS[name] = [0.0, False]
         self.MULTINAMES.extend(["Integral", "Lorentz", "Gauss"])
-        self.labels = {}
+        self.labels = {"Offset": [wc.QLabel("Offset:")], "Multiplier": [wc.QLabel("Multiplier:")]}
         self.ticks = {"Offset": [], "Multiplier": []}
         self.entries = {"Offset": [], "Multiplier": []}
-        self.frame2.addWidget(wc.QLabel("Offset:"), 1, 0, 1, 2)
+        self.frame2.addWidget(self.labels["Offset"][0], 1, 0, 1, 2)
         self.ticks["Offset"].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks["Offset"][-1], 2, 0)
         self.entries["Offset"].append(wc.QLineEdit("0.0"))
         self.frame2.addWidget(self.entries["Offset"][-1], 2, 1)
-        self.frame2.addWidget(wc.QLabel("Multiplier:"), 3, 0, 1, 2)
+        self.frame2.addWidget(self.labels["Multiplier"][0], 3, 0, 1, 2)
         self.ticks["Multiplier"].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks["Multiplier"][-1], 4, 0)
         self.entries["Multiplier"].append(wc.QLineEdit("1.0"))
@@ -4290,9 +4513,40 @@ class FitContourFrame(CurrentContour, FitPlotFrame):
                 extraY.append(tmp[2][i][0])
                 extraZ.append(tmp[3][i])
         if mpl.__version__[0] > '1':
-            super(FitContourFrame, self).showFid(extraX=extraX, extraY=extraY, extraZ=extraZ, extraColor=['C'+str((x+1)%10) for x in range(len(extraX))])
+            super(FitContourFrame, self).showFid(extraX=extraX, extraY=extraY, extraZ=extraZ, extraColor=[COLORCONVERTER.to_rgb('C'+str((x+1)%10)) for x in range(len(extraX))])
         else:
-            super(FitContourFrame, self).showFid(extraX=extraX, extraY=extraY, extraZ=extraZ, extraColor=['g'])
+            super(FitContourFrame, self).showFid(extraX=extraX, extraY=extraY, extraZ=extraZ, extraColor=[COLORCONVERTER.to_rgb('g')])
+        if self.rootwindow.paramframe is not None:
+            self.showRemoveList()
+
+    def showRemoveList(self):
+        """
+        Display the regions excluded from the fit.
+        """
+        removeLimits = self.rootwindow.paramframe.removeLimits[self.getRedLocList()]
+        axMult = self.getCurrentAxMult()
+        axMult2 = self.getCurrentAxMult(-2)
+        lineColor = 'r'
+        if removeLimits['invert']:
+            lineColor = 'w'
+            minx = np.min(self.xax())*axMult
+            maxx = np.max(self.xax())*axMult
+            miny = np.min(self.xax(-2))*axMult2
+            maxy = np.max(self.xax(-2))*axMult2
+            patch = mppatches.Rectangle((minx,miny), maxx-minx, maxy-miny, color='r')
+            self.ax.add_patch(patch)
+        for limits in removeLimits['limits']:
+            if len(limits[0]) == 1:
+                self.ax.axhline(limits[0][0]*axMult2, c=lineColor, linestyle='--')
+                self.ax.axvline(limits[1][0]*axMult, c=lineColor, linestyle='--')
+            else:
+                minx = min(limits[1])*axMult
+                maxx = max(limits[1])*axMult
+                miny = min(limits[0])*axMult2
+                maxy = max(limits[0])*axMult2
+                patch = mppatches.Rectangle((minx,miny), maxx-minx, maxy-miny, color=lineColor)
+                self.ax.add_patch(patch)
+        self.canvas.draw()
 
 ##############################################################################
 
@@ -4342,7 +4596,7 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         self.entries['spinType'][-1].addItems(self.MASTYPES)
         self.entries['spinType'][-1].currentIndexChanged.connect(self.MASChange)
         self.optframe.addWidget(self.entries['spinType'][-1], 3, 0)
-        self.angleLabel = wc.QLabel("Rotor Angle:")
+        self.angleLabel = wc.QLabel("Rotor Angle [rad]:")
         self.optframe.addWidget(self.angleLabel, 6, 0)
         self.entries['angle'].append(wc.QLineEdit())
         self.optframe.addWidget(self.entries['angle'][-1], 7, 0)

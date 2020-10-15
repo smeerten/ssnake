@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2016 - 2019 Bas van Meerten and Wouter Franssen
+# Copyright 2016 - 2020 Bas van Meerten and Wouter Franssen
 
 # This file is part of ssNake.
 #
@@ -194,6 +194,10 @@ def loadFile(filePath, realpath=False, asciiInfo=None):
         masterData = loadMestreC(filePath)
     elif num == 17:
         masterData = loadBrukerImaging(filePath)
+    elif num == 18:
+        masterData = loadBrukerImagingTime(filePath)
+    elif num == 19:
+        masterData = loadDMfit(filePath)
     masterData.rename(name)
     return masterData
 
@@ -227,7 +231,7 @@ def fileTypeCheck(filePath):
             if check == 0:
                 return 8, filePath  # Suspected NMRpipe format
             return 4, filePath # SIMPSON
-        if filename.endswith('.ft') or filename.endswith('.ft1') or filename.endswith('.ft2') or filename.endswith('.ft3') or filename.endswith('.ft4'):
+        if filename.endswith(('.ft', '.ft1', '.ft2', '.ft3', '.ft4')):
             with open(filePath, 'r') as f:
                 check = int(np.fromfile(f, np.float32, 1))
             if check == 0:
@@ -238,16 +242,21 @@ def fileTypeCheck(filePath):
             return 6, filePath
         elif filename.endswith('.jdf'):  # JEOL delta format
             return 9, filePath
-        elif filename.endswith('.dx') or filename.endswith('.jdx') or filename.endswith('.jcamp'):  # JCAMP format
+        elif filename.endswith(('.dx', '.jdx', '.jcamp')):  # JCAMP format
             return 10, filePath
         elif filename.endswith('.sig'):  # Bruker minispec
             return 12, filePath
         elif filename.lower().endswith('.ima'):  # Siemens ima format
             return 14, filePath
-        elif filename.lower().endswith('.1r') or filename.lower().endswith('.1i'):  # Bruker WinNMR format
+        elif filename.lower().endswith(('.1r', '.1i')):  # Bruker WinNMR format
             return 15, filePath
         elif filename.lower().endswith('.mrc'):  # MestreC
             return 16, filePath
+        elif filename.lower().lower().endswith('.txt'):
+            with open(filePath, 'r') as f:
+                check = (f.readline()[:3] == 'ti:' and f.readline()[:6] == '##freq')
+            if check:
+                return 19, filePath
         direc = os.path.dirname(filePath)
     if os.path.exists(direc + os.path.sep + 'procpar') and os.path.exists(direc + os.path.sep + 'fid'):
         return 0, direc
@@ -256,6 +265,8 @@ def fileTypeCheck(filePath):
         return 0, direc
     elif os.path.exists(direc + os.path.sep + 'acqus') and (os.path.exists(direc + os.path.sep + 'fid') or os.path.exists(direc + os.path.sep + 'ser')):
         return 1, direc
+    elif os.path.exists(direc + os.path.sep + 'acqp') and os.path.exists(direc + os.path.sep + 'fid'):
+        return 18, direc
     elif os.path.exists(direc + os.path.sep + 'procs') and (os.path.exists(direc + os.path.sep + '1r') or os.path.exists(direc + os.path.sep + '2rr') or os.path.exists(direc + os.path.sep + '3rrr')):
         return 7, direc
     elif os.path.exists(direc + os.path.sep + 'procs') and os.path.exists(direc + os.path.sep + 'd3proc') and os.path.exists(direc + os.path.sep + '2dseq'):
@@ -835,6 +846,7 @@ def saveMatlabFile(filePath, spectrum, name='spectrum'):
     matlabStruct = {name: struct}
     scipy.io.savemat(filePath, matlabStruct)
 
+    
 def loadMatlabFile(filePath):
     """
     Loads a ssNake .mat file.
@@ -857,6 +869,8 @@ def loadMatlabFile(filePath):
         matlabStruct = scipy.io.loadmat(filePath)
         var = [k for k in matlabStruct.keys() if not k.startswith('__')][0]
         mat = matlabStruct[var]
+        if not 'data' in mat.dtype.names and not 'xaxArray' in mat.dtype.names and not 'ref' in mat.dtype.names:
+            return loadMatNMRFile(filePath)
         if 'hyper' in mat.dtype.names:
             if len(mat['hyper'][0, 0]) == 0:
                 hyper = [0]
@@ -865,7 +879,7 @@ def loadMatlabFile(filePath):
         else:
             hyper = None
         if 'dFilter' in mat.dtype.names:
-            dFilter = mat['dFilter']
+            dFilter = mat['dFilter'][0][0][0][0]
         else:
             dFilter = None
         data = []
@@ -970,7 +984,6 @@ def loadMatlabFile(filePath):
             for val in names:
                 tmp = ''.join([chr(x) for x in mat['metaData'][val].value.flatten()])
                 metaData[val] = tmp
-
         masterData = sc.Spectrum(hc.HComplexData(data, hyper),
                                  (filePath, None),
                                  list(np.array(mat['freq'])[:, 0]),
@@ -986,6 +999,52 @@ def loadMatlabFile(filePath):
         return masterData
 
 
+def loadMatNMRFile(filePath):
+    """
+    Loads a MatNMR .mat file.
+
+    Parameters
+    ----------
+    filePath: string
+        Path to the file that should be loaded
+
+    Returns
+    -------
+    SpectrumClass
+        SpectrumClass object of the loaded data
+    """
+    import scipy.io
+    with open(filePath, 'rb') as inputfile:  # read first several bytes the check .mat version
+        teststring = inputfile.read(13)
+    version = float(teststring.decode("utf-8")[7:10])  # extract version from the binary array
+    if version < 7.3:  # all versions below 7.3 are supported
+        matlabStruct = scipy.io.loadmat(filePath)
+        var = [k for k in matlabStruct.keys() if not k.startswith('__')][0]
+        mat = matlabStruct[var]
+        data = np.array(mat['Spectrum'][0][0])
+        if len(data) == 1:
+            data = data[0]
+            freq = [mat['SpectralFrequencyTD2'][0][0][0][0] * 1e6]
+            sw = [mat['SweepWidthTD2'][0][0][0][0] * 1e3]
+            spec = [mat['FIDstatusTD2'][0][0][0][0] == 1]
+            ref = None
+            if mat['DefaultAxisRefkHzTD2'][0][0][0][0]:
+                ref = [freq[0] + 1e3*mat['DefaultAxisRefkHzTD2'][0][0][0][0]]
+        else:
+            freq = [mat['SpectralFrequencyTD1'][0][0][0][0] * 1e6, mat['SpectralFrequencyTD2'][0][0][0][0] * 1e6]
+            sw = [mat['SweepWidthTD1'][0][0][0][0] * 1e3, mat['SweepWidthTD2'][0][0][0][0] * 1e3]
+            spec = [mat['FIDstatusTD1'][0][0][0][0] == 1, mat['FIDstatusTD2'][0][0][0][0] == 1]
+            ref = [None, None]
+            if mat['DefaultAxisRefkHzTD1'][0][0][0][0]:
+                ref[0] = freq[0] + 1e3*mat['DefaultAxisRefkHzTD1'][0][0][0][0]
+            if mat['DefaultAxisRefkHzTD2'][0][0][0][0]:
+                ref[1] = freq[1] + 1e3*mat['DefaultAxisRefkHzTD2'][0][0][0][0]
+        history = list(mat['History'][0][0])
+        masterData = sc.Spectrum(data, (filePath, None), freq, sw, spec, ref=ref, history=history)
+        masterData.addHistory("MatNMR data loaded from " + filePath)
+        return masterData
+
+    
 def brukerTopspinGetPars(file):
     """
     Loads Bruker Topspin parameter file.
@@ -1096,31 +1155,28 @@ def loadBrukerTopspin(filePath):
             pars.append(brukerTopspinGetPars(Dir + os.path.sep + File))
     SIZE = [x['TD'] for x in pars]
     FREQ = [x['SFO1'] * 1e6 for x in pars]
-    SW = [x['SW_h'] for x in pars]
+    SW = [x['SW']*x['SFO1'] for x in pars]
     REF = [x['O1'] for x in pars]
-    ByteOrder = ['l', 'b'][pars[0]['BYTORDA']] #The byte orders that is used
+    DtypeA = [np.dtype(np.int32), np.dtype(np.float32), np.dtype(np.float64)][pars[0]['DTYPA']] #The byte orders that is used
+    DtypeA = DtypeA.newbyteorder(['L', 'B'][pars[0]['BYTORDA']]) #The byte orders that is used 'L' =little endian, 'B' = big endian
     REF = list(- np.array(REF) + np.array(FREQ))
     dFilter = getBrukerFilter(pars[0])
     totsize = np.prod(SIZE)
     dim = len(SIZE)
-    directSize = int(np.ceil(float(SIZE[0]) / 256)) * 256 #Size of direct dimension including
-    #blocking size of 256 data points
+    directSize = int(np.ceil(float(SIZE[0]*DtypeA.itemsize) / 1024)) * int(1024 / DtypeA.itemsize)  #Size of direct dimension including
+    #blocking size of 1kb that is 256 int32 data points or 128 float64
     for file in ['fid', 'ser']:
         if os.path.exists(Dir + os.path.sep + file):
             if file == 'ser':
                 totsize = int(totsize / SIZE[0]) * directSize #Always load full 1024 byte blocks (256 data points) for >1D
             with open(Dir + os.path.sep + file, "rb") as f:
-                raw = np.fromfile(f, np.int32, totsize)
-            raw = raw.newbyteorder(ByteOrder) #Load with right byte order
+                raw = np.fromfile(f, DtypeA, totsize)
     ComplexData = np.array(raw[0:len(raw):2]) + 1j * np.array(raw[1:len(raw):2])
     if dim >= 2:
         newSize = list(SIZE)
         newSize[0] = int(directSize / 2)
         ComplexData = ComplexData.reshape(*newSize[-1::-1])
-    if dim == 2:
-        ComplexData = ComplexData[:, 0:int(SIZE[0]/2)] #Cut off placeholder data
-    elif dim == 3:
-        ComplexData = ComplexData[:, :, 0:int(SIZE[0]/2)] #Cut off placeholder data
+        ComplexData = ComplexData[..., 0:int(SIZE[0]/2)] #Cut off placeholder data
     masterData = sc.Spectrum(ComplexData, (filePath, None), FREQ[-1::-1], SW[-1::-1], [False] * dim, ref = REF[-1::-1], dFilter=dFilter)
     # TODO: Inserting metadata should be made more generic
     try:
@@ -1144,6 +1200,57 @@ def loadBrukerTopspin(filePath):
     except Exception:
         pass
     masterData.addHistory("Bruker TopSpin data loaded from " + filePath)
+    return masterData
+
+
+
+def loadBrukerImagingTime(filePath):
+    """
+    Loads Bruker Paravision time domain data.
+    Experimental support at this moment.
+
+    Parameters
+    ----------
+    filePath: string
+        Path to the file that should be loaded
+
+    Returns
+    -------
+    SpectrumClass
+        SpectrumClass object of the loaded data
+    """
+    if os.path.isfile(filePath):
+        Dir = os.path.dirname(filePath)
+    else:
+        Dir = filePath
+
+    pars = brukerTopspinGetPars(Dir + os.path.sep + 'acqp')
+    SIZE = pars['ACQ_size']
+    if pars['NI'] > 1: #Increments (like echoes) are inserted in position 1
+        SIZE.insert(1,pars['NI'])
+    dim = len(SIZE)
+    FREQ = [pars['SFO1']] * dim
+    SW = [pars['SW'] * pars['SFO1']] * dim
+    if pars['BYTORDA'] == 'little':
+        ByteOrder = 'l'
+    else:
+        ByteOrder = 'b'
+    totsize = np.prod(SIZE)
+
+    directSize = int(np.ceil(float(SIZE[0]) / 256)) * 256 #Size of direct dimension including
+    #blocking size of 256 data points
+
+    totsize = int(totsize / SIZE[0]) * directSize #Always load full 1024 byte blocks (256 data points) for >1D
+    with open(Dir + os.path.sep + 'fid', "rb") as f:
+        raw = np.fromfile(f, np.int32, totsize)
+    raw = raw.newbyteorder(ByteOrder) #Load with right byte order
+    ComplexData = np.array(raw[0:len(raw):2]) + 1j * np.array(raw[1:len(raw):2])
+    if dim >= 2:
+        newSize = [int(x) for x in SIZE]
+        newSize[0] = int(directSize / 2)
+        ComplexData = ComplexData.reshape(newSize[-1::-1])
+        ComplexData = ComplexData[..., 0:int(SIZE[0]/2)] #Cut off placeholder data
+    masterData = sc.Spectrum(ComplexData, (filePath, None), FREQ, SW, [False] * dim)
     return masterData
 
 def loadBrukerWinNMR(filePath):
@@ -1181,7 +1288,7 @@ def loadBrukerWinNMR(filePath):
         pars = brukerTopspinGetPars(base + names[1])
         SIZE = pars['TD']
         FREQ = pars['SFO1'] * 1e6
-        SW = pars['SW_h']
+        SW = pars['SW'] * pars['SFO1']
         REF = pars['O1']
         REF = - REF+ FREQ
         ByteOrder = ['l', 'b'][pars['BYTORDA']] #The byte orders that is used
@@ -1244,7 +1351,10 @@ def loadBrukerSpectrum(filePath):
     SW = [x['SW_p'] for x in pars]
     FREQ = [x['SF'] * 1e6 for x in pars]
     OFFSET = [x['OFFSET'] for x in pars]
-    ByteOrder = ['l', 'b'][pars[0]['BYTORDP']] #The byte orders that is used
+    DtypeP = [np.dtype(np.int32), np.dtype(np.float32), np.dtype(np.float64)][pars[0]['DTYPP']] #The byte orders that is used
+    DtypeP = DtypeP.newbyteorder(['L', 'B'][pars[0]['BYTORDP']]) 
+    # The byte orders that is used as stored in BYTORDP proc parameter:
+    #  '< or L' =little endian, '>' or 'B' = big endian
     REF = []
     for index, _ in enumerate(SIZE): #For each axis
         pos = np.fft.fftshift(np.fft.fftfreq(SIZE[index], 1.0 / SW[index]))[-1] #Get last point of axis
@@ -1258,8 +1368,7 @@ def loadBrukerSpectrum(filePath):
     for file in files[dim - 1]: # For all the files
         if os.path.exists(Dir + os.path.sep + file):
             with open(Dir + os.path.sep + file, "rb") as f:
-                raw = np.fromfile(f, np.int32, totsize)
-                raw = raw.newbyteorder(ByteOrder) # Set right byteorder
+                raw = np.fromfile(f, DtypeP, totsize)
                 if counter % 2 == 0: # If even, data is real part
                     DATA.append(np.flipud(raw))
                 else: # If odd, data is imag, and needs to be add to the previous
@@ -1705,7 +1814,7 @@ def convertDIFDUB(dat):
             dup, currentNum, step, numberList = checkWrite(dup, currentNum, step, numberList)
             step = step + str(DIF[char])
         elif char in DUP.keys():
-            dup = dup + str(DUP[char])  # For now, assume no SQZ defore DUP
+            dup = dup + str(DUP[char])  # For now, assume no SQZ before DUP
         elif char == ' ':
             last = True
             break
@@ -1891,6 +2000,7 @@ def loadAscii(filePath, asciiInfo=None):
     dataSpec = asciiInfo[2]
     delimiter = asciiInfo[3]
     swInp = asciiInfo[4]
+    axisMulti = asciiInfo[5]
     freq = 0.0
     delimChar = ''
     if delimiter == 'Tab':
@@ -1901,7 +2011,8 @@ def loadAscii(filePath, asciiInfo=None):
         delimChar = ','
     else:
         return
-    matrix = np.genfromtxt(filePath, dtype=None, delimiter=delimChar)
+    matrix = np.loadtxt(filePath, dtype=None, delimiter=delimChar)
+    matrix[:,0] = matrix[:,0] * axisMulti
     if dataOrder == 'XRI' or dataOrder == 'XR' or dataOrder == 'XI':
         if not dataSpec:
             sw = 1.0 / (matrix[1, 0] - matrix[0, 0])
@@ -1998,20 +2109,31 @@ def loadBrukerEPR(filePath):
     SpectrumClass
         SpectrumClass object of the loaded data
     """
-    with open(filePath + '.par', mode='r') as f:
-        textdata = [row.split() for row in f.read().replace('\r', '\n').split('\n')]
+    with open(filePath + '.par', mode='rb') as f:
+        textdata = [row.split() for row in f.read().decode("utf-8", 'backslashreplace').replace('\r', '\n').split('\n')]
+    dataIs2D = False
     for row in textdata:
         if len(row) < 2:
             continue
         if row[0] == 'ANZ':
             numOfPoints = int(row[1])
-        elif row[0] == 'GSI':
+        elif row[0] == 'HSW':
             sweepWidth = float(row[1])
-        elif row[0] == 'GST':
-            leftX = float(row[1])
+        elif row[0] == 'HCF':
+            centerField = float(row[1])
+        elif row[0] == 'SSX':
+            numXPoints = int(row[1])
+            dataIs2D = True
+        elif row[0] == 'SSY':
+            numYPoints = int(row[1])
+            dataIs2D = True
     with open(filePath + '.spc', mode='rb') as f:
         data = np.fromfile(f, np.float32, numOfPoints)
-    masterData = sc.Spectrum(data, (filePath, None), [(sweepWidth + 2 * leftX) / 2], [sweepWidth], [True], ref=[0])
+    if dataIs2D:
+        data = np.reshape(data, (numYPoints, numXPoints))
+        masterData = sc.Spectrum(data, (filePath, None), [centerField, centerField], [sweepWidth, sweepWidth], [False, True], ref=[None,0])
+    else:
+        masterData = sc.Spectrum(data, (filePath, None), [centerField], [sweepWidth], [True], ref=[0])
     masterData.addHistory("Bruker EPR data loaded from " + filePath)
     return masterData
 
@@ -2110,9 +2232,6 @@ def scrubber(item):
     item = item.split(chr(0))[0]
     return item.strip()
 
-
-
-
 def loadMestreC(filePath):
     """
     Loads MestreC type data. MestreC data ends on .mrc, and is essentially XML data.
@@ -2175,4 +2294,42 @@ def loadMestreC(filePath):
         for i, _ in enumerate(data):
             data[i] = data[i].reshape(*points[-1::-1])
     masterData = sc.Spectrum(hc.HComplexData(np.array(data), hyper), (filePath, None), freq, sw, [spec] * dim, ref=ref, dFilter=dFilter[0])
+    return masterData
+
+def loadDMfit(filePath):
+    """
+    Loads DMfit spectral data.
+    The data is assumed to be in the frequency domain with evenly spaced datapoints
+
+    Parameters
+    ----------
+    filePath: string
+        Path to the file that should be loaded
+
+    Returns
+    -------
+    SpectrumClass
+        SpectrumClass object of the loaded data
+    """
+    with open(filePath, 'r') as f:
+        f.readline()
+        freqline = f.readline()
+        if freqline[:6] == "##freq":
+            try:
+                freq = float(freqline[6:].lstrip().split()[0]) * 1e6
+            except ValueError:
+                freq = 0.0
+    matrix = np.loadtxt(filePath, dtype=None, delimiter='\t', skiprows=2)
+    sw = abs(matrix[0, 0] - matrix[-1, 0]) / (matrix.shape[0] - 1) * matrix.shape[0]
+    xaxis = matrix[:, 0]
+    data = matrix[:, 1]
+    if xaxis[1] < xaxis [0]: # The datapoints are in decreasing order
+        xaxis = xaxis[::-1]
+        data = data[::-1]
+    if freq != 0.0:
+        center = xaxis[len(xaxis)//2]
+        if center != 0.0:
+            ref = freq - center
+    masterData = sc.Spectrum(data, (filePath, None), [freq], [sw], [True], ref=[ref], xaxArray=[xaxis])
+    masterData.addHistory("DMfit data loaded from " + filePath)
     return masterData

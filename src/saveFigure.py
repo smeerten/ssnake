@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2016 - 2019 Bas van Meerten and Wouter Franssen
+# Copyright 2016 - 2020 Bas van Meerten and Wouter Franssen
 
 # This file is part of ssNake.
 #
@@ -253,9 +253,18 @@ class SaveFigureWindow(QtWidgets.QWidget):
             self.legendFrame.addWidget(legendButton, 0, 0)
             self.legendGroup.setLayout(self.legendFrame)
             self.optionFrame.addWidget(self.legendGroup, 4, 0)
-        execFileButton = QtWidgets.QPushButton('Execute file')
-        execFileButton.clicked.connect(self.exFile)
-        self.optionFrame.addWidget(execFileButton, 44, 0)
+        self.xticksToggle = QtWidgets.QCheckBox('X-ticks')
+        self.xticksToggle.setChecked(True)
+        self.xticksToggle.stateChanged.connect(self.updatePlot)
+        self.optionFrame.addWidget(self.xticksToggle, 5, 0)
+        self.yticksToggle = QtWidgets.QCheckBox('Y-ticks')
+        self.yticksToggle.setChecked(True)
+        self.yticksToggle.stateChanged.connect(self.updatePlot)
+        self.optionFrame.addWidget(self.yticksToggle, 6, 0)
+        self.frameToggle = QtWidgets.QCheckBox('Box')
+        self.frameToggle.setChecked(True)
+        self.frameToggle.stateChanged.connect(self.updatePlot)
+        self.optionFrame.addWidget(self.frameToggle, 7, 0)
         self.inFrame = QtWidgets.QGridLayout()
         self.frame1.addLayout(self.inFrame, 1, 0)
         self.inFrame.addWidget(wc.QLabel("File type:"), 0, 0, 1, 2)
@@ -348,6 +357,14 @@ class SaveFigureWindow(QtWidgets.QWidget):
         """
         Updates the plot.
         """
+        if not self.xlimLeftEntry.text():
+            self.xlimLeftEntry.setText(str(self.xlimBackup[0]))
+        if not self.xlimRightEntry.text():
+            self.xlimRightEntry.setText(str(self.xlimBackup[1]))
+        if not self.ylimLeftEntry.text():
+            self.ylimLeftEntry.setText(str(self.ylimBackup[0]))
+        if not self.ylimRightEntry.text():
+            self.ylimRightEntry.setText(str(self.ylimBackup[1]))
         if self.fontDetailsCheck.checkState():  # If details checked
             self.fig.suptitle(self.titleEntry.text(), fontsize=self.titleFontSizeEntry.value())
             self.ax.set_xlabel(self.xlabelEntry.text(), fontsize=self.xlabelFontSizeEntry.value())
@@ -370,6 +387,33 @@ class SaveFigureWindow(QtWidgets.QWidget):
             self.ax.yaxis.get_offset_text().set_fontsize(self.mainFontSizeEntry.value())
             if self.legend is not None:
                 self.legend.prop = {'size': self.mainFontSizeEntry.value()}
+        xticksbool = self.xticksToggle.isChecked()
+        yticksbool = self.yticksToggle.isChecked()
+        if self.frameToggle.isChecked():
+            self.ax.spines['top'].set_visible(True)
+            self.ax.spines['right'].set_visible(True)
+            self.ax.spines['bottom'].set_visible(True)
+            self.ax.spines['left'].set_visible(True)
+        else:
+            self.ax.spines['top'].set_visible(False)
+            self.ax.spines['right'].set_visible(False)
+            if xticksbool:
+                self.ax.spines['bottom'].set_visible(True)
+            else:
+                self.ax.spines['bottom'].set_visible(False)
+            if yticksbool:
+                self.ax.spines['left'].set_visible(True)
+            else:
+                self.ax.spines['left'].set_visible(False)
+        self.ax.tick_params(bottom=xticksbool, labelbottom=xticksbool, left=yticksbool, labelleft=yticksbool)
+        if not xticksbool:
+            self.ax.xaxis.get_offset_text().set_visible(False)
+        else:
+            self.ax.xaxis.get_offset_text().set_visible(True)
+        if not yticksbool:
+            self.ax.yaxis.get_offset_text().set_visible(False)
+        else:
+            self.ax.yaxis.get_offset_text().set_visible(True)
         self.updateLegend()
         self.fig.set_size_inches(self.widthEntry.value() / 2.54, self.heightEntry.value() / 2.54)
         self.canvas.draw()
@@ -387,26 +431,6 @@ class SaveFigureWindow(QtWidgets.QWidget):
         if pickEvent.mouseevent.dblclick and (pickEvent.mouseevent.button == 1):
             if isinstance(pickEvent.artist, matplotlib.lines.Line2D):
                 EditLineWindow(self, pickEvent.artist)
-
-    def exFile(self):
-        """
-        Executes an external file.
-        Note: Any code in the file is executed, so the file should only come from trusted sources.
-        """
-        warning_msg = "This is an advanced feature. Do not execute files you haven't inspected yourself. Are you sure you want to continue?"
-        reply = QtWidgets.QMessageBox.question(self, 'Warning', warning_msg, QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No)
-        if reply == QtWidgets.QMessageBox.Yes:
-            filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Execute File', self.father.lastLocation)
-            if isinstance(filename, tuple):
-                filename = filename[0]
-            fig = self.fig
-            ax = self.ax
-            if filename:
-                try:
-                    exec(open(filename).read())
-                except Exception as e:
-                    self.father.dispMsg(str(e))
-                self.canvas.draw()
 
     def get_mainWindow(self):
         """Returns the mainwindow that has been replaced by the save figure window."""
@@ -466,6 +490,13 @@ class SaveFigureWindow(QtWidgets.QWidget):
         self.ax.yaxis.get_offset_text().set_fontsize(self.ytickFontSizeBackup)
         if self.legend is not None:
             self.legend.set_visible(False)
+        self.ax.spines['top'].set_visible(True)
+        self.ax.spines['right'].set_visible(True)
+        self.ax.spines['bottom'].set_visible(True)
+        self.ax.spines['left'].set_visible(True)
+        self.ax.tick_params(bottom=True, labelbottom=True, left=True, labelleft=True)
+        self.ax.xaxis.get_offset_text().set_visible(True)
+        self.ax.yaxis.get_offset_text().set_visible(True)
         self.fig.set_size_inches((self.widthBackup / 2.54, self.heightBackup / 2.54))
         self.grid.deleteLater()
         self.canvas.draw()

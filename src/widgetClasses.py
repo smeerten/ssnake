@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2016 - 2019 Bas van Meerten and Wouter Franssen
+# Copyright 2016 - 2020 Bas van Meerten and Wouter Franssen
 
 # This file is part of ssNake.
 #
@@ -735,6 +735,10 @@ class QLineEdit(QtWidgets.QLineEdit):
         self.setAlignment(QtCore.Qt.AlignCenter)
         if func is not None:
             self.returnPressed.connect(func)
+
+    def setText(self,*args, **kwargs):
+        super(QLineEdit, self).setText(*args,**kwargs)
+        self.setCursorPosition(0)
 
 
 class FitQLineEdit(QLineEdit):

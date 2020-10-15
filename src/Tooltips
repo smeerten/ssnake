@@ -43,8 +43,10 @@ multiplotColour	Change the colour for this plot
 multiplotX	Remove this plot.
 multiplotScale	Y-value multiplier of this plot.
 multiplotOffset	Adds a constant value (i.e. offset) to this plot.
-multiplotShift	Adds a horizontal shift to this plot.
-multiplotDim	Sets the active x dimension of this plot.
+multiplotShift1	Adds a x shift to this plot.
+multiplotShift2	Adds a y shift to this plot.
+multiplotDim1	Sets the active x dimension of this plot.
+multiplotDim2	Sets the active y dimension of this plot.
 sideframeDimension1	Sets the active x dimension.
 sideframeDimension2	Sets the active y dimension.
 sideFrameDimensionSlice	The active slice of this dimension.

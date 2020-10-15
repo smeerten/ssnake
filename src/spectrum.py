@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2016 - 2019 Bas van Meerten and Wouter Franssen
+# Copyright 2016 - 2020 Bas van Meerten and Wouter Franssen
 
 # This file is part of ssNake.
 #
@@ -356,7 +356,7 @@ class Spectrum(object):
         if self.noUndo:
             returnValue = None
         else:
-            if self.data.hyper == data.hyper: # If both sets have same hyper: easy undo can be used
+            if np.all(self.data.hyper == data.hyper): # If both sets have same hyper: easy undo can be used
                 returnValue = lambda self: self.delete(range(pos, pos + data.shape()[axis]), axis)
             else: # Otherwise: do a deep copy of the class
                 copyData = copy.deepcopy(self)
@@ -395,6 +395,9 @@ class Spectrum(object):
             raise SpectrumException('Cannot delete all data')
         self.data = tmpData
         self.xaxArray[axis] = np.delete(self.xaxArray[axis], pos)
+        if isinstance(pos, np.ndarray):
+            if pos.ndim == 0:
+                pos = int(pos)
         if isinstance(pos, (int, float)):
             length = 1
         else:
@@ -444,7 +447,7 @@ class Spectrum(object):
         if not self.noUndo:
             if not isinstance(data, hc.HComplexData):
                 returnValue = lambda self: self.subtract(data, axis, select=select)
-            elif self.data.hyper == data.hyper: # If both sets have same hyper: easy subtract can be used for undo
+            elif np.all(self.data.hyper == data.hyper): # If both sets have same hyper: easy subtract can be used for undo
                 returnValue = lambda self: self.subtract(data, axis, select=select)
             else: # Otherwise: do a deep copy of the class
                 copyData = copy.deepcopy(self)
@@ -498,7 +501,7 @@ class Spectrum(object):
         if not self.noUndo:
             if not isinstance(data, hc.HComplexData):
                 returnValue = lambda self: self.add(data, axis, select=select)
-            elif self.data.hyper == data.hyper: #If both sets have same hyper: easy subtract can be used for undo
+            elif np.all(self.data.hyper == data.hyper): #If both sets have same hyper: easy subtract can be used for undo
                 returnValue = lambda self: self.add(data, axis, select=select)
             else: # Otherwise: do a deep copy of the class
                 copyData = copy.deepcopy(self)
@@ -552,7 +555,7 @@ class Spectrum(object):
         if not self.noUndo:
             if not isinstance(data, hc.HComplexData):
                 returnValue = lambda self: self.divide(data, axis, select=select)
-            elif self.data.hyper == data.hyper: # If both sets have same hyper: easy subtract can be used for undo
+            elif np.all(self.data.hyper == data.hyper): # If both sets have same hyper: easy subtract can be used for undo
                 returnValue = lambda self: self.divide(data, axis, select=select)
             else: # Otherwise: do a deep copy of the class
                 copyData = copy.deepcopy(self)
@@ -605,7 +608,7 @@ class Spectrum(object):
         if not self.noUndo:
             if not isinstance(data, hc.HComplexData):
                 returnValue = lambda self: self.multiply(data, axis, select=select)
-            elif self.data.hyper == data.hyper: #If both sets have same hyper: easy subtract can be used for undo
+            elif np.all(self.data.hyper == data.hyper): #If both sets have same hyper: easy subtract can be used for undo
                 returnValue = lambda self: self.multiply(data, axis, select=select)
             else: # Otherwise: do a deep copy of the class
                 copyData = copy.deepcopy(self)
@@ -1206,7 +1209,7 @@ class Spectrum(object):
             self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.average(pos1, pos2, axis)))
         self.addHistory("Average between " + str(pos1) + " and " + str(pos2) + " of dimension " + str(axis + 1))
 
-    def extract(self, pos1=None, pos2=None, axis=-1):
+    def extract(self, pos1=None, pos2=None, axis=-1, step=None):
         """
         Extract the data between two given indices along a dimension and make it the new data.
 
@@ -1221,20 +1224,27 @@ class Spectrum(object):
         axis : int, optional
             The dimension.
             By default the last dimension is used.
+        step : int, optional
+            Step size between indices to extract.
+            1 by default
         """
         axis = self.checkAxis(axis)
         if pos1 is None:
             pos1 = 0
         if pos2 is None:
             pos2 = self.shape()[axis]
+        if step is None:
+            step = 1
         if not self.noUndo:
             copyData = copy.deepcopy(self)
         minPos = min(pos1, pos2)
         maxPos = max(pos1, pos2)
-        slicing = (slice(None), ) * axis + (slice(minPos, maxPos), )
+        slicing = (slice(None), ) * axis + (slice(minPos, maxPos, step), )
         if self.spec[axis] == 1:
-            oldFxax = self.xaxArray[axis][slice(minPos, maxPos)][0]
-            self.sw[axis] *= (maxPos - minPos) / (1.0 * self.shape()[axis])
+            oldFxax = self.xaxArray[axis][minPos]
+            self.sw[axis] *= (step * np.ceil((maxPos - minPos)/step)) / (1.0 * self.shape()[axis])
+        else:
+            self.sw[axis] /= step
         self.data = self.data[slicing]
         if self.spec[axis] == 1:
             newFxax = np.fft.fftshift(np.fft.fftfreq(self.shape()[axis], 1.0 / self.sw[axis]))[0]
@@ -1242,10 +1252,10 @@ class Spectrum(object):
                 self.ref[axis] = self.freq[axis]
             self.freq[axis] = self.ref[axis] - newFxax + oldFxax
         self.resetXax(axis)
-        self.addHistory("Extracted part between " + str(minPos) + " and " + str(maxPos) + " of dimension " + str(axis + 1))
+        self.addHistory("Extracted part between " + str(minPos) + " and " + str(maxPos) + " with steps of " + str(step) + " of dimension " + str(axis + 1))
         self.redoList = []
         if not self.noUndo:
-            self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.extract(pos1, pos2, axis)))
+            self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.extract(pos1, pos2, axis, step)))
 
     def fiddle(self, refSpec, lb, axis=-1):
         """
@@ -1473,8 +1483,8 @@ class Spectrum(object):
         Message = "Autophase: phase0 = " + str(phase0 * 180 / np.pi) + " and phase1 = " + str(phase1 * 180 / np.pi) + " for dimension " + str(axis + 1)
         self.addHistory(Message)
         if returnPhases:
-            if phaseNum == 0:
-                return [phases['x']]
+            if not phases['x'].ndim:
+                return phases['x'].reshape((1,))
             return phases['x']
         self.redoList = []
         if not self.noUndo:
@@ -1491,7 +1501,7 @@ class Spectrum(object):
         if self.spec[axis] == 0:
             self.__invFourier(axis, tmp=True)
 
-    def phase(self, phase0=0.0, phase1=0.0, axis=-1, select=slice(None)):
+    def phase(self, phase0=0.0, phase1=0.0, axis=-1, select=slice(None), offset=None):
         """
         Phases a spectrum along a given dimension.
 
@@ -1509,12 +1519,17 @@ class Spectrum(object):
         select : Slice, optional
             An optional selection of the spectrum data on which the phasing is performed.
             By default the entire data is used.
+        offset : float, optional
+            The offset frequency for the first order phase correction.
+            When set to None, the offset is set to the reference frequency.
+            None by default.
         """
         axis = self.checkAxis(axis)
-        if self.ref[axis] is None:
-            offset = 0
-        else:
-            offset = self.freq[axis] - self.ref[axis]
+        if offset is None:
+            if self.ref[axis] is None:
+                offset = 0
+            else:
+                offset = self.freq[axis] - self.ref[axis]
         self.__phase(phase0, phase1, offset, axis, select=select)
         Message = "Phasing: phase0 = " + str(phase0 * 180 / np.pi) + " and phase1 = " + str(phase1 * 180 / np.pi) + " for dimension " + str(axis + 1)
         if not isinstance(select, slice):
@@ -1546,7 +1561,7 @@ class Spectrum(object):
         self.addHistory(Message)
         self.redoList = []
         if not self.noUndo:
-            self.undoList.append(lambda self: self.phase(0, -self.dFilter, offset, axis))
+            self.undoList.append(lambda self: self.phase(0, -self.dFilter, axis, slice(None), offset))
 
     def apodize(self, lor=None, gauss=None, cos2=[None, None], hamming=None, shift=0.0, shifting=0.0, shiftingAxis=None, axis=-1, select=slice(None), preview=False):
         """

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2016 - 2019 Bas van Meerten and Wouter Franssen
+# Copyright 2016 - 2020 Bas van Meerten and Wouter Franssen
 
 # This file is part of ssNake.
 #
@@ -61,11 +61,11 @@ def d2tens(b):
     d12 = -2 * sinb2 * cosb2**3
     # 2
     d22 = cosb2**4
-    d = np.array([[d22, d12, d02, dm12, dm22],
-                  [-d12, d11, d01, dm11, dm12],
-                  [d02, -d01, d00, d01, d02],
-                  [-dm12, dm11, -d01, d11, d12],
-                  [dm22, -dm12, d02, -d12, d22]])
+    d = np.array([[ d22,   d12,   d02,  dm12, dm22],
+                  [-d12,   d11,   d01,  dm11, dm12],
+                  [ d02,  -d01,   d00,  d01,  d02 ],
+                  [-dm12,  dm11, -d01,  d11,  d12 ],
+                  [ dm22, -dm12,  d02, -d12,  d22 ]])
     return np.rollaxis(d, 2, 0)
 
 def D2tens(a, b, g):
@@ -145,16 +145,16 @@ def d4tens(b):
     d34 = -2 * np.sqrt(2) * sinb2 * cosb2**7
     # 4
     d44 = cosb2**8
-    d = np.array([[d44, d34, d24, d14, d04, dm14, dm24, dm34, dm44],
-                  [-d34, d33, d23, d13, d03, dm13, dm23, dm33, dm34],
-                  [d24, -d23, d22, d12, d02, dm12, dm22, dm23, dm24],
-                  [-d14, d13, -d12, d11, d01, dm11, dm12, dm13, dm14],
-                  [d04, -d03, d02, -d01, d00, d01, d02, d03, d04],
-                  [-dm14, dm13, -dm12, dm11, -d01, d11, d12, d13, d14],
-                  [dm24, -dm23, dm22, -dm12, d02, -d12, d22, d23, d24],
-                  [-dm34, dm33, -dm23, dm13, -d03, d13, -d23, d33, d34],
-                  [dm44, -dm34, dm24, -dm14, d04, -d14, d24, -d34, d44]])
-    return np.rollaxis(d, 2, 0)
+    d = np.array([[d44,   d34,  d24,  d14,  d04, dm14, dm24, dm34, dm44],
+                  [-d34,  d33,  d23,  d13,  d03, dm13, dm23, dm33, dm34],
+                  [ d24, -d23,  d22,  d12,  d02, dm12, dm22, dm23, dm24],
+                  [-d14,  d13, -d12,  d11,  d01, dm11, dm12, dm13, dm14],
+                  [ d04, -d03,  d02, -d01,  d00, d01,  d02,  d03,  d04 ],
+                  [-dm14, dm13,-dm12, dm11,-d01, d11,  d12,  d13,  d14 ],
+                  [ dm24,-dm23, dm22,-dm12, d02,-d12,  d22,  d23,  d24 ],
+                  [-dm34, dm33,-dm23, dm13,-d03, d13, -d23,  d33,  d34 ],
+                  [ dm44,-dm34, dm24,-dm14, d04,-d14,  d24, -d34,  d44 ]])
+    return np.rollaxis(d, 2, 0) # make the b values lie along the first dim
 
 def D4tens(a, b, g):
     """
@@ -584,7 +584,7 @@ def peakSim(x, freq, sw, axMult, extra, bgrnd, mult, pos, amp, lor, gauss):
     gauss = np.abs(gauss)
     length = len(x)
     t = np.fft.fftfreq(length, sw[-1]/float(length))
-    return float(mult) * float(amp) / sw[-1] * np.exp(2j * np.pi * (pos - x[length//2]) * t - np.pi * np.abs(lor * t) - ((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
+    return float(mult) * float(amp) / abs(sw[-1]) * np.exp(2j * np.pi * (pos - x[length//2]) * t - np.pi * np.abs(lor * t) - ((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
 
 def makeSpectrum(x, sw, v, gauss, lor, weight):
     """
@@ -618,7 +618,7 @@ def makeSpectrum(x, sw, v, gauss, lor, weight):
     final, _ = np.histogram(v, length, range=[x[0]-diff, x[-1]+diff], weights=weight)
     apod = np.exp(-np.pi * np.abs(lor) * t - ((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
     inten = np.fft.ifft(final) * apod
-    inten *= len(inten)  / sw
+    inten *= len(inten)  / abs(sw)
     return inten
 
 def makeMQMASSpectrum(x, sw, v, gauss, lor, weight):
@@ -661,7 +661,7 @@ def makeMQMASSpectrum(x, sw, v, gauss, lor, weight):
     final = np.fft.ifftn(final)
     apod2 = np.exp(-np.pi * np.abs(lor[1] * t2) - ((np.pi * np.abs(gauss[1]) * t2)**2) / (4 * np.log(2)))
     apod1 = np.exp(-np.pi * np.abs(lor[0] * t1) - ((np.pi * np.abs(gauss[0]) * t1)**2) / (4 * np.log(2)))
-    final *= apod1 * apod2 * length1 / sw[-2] * length2 / sw[-1]
+    final *= apod1 * apod2 * length1 / abs(sw[-2]) * length2 / abs(sw[-1])
     return final
 
 def carouselAveraging(spinspeed, v, weight, vConstant):
@@ -1141,7 +1141,7 @@ def mqmasCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, mult, pos, sigma, sigmaCS
     sigma *= 1e6
     czjzek = Czjzek.czjzekIntensities(sigma, d, cq, eta, cq0, eta0)
     length2 = len(x[-1])
-    czjzek *= length2 / sw[-2]
+    czjzek *= length2 / abs(sw[-2])
     newLib = czjzek[..., np.newaxis]*lib
     length1 = len(x[-2])
     t1 = np.fft.fftfreq(length1, sw[-2]/float(length1))

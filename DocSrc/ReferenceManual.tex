@@ -1,4 +1,4 @@
-% Copyright 2016 - 2019 Bas van Meerten and Wouter Franssen
+% Copyright 2016 - 2020 Bas van Meerten and Wouter Franssen
 %
 %This file is part of ssNake.
 %
@@ -195,7 +195,7 @@ using the mouse. Below, a list of these is given:
 \item Dragging a box while holding the left mouse button creates a zoombox, and will zoom to that region.
 \item Dragging while holding the right mouse button drags (i.e.\ pans) the spectrum. Doing this while holding the Control button pans only the x-axis, holding Shift pans only the y-axis.
 \item Double clicking with the right mouse button resets the view to fit the whole plot (both x and y).
-\item Scrolling with the mouse wheel zooms the y-axis. Doing this while also holding the right mouse button zooms the x-axis. By holding Control the zooming will use a larger step size.
+\item Scrolling with the mouse wheel zooms the y-axis. Doing this while also holding the right mouse button zooms the x-axis. By holding Control the zooming will use a larger step size. In a Contour plot, the projections can also be zoomed by scrolling when the mouse pointer is over one of these plots. The top projection can be zoomed using normal scrolling, while the right projection can be zoomed using scrolling while holding the right mouse button.
 \item \textit{Special}: Scrolling while holding shift changes the spacing between the different plots in the Array or Stack plot. In the Contour plot, the contour levels are zoomed.
 \end{itemize}
 
@@ -309,13 +309,16 @@ Bruker & Topspin and XWinNMR (\texttt{fid} \& \texttt{ser},\texttt{1r/i} \& \tex
 Bruker ParaVision & processed data (\texttt{2dseq})\\
 Bruker minispec  & \texttt{.sig} file\\
 \rowcolor{gray!30!white}
+Bruker EPR & \texttt{.spc} and \texttt{.par} files. 1D and 2D.\\
 JEOL Delta & 1D and 2D only at the moment \\
+\rowcolor{gray!30!white}
 Chemagnetics & -- \\
-\rowcolor{gray!30!white}
 Magritek & Both 1D and 2D data \\
-SIMPSON & 1D and 2D, -ascii and -binary \\
 \rowcolor{gray!30!white}
+SIMPSON & 1D and 2D, -ascii and -binary \\
 JCAMP & 1D JCAMP-DX file\\
+\rowcolor{gray!30!white}
+DMFIT & \texttt{.txt}; 1D spectra only at the moment\\
 Siemens ima & single voxel only\\
 \rowcolor{gray!30!white}
 JSON & ssNake JSON file (ascii)\\
@@ -342,6 +345,9 @@ Loads processed data acquired via Bruker ParaVision. This feature is experimenta
 \subsubsection*{Bruker minispec}
 In some cases, the Bruker minispec also outputs a \texttt{.sig} data file. These can be loaded in ssNake, although this is experimental at the moment.
 
+\subsubsection*{Bruker EPR}
+Loads Bruker EPR data. Can load both 1D and and 2D (series of 1D data). Needs \texttt{.spc} and \texttt{.par} files.
+
 \subsubsection*{JEOL Delta}
 JEOL Delta data is contained in a single \texttt{.jdf} file. Currently only 1D and 2D data is
  supported. This is because we have no access to a JEOL spectrometer for testing
@@ -361,6 +367,9 @@ JCAMP (or JCAMP-DX) is a general format for storing spectroscopic data. Although
 
 \subsubsection*{JSON}
 Loads a JSON file that is saved from ssNake. The file must have the \textit{.json} or \textit{.JSON} extension.
+
+\subsubsection*{DMFIT}
+Loads 1D spectrum data from the DMFIT software. File must end in \textit{.txt}, end the first line must start with \texttt{TI:}, and second line with \texttt{\#\#freq}. The x-axis must be in Hz, and equally spaced.
 
 \subsubsection*{Siemens ima}
 IMA files are dicom formatted files with additional entries from Siemens. Important: it requires pydicom > 1.0 python module to be installed. The problem in reading Siemens ima files is that there is limited documentation available on the relevant Siemens parts. In the current implementation it is assumed that all relevant spectral information is stored in the CSA Siemens header with dicom tag: '0029','1110' and that the binary signal data is stored in '7fe1','1010'. This might be different for other Siemens spectrometers currently tested. Furthermore, it is assumed that the data is in complex conjugate form; real minus imaginary. Acknowledgment is in place, this is a rewrite of the relevant part of the following source: VeSPA, versatile simulation pulses and analysis for magnetic resonance spectroscopy.
@@ -792,13 +801,15 @@ When this is on, Fourier transforming does not multiply the first point by 0.5 (
 
 \subsection{Offset correction}
 Subtracts the average value of the selected data points from all data points.
-The Offset correction tool opens a new window.
-By default, the last 20\% of the time data is selected as containing only noise (of which the average is the offset which should be subtracted).
-Left clicking two times in the graph sets the limits between which the average value is calculated.
-Pushing apply subtracts this value from all time data points.
-If the data has more dimensions then 1, the average value is subtracted from all data points.
-Take note that the average is only calculated for the current graph.
-To apply the offset correction only to the displayed data/traces you can use the `Single slice' button.
+The Offset correction tool opens a new window. By default, the last 20\% of
+the time data is selected as containing only noise (of which the average is the
+offset which should be subtracted). Left clicking two times in the graph sets
+the limits between which the average value is calculated. Pushing apply
+subtracts this value from all time data points. If the data has more
+dimensions then 1, the average value is subtracted from all data points. Take
+note that the average is only calculated for the current graph. To apply the
+offset correction only to the displayed data/traces you can use the `Single
+slice' button.
 
 % \subsubsection*{Background}
 % It can sometimes happen that NMR data does not decay to zero, but to another value. In this case, a time signal with zero frequency and no decay can be thought to have been added to the NMR signal. Usually, this is due to issues with the electronics, and does not imply a NMR signal with these properties. For proper analysis of the signal, this offset should be removed, as it leads to a signal at 0 Hz, which can interfere with the spectrum. This can be solved by subtracting the average value of the last points of the time domain data from all the data points.
@@ -807,12 +818,39 @@ To apply the offset correction only to the displayed data/traces you can use the
 % Using the Offset correction tool opens a new window. By default, the last 20\% of the time data is selected as containing only noise (of which the average is the offset which should be subtracted). Left clicking two times in the graph sets the limits between which the average value is calculated. Pushing apply subtracts this value from all time data points. If the data has more dimensions then 1, the average value is subtracted from all data points. Take note that the average is only calculated for the current graph. If you want to correct the offset for each graph you can select the `Single slice' option, and do the correction separately in each desired trace.
 
 \subsection{Baseline correction}
-Fits a polynomial line of a given order through the current spectrum while ignoring the selected parts. This line is then subtracted from the spectrum.
-In ssNake, baseline correction is performed by fitting a $n$th degree polynomial through the spectrum, i.e.:
+Fits a function of a given order through the current spectrum while ignoring the
+selected parts.  This line is then subtracted from the spectrum. In ssNake,
+baseline correction is performed by either a polynomial function, or a
+combination of sine and cosine functions.
+
+Fitting these functions to the
+spectrum is a mathematical operation with a single unique solution. Prior to
+doing this, specific parts of the spectrum can be selectively ignored in the
+fitting procedure. This can be done by left clicking in the spectrum at the two
+limits of the area that is to be ignored. The area is then marked with a red
+background. This way, multiple areas can be selected. Pressing  `Fit' then
+performs and shows the fit. Apply subtracts the line from the spectrum. Note
+that by default this single fit is subtracted from \textit{all} the traces.
+This is useful if the background is identical in all of them. Alternatively,
+the box `Single slice' can be ticked to only apply the correction on the
+displayed spectrum.
+
+For the polynomial option, a $n$th degree polynomial is fitted to the spectrum,
+i.e.:
 \begin{equation*}
 S_\text{corr} = \sum_{i=0}^n a_i x^i ,
 \end{equation*}
-with $a_i$ the amplitude of the $i$th degree polynomial. Fitting this to the spectrum is a mathematical operation with a single unique solution. Prior to doing this, specific parts of the spectrum can be selectively ignored in the fitting procedure. This can be done by left clicking in the spectrum at the two limits of the area that is to be ignored. The area is then marked with a red background. This way, multiple areas can be selected. Pressing  `Fit' then performs and shows the fit. Apply subtracts the line from the spectrum. Note that by default this single fit is subtracted from \textit{all} the traces. This is useful if the background is identical in all of them. Alternatively, the box `Single slice' can be ticked to only apply the correction on the displayed spectrum.
+with $a_i$ the amplitude of the $i$th degree polynomial. 
+
+For the sine/cosine version, a series is made following:
+\begin{equation*}
+S_\text{corr} = a_0 + a_1\cos(x) + b_1\sin(x)+ a_2\cos(2x)  + b_2\sin(2x) \ldots
+\end{equation*}
+Note that in this case, the $x$-axis is redefined, with the full spectrum always
+in the interval $0 \rightarrow 2\pi$. The order is defined by only using the
+functions up to $a_\text{order}$ and $b_\text{order}$.
+
+
 
 
 % \subsubsection*{Background}
@@ -1072,7 +1110,7 @@ Do not forget the about the mirroring in the frequency domain (see Diff)!
 
 \subsection{Normalize}
 A tool to scale a selected region to a particular maximum, minimum, or integral.
-This is essentially the same as the `Multiply' tool, only ssNake calculates the multiplication factor for you.
+This is essentially the same as the `Multiply' tool, only ssNake calculates the multiplication factor for you. Note that this also means that `Normalize' does not work as expected when recorded in a macro: the scaling factor is not changed to any new data the macro is applied on, only the old, saved scaling factor is applied.
 
 \subsection{Reorder}
 Reorders the data in the active dimension.
@@ -1296,7 +1334,7 @@ With these problems, there is no direct mathematical solution.
 We are searching a parameter space for the solution that best fits the experimental spectrum.
 This is done by trying different settings, and qualifying how well these fit.
 Based on these attempts, a new setting is tested. This is continued until an optimum has been found.
-There are several ways to do such an iterative fitting: ssNake uses the Nelder-Mead algorithm \cite{nelder1965simplex} (also known as ``Simplex'').
+There are several ways to do such an iterative fitting: ssNake uses the Nelder-Mead algorithm \cite{nelder1965simplex} (also known as ``Simplex''). The fitting goal is to minimize the root-mean-square deviation (RMSD) between the experimental and simulated spectrum. This RMSD value is displayed in the fitting window.
 
 \subsubsection*{Powder distributions and line shape fitting}
 ssNake supports fitting procedures for several idealized lineshapes commonly encountered in solid
@@ -1388,8 +1426,8 @@ affected by rotations: they are scalars.
 The Hamiltonian of a rotated interaction is therefore just calculated using the rotated spin part
 $\Lambda^\prime_n$ for each rank $n$, following \autoref{eq:HamSphere}.
 
-
-
+\subsection{Exluding regions}
+For each fitting routine, specific regions can be excluded from the fit. This means that the deviation between the data and the simulation in this region is not taken into account during fitting. Regions can be excluded by pushing the `Exclude' button in the fitting window. When this window is open, regions can be selected by left clicking in the plot. Pushing `Ok' saves the changes.
 
 \subsection{Connecting parameters}
 In all iterative fitting routines supported by ssNake, it is possible to connect parameters, thereby using
@@ -2020,12 +2058,19 @@ Ticking this box draws a diagonal line across the 2D data at x = y. Note that th
 Therefore, if a data set with two identical axes is plot, only if the two units are the same, the diagonal is plot in a way that (probably) is the correct way.
 Alternatively, there is a box called `Multiplier', in which a value can be put that multiplies the x-axis (only for the calculation of the diagonal).
 
+\subsection{Multi Contour Plot}
+This plot type can be used to plot several contour plots in the same image. It works in a similar way as the Multi plot described below. In this case, a shift in both the x and the y-axis can be supplied.
+
+Each data set is plot using a constant contour colour, with a lighter colour representing negative contours.
+
 \subsection{2D Colour Plot}
 A 2D Colour plot shows the height profile of the data using a colour scheme.
 This plot type essentially show the same information as a Contour plot, but might
 be more applicable for certain types of data. It is used often for viewing NMR imaging (MRI) data.
 
 As with the Contour plot, the 2D Colour plot shows projections, of which the settings can be changed in the side frame (see the Section on Contour Plot for more information).
+
+The colour scheme of the plot can be changed in the plot settings, or in the general preferences.
 
 \subsection{Multi plot}
 A multi plot is on overlay of multiple workspaces. It shows the 1D Plot of the active workspace, and a button
