@@ -1163,7 +1163,7 @@ def loadBrukerTopspin(filePath):
     dFilter = getBrukerFilter(pars[0])
     totsize = np.prod(SIZE)
     dim = len(SIZE)
-    directSize = int(np.ceil(float(SIZE[0]*DtypeA.itemsize) / 1024)) * 1024 #Size of direct dimension including
+    directSize = int(np.ceil(float(SIZE[0]*DtypeA.itemsize) / 1024)) * int(1024 / DtypeA.itemsize)  #Size of direct dimension including
     #blocking size of 1kb that is 256 int32 data points or 128 float64
     for file in ['fid', 'ser']:
         if os.path.exists(Dir + os.path.sep + file):
