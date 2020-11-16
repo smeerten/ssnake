@@ -72,7 +72,6 @@ class TabFittingWindow(QtWidgets.QWidget):
     This handles the different tabs for multifitting.
     """
 
-    PRECIS = 4
     MINMETHOD = 'Powell'
     NUMFEVAL = 150
 
@@ -101,6 +100,7 @@ class TabFittingWindow(QtWidgets.QWidget):
         self.queue = None
         self.tabs = QtWidgets.QTabWidget(self)
         self.tabs.setTabPosition(2)
+        self.PRECIS = self.father.defaultPrecis
         self.mainFitWindow = FittingWindow(father, oldMainWindow, self, self.mainFitType)
         self.current = self.mainFitWindow.current
         self.tabs.setTabsClosable(True)

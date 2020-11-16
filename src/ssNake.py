@@ -239,6 +239,7 @@ class MainProgram(QtWidgets.QMainWindow):
 
     def resetDefaults(self):
         self.defaultUnits = 1
+        self.defaultPrecis = 4
         self.defaultShowTitle = True
         self.defaultPPM = False
         self.defaultWidth = 1
@@ -344,6 +345,7 @@ class MainProgram(QtWidgets.QMainWindow):
             self.defaultDiagonalMult = settings.value("contour/diagonalmult", self.defaultDiagonalMult, float)
         except TypeError:
             self.dispMsg("Incorrect value in the config file for the diagonal multiplier")
+        self.defaultPrecis = settings.value("precision", self.defaultPrecis, int)
         self.defaultMaximized = settings.value("maximized", self.defaultMaximized, bool)
         try:
             self.defaultWidth = settings.value("width", self.defaultWidth, int)
@@ -385,6 +387,7 @@ class MainProgram(QtWidgets.QMainWindow):
         settings.setValue("plot/ygrid", self.defaultGrids[1])
         settings.setValue("plot/zeroscroll", self.defaultZeroScroll)
         settings.setValue("plot/zoomstep", self.defaultZoomStep)
+        settings.setValue("precision", self.defaultPrecis)
         settings.setValue("maximized", self.defaultMaximized)
         settings.setValue("width", self.defaultWidth)
         settings.setValue("height", self.defaultHeight)
@@ -3141,14 +3144,14 @@ class TextFrame(QtWidgets.QScrollArea):
     def setLabels(self, position):
         if len(position) > 3:
             self.ypos.setText(str(position[3]))
-            self.deltaypoint.setText('%#.4g' % np.abs(self.oldy - position[4]))
-            self.ypoint.setText('%#.4g' % position[4])
+            self.deltaypoint.setText(('%#.'+str(self.father.father.defaultPrecis)+'g') % np.abs(self.oldy - position[4]))
+            self.ypoint.setText(('%#.'+str(self.father.father.defaultPrecis)+'g') % position[4])
             self.oldy = position[4]
-        self.deltaxpoint.setText('%#.4g' % np.abs(self.oldx - position[1]))
-        self.deltaamppoint.setText('%#.4g' % np.abs(self.oldamp - position[2]))
+        self.deltaxpoint.setText(('%#.'+str(self.father.father.defaultPrecis)+'g') % np.abs(self.oldx - position[1]))
+        self.deltaamppoint.setText(('%#.'+str(self.father.father.defaultPrecis)+'g') % np.abs(self.oldamp - position[2]))
         self.xpos.setText(str(position[0]))
-        self.xpoint.setText('%#.4g' % position[1])
-        self.amppoint.setText('%#.4g' % position[2])
+        self.xpoint.setText(('%#.'+str(self.father.father.defaultPrecis)+'g') % position[1])
+        self.amppoint.setText(('%#.'+str(self.father.father.defaultPrecis)+'g') % position[2])
         self.oldx = position[1]
         self.oldamp = position[2]
 
@@ -3832,7 +3835,7 @@ class ApodWindow(wc.ToolWindow):
     def setLorGauss(self,value, type, *args):
         #type: 'lor' or 'gauss'
         if self.available:
-            self.entries[type][0].setText('%.4g' % (float(value) * self.maximum / self.RESOLUTION))
+            self.entries[type][0].setText(('%.'+str(self.father.father.defaultPrecis)+'g') % (float(value) * self.maximum / self.RESOLUTION))
             if not self.ticks[type].isChecked():
                 self.ticks[type].setChecked(1)
             self.apodPreview()
@@ -3860,9 +3863,9 @@ class ApodWindow(wc.ToolWindow):
             self.ticks[type].setChecked(1)
         lor, gauss, cos2, cos2Ph, hamming, shift, shifting, shiftingAxis = self.checkInput()
         if type == 'lor':
-            self.entries[type][0].setText('%.4g' % (lor + step))
+            self.entries[type][0].setText(('%.'+str(self.father.father.defaultPrecis)+'g') % (lor + step))
         elif type == 'gauss':
-            self.entries[type][0].setText('%.4g' % (gauss + step))
+            self.entries[type][0].setText(('%.'+str(self.father.father.defaultPrecis)+'g') % (gauss + step))
         self.apodPreview()
 
     def checkInput(self):
@@ -6974,6 +6977,10 @@ class PreferenceWindow(QtWidgets.QWidget):
         self.showTitleCheck = QtWidgets.QCheckBox("Show title in plot")
         self.showTitleCheck.setChecked(self.father.defaultShowTitle)
         grid2.addWidget(self.showTitleCheck, 15, 0, 1, 2)
+        grid2.addWidget(QtWidgets.QLabel("Significant digits:"), 16, 0)
+        self.precisSpinBox = wc.SsnakeSpinBox()
+        self.precisSpinBox.setValue(self.father.defaultPrecis)
+        grid2.addWidget(self.precisSpinBox, 16, 1)
         # grid3 definitions
         grid3.addWidget(QtWidgets.QLabel("Colourmap:"), 0, 0)
         self.cmEntry = QtWidgets.QComboBox(self)
@@ -7065,6 +7072,7 @@ class PreferenceWindow(QtWidgets.QWidget):
         self.father.defaultGrids[1] = self.ygridCheck.isChecked()
         self.father.defaultZeroScroll = self.zeroScrollCheck.isChecked()
         self.father.defaultShowTitle = self.showTitleCheck.isChecked()
+        self.father.defaultPrecis = self.precisSpinBox.value()
         self.father.defaultZoomStep = self.ZoomStepSpinBox.value()
         self.father.defaultColorMap = self.cmEntry.currentText()
         self.father.defaultContourConst = self.constColorCheck.isChecked()
@@ -7350,25 +7358,25 @@ class shiftConversionWindow(wc.ToolWindow):
                 raise SsnakeException("Shift Conversion: Invalid input in Hertzfeld-Berger Convention")
         Results = func.shiftConversion(Values, Type)  # Do the actual conversion
         # Standard convention
-        self.D11.setText('%#.4g' % Results[0][0])
-        self.D22.setText('%#.4g' % Results[0][1])
-        self.D33.setText('%#.4g' % Results[0][2])
+        self.D11.setText(('%#.'+str(self.father.defaultPrecis)+'g') % Results[0][0])
+        self.D22.setText(('%#.'+str(self.father.defaultPrecis)+'g') % Results[0][1])
+        self.D33.setText(('%#.'+str(self.father.defaultPrecis)+'g') % Results[0][2])
         # Convert to haeberlen convention and xxyyzz
-        self.dxx.setText('%#.4g' % Results[1][0])
-        self.dyy.setText('%#.4g' % Results[1][1])
-        self.dzz.setText('%#.4g' % Results[1][2])
+        self.dxx.setText(('%#.'+str(self.father.defaultPrecis)+'g') % Results[1][0])
+        self.dyy.setText(('%#.'+str(self.father.defaultPrecis)+'g') % Results[1][1])
+        self.dzz.setText(('%#.'+str(self.father.defaultPrecis)+'g') % Results[1][2])
         # Haeberlen def
-        self.diso.setText('%#.4g' % Results[2][0])
-        self.daniso.setText('%#.4g' % Results[2][1])
+        self.diso.setText(('%#.'+str(self.father.defaultPrecis)+'g') % Results[2][0])
+        self.daniso.setText(('%#.'+str(self.father.defaultPrecis)+'g') % Results[2][1])
         try:  # If a number
-            self.eta.setText('%#.4g' % Results[2][2])
+            self.eta.setText(('%#.'+str(self.father.defaultPrecis)+'g') % Results[2][2])
         except Exception:
             self.eta.setText('ND')
         # Convert to Herzfeld-Berger Convention
-        self.hbdiso.setText('%#.4g' % Results[3][0])
-        self.hbdaniso.setText('%#.4g' % Results[3][1])
+        self.hbdiso.setText(('%#.'+str(self.father.defaultPrecis)+'g') % Results[3][0])
+        self.hbdaniso.setText(('%#.'+str(self.father.defaultPrecis)+'g') % Results[3][1])
         try:
-            self.hbskew.setText('%#.4g' % Results[3][2])
+            self.hbskew.setText(('%#.'+str(self.father.defaultPrecis)+'g') % Results[3][2])
         except Exception:
             self.hbskew.setText('ND')
 
@@ -7534,18 +7542,18 @@ class quadConversionWindow(wc.ToolWindow):
         if Result[0][1] is None:
             self.Eta.setText('ND')
         else:
-            self.Eta.setText('%#.4g' % Result[0][1])
-        self.Cq.setText('%#.4g' % Result[0][0])
-        self.Wq.setText('%#.4g' % Result[1][0])
+            self.Eta.setText(('%#.'+str(self.father.defaultPrecis)+'g') % Result[0][1])
+        self.Cq.setText(('%#.'+str(self.father.defaultPrecis)+'g') % Result[0][0])
+        self.Wq.setText(('%#.'+str(self.father.defaultPrecis)+'g') % Result[1][0])
         if Result[2][0] is None:
             self.Moment.setText('ND')
             self.Vxx.setText('ND')
             self.Vyy.setText('ND')
             self.Vzz.setText('ND')
         else:
-            self.Vxx.setText('%#.4g' % Result[2][0])
-            self.Vyy.setText('%#.4g' % Result[2][1])
-            self.Vzz.setText('%#.4g' % Result[2][2])
+            self.Vxx.setText(('%#.'+str(self.father.defaultPrecis)+'g') % Result[2][0])
+            self.Vyy.setText(('%#.'+str(self.father.defaultPrecis)+'g') % Result[2][1])
+            self.Vzz.setText(('%#.'+str(self.father.defaultPrecis)+'g') % Result[2][2])
 
     def valueReset(self):  # Resets all the boxes to 0
         self.Cq.setText('0')
