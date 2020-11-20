@@ -978,9 +978,9 @@ class MainProgram(QtWidgets.QMainWindow):
             if type(self.mainWindow) is Main1DWindow:
                 self.menuEnable(True)
                 for act in self.specOnlyList:
-                    act.setEnabled(self.mainWindow.current.spec() == 1)  # Only on for spec
+                    act.setEnabled(int(self.mainWindow.current.spec() == 1))  # Only on for spec
                 for act in self.fidOnlyList:
-                    act.setEnabled(self.mainWindow.current.spec() == 0)  # Only on for FID
+                    act.setEnabled(int(self.mainWindow.current.spec() == 0))  # Only on for FID
                   #Limit functions based on plot type
                 if type(self.mainWindow.current) == views.CurrentMulti or type(self.mainWindow.current) == views.CurrentStacked or type(self.mainWindow.current) == views.CurrentArrayed:
                     for act in self.Only1DPlot:
