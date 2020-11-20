@@ -3571,16 +3571,17 @@ class CurrentContour(CurrentStacked):
                     PlotNegative = True
         vmax = max(np.abs(self.viewSettings["minLevels"] * self.differ), np.abs(self.viewSettings["maxLevels"] * self.differ))
         vmin = -vmax
-        if color is not None:
-            if PlotPositive:
-                self.ax.contour(X[YposMax[:, None], XposMax], Y[YposMax[:, None], XposMax], line_zdata[YposMax[:, None], XposMax], colors=[color[0]], levels=contourLevels, vmax=vmax, vmin=vmin, linewidths=self.viewSettings["linewidth"], linestyles='solid')
-            if PlotNegative:
-                self.ax.contour(X[YposMin[:, None], XposMin], Y[YposMin[:, None], XposMin], line_zdata[YposMin[:, None], XposMin], colors=[color[1]], levels=-contourLevels[::-1], vmax=vmax, vmin=vmin, linewidths=self.viewSettings["linewidth"], linestyles='solid')
-        else:
-            if PlotPositive:
-                self.ax.contour(X[YposMax[:, None], XposMax], Y[YposMax[:, None], XposMax], line_zdata[YposMax[:, None], XposMax], cmap=get_cmap(self.viewSettings["colorMap"]), levels=contourLevels, vmax=vmax, vmin=vmin, linewidths=self.viewSettings["linewidth"], linestyles='solid')
-            if PlotNegative:
-                self.ax.contour(X[YposMin[:, None], XposMin], Y[YposMin[:, None], XposMin], line_zdata[YposMin[:, None], XposMin], cmap=get_cmap(self.viewSettings["colorMap"]), levels=-contourLevels[::-1], vmax=vmax, vmin=vmin, linewidths=self.viewSettings["linewidth"], linestyles='solid')
+        if len(line_xdata) > 1 and len(line_ydata) > 1: # Do not plot if too few points
+            if color is not None:
+                if PlotPositive:
+                    self.ax.contour(X[YposMax[:, None], XposMax], Y[YposMax[:, None], XposMax], line_zdata[YposMax[:, None], XposMax], colors=[color[0]], levels=contourLevels, vmax=vmax, vmin=vmin, linewidths=self.viewSettings["linewidth"], linestyles='solid')
+                if PlotNegative:
+                    self.ax.contour(X[YposMin[:, None], XposMin], Y[YposMin[:, None], XposMin], line_zdata[YposMin[:, None], XposMin], colors=[color[1]], levels=-contourLevels[::-1], vmax=vmax, vmin=vmin, linewidths=self.viewSettings["linewidth"], linestyles='solid')
+            else:
+                if PlotPositive:
+                    self.ax.contour(X[YposMax[:, None], XposMax], Y[YposMax[:, None], XposMax], line_zdata[YposMax[:, None], XposMax], cmap=get_cmap(self.viewSettings["colorMap"]), levels=contourLevels, vmax=vmax, vmin=vmin, linewidths=self.viewSettings["linewidth"], linestyles='solid')
+                if PlotNegative:
+                    self.ax.contour(X[YposMin[:, None], XposMin], Y[YposMin[:, None], XposMin], line_zdata[YposMin[:, None], XposMin], cmap=get_cmap(self.viewSettings["colorMap"]), levels=-contourLevels[::-1], vmax=vmax, vmin=vmin, linewidths=self.viewSettings["linewidth"], linestyles='solid')
         self.setTicks()
         if updateOnly:
             self.canvas.draw()
