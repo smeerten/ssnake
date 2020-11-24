@@ -1113,9 +1113,9 @@ class AbstractParamFrame(QtWidgets.QWidget):
         tmpVal = {key: None for key in self.SINGLENAMES + self.MULTINAMES}
         for name in self.SINGLENAMES:
             if name in self.DEFAULTS.keys():
-                tmpVal[name] = self.DEFAULTS[name]
+                tmpVal[name] = np.array(self.DEFAULTS[name], dtype=object)
             else:
-                tmpVal[name] = [0.0, False]
+                tmpVal[name] = np.array([0.0, False], dtype=object)
         for name in self.MULTINAMES:
             if name in self.DEFAULTS.keys():
                 tmpVal[name] = np.repeat([np.array(self.DEFAULTS[name], dtype=object)], self.FITNUM, axis=0)
