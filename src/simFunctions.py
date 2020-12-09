@@ -657,7 +657,17 @@ def makeMQMASSpectrum(x, sw, v, gauss, lor, weight):
     t2 = np.fft.fftfreq(length2, sw[-1]/float(length2))
     diff2 = (x[-1][1] - x[-1][0])*0.5
     t1 = t1[:, np.newaxis]
-    final, _, _ = np.histogram2d(v[0], v[1], [length1, length2], range=[[x[-2][0]-diff1, x[-2][-1]+diff1], [x[-1][0]-diff2, x[-1][-1]+diff2]], weights=weight)
+    minD1 = x[-2][0] - diff1
+    maxD1 = x[-2][-1] + diff1
+    minD2 = x[-1][0] - diff2
+    maxD2 = x[-1][-1] + diff2
+    if minD1 > maxD1:
+        minD1, maxD1 = maxD1, minD1
+        v[0] *= -1
+    if minD2 > maxD2:
+        minD2, maxD2 = maxD2, minD2
+        v[1] *= -1
+    final, _, _ = np.histogram2d(v[0], v[1], [length1, length2], range=[[minD1, maxD1], [minD2, maxD2]], weights=weight)
     final = np.fft.ifftn(final)
     apod2 = np.exp(-np.pi * np.abs(lor[1] * t2) - ((np.pi * np.abs(gauss[1]) * t2)**2) / (4 * np.log(2)))
     apod1 = np.exp(-np.pi * np.abs(lor[0] * t1) - ((np.pi * np.abs(gauss[0]) * t1)**2) / (4 * np.log(2)))
