@@ -1347,12 +1347,19 @@ def loadBrukerSpectrum(filePath):
         if os.path.exists(Dir + os.path.sep + File):
             pars.append(brukerTopspinGetPars(Dir + os.path.sep + File))
     SIZE = [x['SI'] for x in pars]
-    XDIM = [x['XDIM'] for x in pars]
+    try:
+        XDIM = [x['XDIM'] for x in pars]
+    except KeyError:
+        XDIM = SIZE # If not specified the data is assumed to be 1D
     SW = [x['SW_p'] for x in pars]
     FREQ = [x['SF'] * 1e6 for x in pars]
     OFFSET = [x['OFFSET'] for x in pars]
-    DtypeP = [np.dtype(np.int32), np.dtype(np.float32), np.dtype(np.float64)][pars[0]['DTYPP']] #The byte orders that is used
-    DtypeP = DtypeP.newbyteorder(['L', 'B'][pars[0]['BYTORDP']]) 
+    try:
+        DtypeP = [np.dtype(np.int32), np.dtype(np.float32), np.dtype(np.float64)][pars[0]['DTYPP']] #The byte orders that is used
+        DtypeP = DtypeP.newbyteorder(['L', 'B'][pars[0]['BYTORDP']])
+    except KeyError:
+        DtypeP = np.dtype(np.int32)         # When these parameters are not available the defaults are used
+        DtypeP = DtypeP.newbyteorder('L')
     # The byte orders that is used as stored in BYTORDP proc parameter:
     #  '< or L' =little endian, '>' or 'B' = big endian
     REF = []
