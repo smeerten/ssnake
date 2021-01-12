@@ -7468,7 +7468,9 @@ class quadConversionWindow(wc.ToolWindow):
         self.grid.addWidget(self.WqGroup, 7, 0, 1, 2)
         self.fieldGroup = QtWidgets.QGroupBox('Field Gradients:')
         self.fieldFrame = QtWidgets.QGridLayout()
-        Vxxlabel = wc.QLabel('V<sub>xx</sub> [V/m<sup>2</sup>]:')
+        # Vxx and Vyy labels interchanged to follow the Quad+CSa fitting deifnitions
+        # WF: 2021-01
+        Vxxlabel = wc.QLabel('V<sub>yy</sub> [V/m<sup>2</sup>]:')
         self.fieldFrame.addWidget(Vxxlabel, 9, 1)
         VGO = QtWidgets.QPushButton("Go")
         self.fieldFrame.addWidget(VGO, 10, 0)
@@ -7476,7 +7478,7 @@ class quadConversionWindow(wc.ToolWindow):
         self.Vxx = wc.QLineEdit("ND")
         self.Vxx.setMinimumWidth(100)
         self.fieldFrame.addWidget(self.Vxx, 10, 1)
-        Vyylabel = wc.QLabel('V<sub>yy</sub> [V/m<sup>2</sup>]:')
+        Vyylabel = wc.QLabel('V<sub>xx</sub> [V/m<sup>2</sup>]:')
         self.fieldFrame.addWidget(Vyylabel, 9, 2)
         self.Vyy = wc.QLineEdit("ND")
         self.Vyy.setMinimumWidth(100)

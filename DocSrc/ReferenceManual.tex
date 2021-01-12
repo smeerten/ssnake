@@ -1645,6 +1645,12 @@ When simulating an infinite MAS spectrum, a more efficient routine can be used t
 If spinning sidebands are not important in the calculation, it might be useful to switch to
 `infinite' for speed considerations.
 
+
+
+
+
+
+
 \subsubsection*{Equations}
 Quadrupole systems are influenced by both the first and second order quadrupolar coupling. The first
 order quadrupolar coupling has only rank 2 terms, while the second order has rank 0, 2 and 4
@@ -1725,6 +1731,28 @@ I_z (18 I (I + 1) -34 I_z^2 -5) \\
 
 With $B = \left( \dfrac{C_\text{Q}}{4 I (2 I - 1)} \right) ^ 2  \dfrac{2}{\nu_0}$, where $\nu_0$ is
 the Larmor frequency of the nucleus.
+
+
+\subsection{Quadrupole+CSA}
+
+
+We order the EFG tensor values in the following way $|V_{zz}|>|V_{xx}|>|V_{yy}|$.
+
+We define the CSA and quadrupole angles in the same way as SIMPSON does, but we rotate via
+an Z-X-Z euler rotation, while SIMPSON uses Z-Y-Z. This leads to the following conversion table:
+
+TODO: add wsolids conversion --> alpha + 90
+
+\begin{center}
+\begin{tabular}{cc}
+\toprule
+\textbf{SIMPSON} & \textbf{ssNake}\\
+\midrule
+$\alpha$, $\beta$, $\gamma$ & $\alpha + 90^\circ$, $\beta$, $\gamma + 90^\circ$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
 
 \subsection{Czjzek}
 This fitting routine can be used to simulate the 1D spectrum of a quadrupolar nucleus that
@@ -2156,7 +2184,7 @@ The final definition is the Herzfeld-Berger definition. This convention uses the
 Using the chemical shift conversion tool is quite easy. You can fill in all the necessary values for one convention, and push the `Go' button next to it to convert it to all the other definitions. Note that ssNake also checks the definitions. So if you mess up the order of the Standard Convention, for example, it will be put in the correct order. The same is done for values that are outside the defined limits (e.g. $\eta$ and $\kappa$). Pushing `Reset' will reset all the values to 0.
 
 \subsection{Quadrupole coupling conversion tool}
-Nuclei with a spin quantum number greater than 1/2 have an asymmetric charge distribution. This leads to a quadrupolar moment, and thus to a coupling between the nucleus and the electronic field gradient at the nuclear site. Just as for chemical shift, there are multiple convention in use to describe the resulting quadrupolar tensor. Apart from being a symmetric tensor, Laplace relation states that the sum of the field gradients in all direction should be zero (otherwise the nuclei would experience a net force). Due to this, there is no isotropic term, and the quadrupolar coupling can be described by two numbers: the strength and the asymmetry. Of these there are two conventions in use: C$_\text{Q}$ and $\omegaup_\text{Q}$. When the field gradients in the three independent directions are $V_\text{xx}$, $V_\text{yy}$ and $V_\text{xx}$ (with $|V_\text{zz}| \geq |V_\text{yy}| \geq |V_\text{xx}|$), C$_\text{Q}$ is defined as:
+Nuclei with a spin quantum number greater than 1/2 have an asymmetric charge distribution. This leads to a quadrupolar moment, and thus to a coupling between the nucleus and the electronic field gradient at the nuclear site. Just as for chemical shift, there are multiple convention in use to describe the resulting quadrupolar tensor. Apart from being a symmetric tensor, Laplace relation states that the sum of the field gradients in all direction should be zero (otherwise the nuclei would experience a net force). Due to this, there is no isotropic term, and the quadrupolar coupling can be described by two numbers: the strength and the asymmetry. Of these there are two conventions in use: C$_\text{Q}$ and $\omegaup_\text{Q}$. When the field gradients in the three independent directions are $V_\text{xx}$, $V_\text{yy}$ and $V_\text{xx}$ (with $|V_\text{zz}| \geq |V_\text{xx}| \geq |V_\text{yy}|$), C$_\text{Q}$ is defined as:
 \begin{equation}
 C_\text{Q} = \dfrac{eV_\text{zz}Q}{\hbar} = \dfrac{e^2qQ}{\hbar}
 \end{equation}
@@ -2170,7 +2198,7 @@ With $e$ the elementary charge, $Q$ the quadrupole moment (in m$^2$), $h$ the Pl
 \end{equation}
 For both definitions, the asymmetry is defined as:
 \begin{equation}
-\eta = \dfrac{V_\text{xx} -V_\text{yy}}{V_\text{zz}}
+\eta = \dfrac{V_\text{yy} -V_\text{xx}}{V_\text{zz}}
 \end{equation}
 which, due to the ordering of the fields gradient components, is always between 1 and 0.
 
