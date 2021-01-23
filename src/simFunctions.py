@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2016 - 2020 Bas van Meerten and Wouter Franssen
+# Copyright 2016 - 2021 Bas van Meerten and Wouter Franssen
 
 # This file is part of ssNake.
 #
