@@ -2368,7 +2368,7 @@ class DiffusionParamFrame(AbstractParamFrame):
 
     SINGLENAMES = ['Amplitude', 'Constant']
     MULTINAMES = ['Coefficient', 'D']
-    FUNC_LABEL = u"Amplitude * (Constant + Coefficient * exp(-(γ * δ * x)² * D * (Δ - δ / 3.0)))"
+    FUNC_LABEL = u"Amplitude * (Constant + Coefficient * exp(-(2 * π * γ * δ * x)² * D * (Δ - δ / 3.0)))"
 
     def __init__(self, parent, rootwindow, isMain=True):
         """
