@@ -1554,10 +1554,10 @@ class MainProgram(QtWidgets.QMainWindow):
                                  filePath,
                                  freq,
                                  sw,
-                                 spec,
-                                 wholeEcho,
-                                 ref,
-                                 xaxArray,
+                                 spec=spec,
+                                 wholeEcho=wholeEcho,
+                                 ref=ref,
+                                 xaxArray=xaxArray,
                                  history=['Data obtained from fit'],
                                  name=name)
         masterData.resetXax(axes)
