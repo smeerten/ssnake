@@ -1150,7 +1150,9 @@ def loadBrukerTopspin(filePath):
     else:
         Dir = filePath
     pars = []
-    for File in ['acqus', 'acqu2s', 'acqu3s']:
+    # makes list of par file names
+    parFileN = ['acqus'] + [f'acqu{int(x)}s' for x in range(2,9)]
+    for File in parFileN:
         if os.path.exists(Dir + os.path.sep + File):
             pars.append(brukerTopspinGetPars(Dir + os.path.sep + File))
     SIZE = [x['TD'] for x in pars]
