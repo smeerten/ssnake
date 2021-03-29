@@ -409,14 +409,13 @@ class Current1D(PlotFrame):
         list:
             The new axis list
         """
-        if len(axes) != self.NDIM_PLOT:
+        if len(axes) < self.NDIM_PLOT:
             fullAxes = np.arange(self.data.ndim())
             fullAxes = np.delete(fullAxes, axes)
             diff = self.NDIM_PLOT - len(axes)
-            if diff < 0 and self.NDIM_PLOT == 1:
-                return axes[-self.NDIM_PLOT:]
-            else:
-                return np.append(fullAxes[-diff:], axes[-self.NDIM_PLOT:])
+            return np.append(fullAxes[-diff:], axes[-self.NDIM_PLOT:])
+        elif len(axes) > self.NDIM_PLOT:
+            return axes[-self.NDIM_PLOT:]
         return axes
 
     def rename(self, name):
