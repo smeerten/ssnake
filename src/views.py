@@ -3803,7 +3803,11 @@ class CurrentColour2D(CurrentContour):
         if updateOnly:  # Set some extra stuff if only the contour plot needs updating
             del self.ax.collections[:]  # Clear all plot collections
 
-        self.ax.imshow(np.flipud(line_zdata), extent=[line_xdata[0],line_xdata[-1],line_ydata[0],line_ydata[-1]],aspect='auto',cmap=get_cmap(self.viewSettings["pColorMap"]))
+        vmax = np.max(np.abs(line_zdata))
+        vmin = -vmax
+
+        self.ax.imshow(np.flipud(line_zdata), extent=[line_xdata[0],line_xdata[-1],line_ydata[0],line_ydata[-1]],
+                aspect='auto',cmap=get_cmap(self.viewSettings["pColorMap"]),vmax=vmax,vmin=vmin)
         self.setTicks()
         if updateOnly:
             self.canvas.draw()
