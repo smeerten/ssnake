@@ -1201,6 +1201,13 @@ def loadBrukerTopspin(filePath):
         masterData.metaData['Recycle Delay [s]'] = str(pars[0]['D'][1])
     except Exception:
         pass
+    try:
+        import time
+        masterData.metaData['Time Completed'] = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(pars[0]['DATE'])))
+    except Exception:
+        pass
+
+    
     masterData.addHistory("Bruker TopSpin data loaded from " + filePath)
     return masterData
 
