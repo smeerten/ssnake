@@ -665,7 +665,7 @@ class Spectrum(object):
         """
         axis = self.checkAxis(axis)
         try:
-            self.data *= mult * scale
+            self.data[select] *= mult * scale
         except ValueError as error:
             raise SpectrumException('Normalize: ' + str(error))
         if type == 0:
