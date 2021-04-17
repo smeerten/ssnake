@@ -20,7 +20,7 @@
 import os
 import sys
 from safeEval import safeEval
-from ssNake import QtGui, QtCore, QtWidgets, QT
+from ssNake import QtGui, QtCore, QtWidgets
 
 class SsnakeTabs(QtWidgets.QTabWidget):
     """
@@ -68,10 +68,7 @@ class SsnakeTreeWidget(QtWidgets.QTreeView):
         self.customContextMenuRequested.connect(self.openMenu)
         self.setModel(self.dirmodel)
         self.setRootIndex(self.dirmodel.index(''))
-        if QT == 4:
-            self.header().setResizeMode(0, QtGui.QHeaderView.ResizeToContents)
-        elif QT == 5:
-            self.header().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
+        self.header().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
         self.header().setStretchLastSection(False)
         self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         #self.setToolTip(index.model()->data(index,Qt:isplayRole).toString());
@@ -212,10 +209,7 @@ class SsnakeSlider(QtWidgets.QSlider):
         event : QMouseEvent
             The mouse event.
         """
-        if QT == 4:
-            delta = event.delta()
-        else:
-            delta = event.angleDelta().y()
+        delta = event.angleDelta().y()
         step = self.singleStep() * 3
         if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier and QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
             step *= 1000
@@ -564,10 +558,7 @@ class SliceSpinBox(QtWidgets.QSpinBox):
         event : QWheelEvent
             The event on the spinbox.
         """
-        if QT == 4:
-            delta = event.delta()
-        else:
-            delta = event.angleDelta().y() + event.angleDelta().x()
+        delta = event.angleDelta().y() + event.angleDelta().x()
         step = 1
         if delta > 0:
             self.stepBy(step)
@@ -615,10 +606,7 @@ class SsnakeDoubleSpinBox(QtWidgets.QDoubleSpinBox):
         event : QWheelEvent
             The event on the spinbox.
         """
-        if QT == 4:
-            delta = event.delta()
-        else:
-            delta = event.angleDelta().y() + event.angleDelta().x()
+        delta = event.angleDelta().y() + event.angleDelta().x()
         step = 1
         if delta > 0:
             self.stepBy(step)
@@ -662,10 +650,7 @@ class SsnakeSpinBox(QtWidgets.QSpinBox):
         event : QWheelEvent
             The event on the spinbox.
         """
-        if QT == 4:
-            delta = event.delta()
-        else:
-            delta = event.angleDelta().y() + event.angleDelta().x()
+        delta = event.angleDelta().y() + event.angleDelta().x()
         step = 1
         if delta > 0:
             self.stepBy(step)

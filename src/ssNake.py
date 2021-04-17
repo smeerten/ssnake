@@ -21,29 +21,16 @@
 EXE = False
 
 import sys
-if sys.version_info.major == 2:
-    import sip
-    sip.setapi('QString', 2)
-    print('DEPRECATION WARNING: From version 1.4 onwards, python2 is no longer supported. Consider upgrading to python3.')
 import os
 import importlib
-try:
-    from PyQt5 import QtGui, QtCore, QtWidgets
-    QT = 5
-except ImportError:
-    from PyQt4 import QtGui, QtCore
-    from PyQt4 import QtGui as QtWidgets
-    QT = 4
-    print('DEPRECATION WARNING: From version 1.4 onwards, PyQt4 is no longer supported. Consider upgrading to PyQt5.')
+from PyQt5 import QtGui, QtCore, QtWidgets
+QT = 5
+
 QtCore.pyqtRemoveInputHook()
 import matplotlib
 # First import matplotlib and Qt
-if QT == 4:
-    matplotlib.use('Qt4Agg')
-    from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
-else:
-    matplotlib.use('Qt5Agg')
-    from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+matplotlib.use('Qt5Agg')
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import multiprocessing
 
 # Create splash window
@@ -230,11 +217,8 @@ class MainProgram(QtWidgets.QMainWindow):
             canvas = self.mainWindow.tabs.currentWidget().canvas
         else:
             canvas = self.mainWindow.canvas
-        if QT == 5:
-            screen = self.root.primaryScreen()
-            pixmap = screen.grabWindow(canvas.winId())
-        else:
-            pixmap = QtGui.QPixmap.grabWidget(canvas)
+        screen = self.root.primaryScreen()
+        pixmap = screen.grabWindow(canvas.winId())
         QtWidgets.QApplication.clipboard().setPixmap(pixmap)
 
     def resetDefaults(self):
@@ -8087,10 +8071,7 @@ def checkVersions():
     libs = [['numpy', np.__version__, NPVERSION],
             ['matplotlib', matplotlib.__version__, MPLVERSION],
             ['scipy', scipyVersion, SPVERSION]]
-    if sys.version_info.major == 3:
-        libs.append(['python', str(sys.version_info.major) + '.' + str(sys.version_info.minor), PY3VERSION])
-    elif sys.version_info.major == 2:
-        libs.append(['python', str(sys.version_info.major) + '.' + str(sys.version_info.minor), PY2VERSION])
+    libs.append(['python', str(sys.version_info.major) + '.' + str(sys.version_info.minor), PY3VERSION])
     messages = []
     error = False
     for elem in libs:
