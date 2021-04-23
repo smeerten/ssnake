@@ -35,7 +35,7 @@ Installation
 ### Linux and macOS ###
 
 To install ssNake, copy the ssNake directory to your favourite location (/usr/local/, for example).
-ssNake can then be run by executing 'python /InstallPath/src/ssNake.py'.
+ssNake can then be run by executing 'python3 /InstallPath/src/ssNake.py'.
 Aliases or symlinks can be used to create a shortcut to start the program.
 When multiple versions of Python are installed make sure that the correct one is used to start ssNake.
 This can be done either by modifying the PATH environment variable or by starting ssNake with the full path to the Python binary, for example by using '/anaconda3/bin/python /InstallPath/src/ssNake.py'
