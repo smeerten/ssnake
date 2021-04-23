@@ -9,18 +9,18 @@ Requirements
 ------------
 
 ssNake requires:
-- [python](http://python.org/download/) >= 2.7 or [python](http://python.org/download/) >= 3.4
+- [python](http://python.org/download/) >= 3.4
 
 And the following python packages are required[1]:
 - [numpy](http://sourceforge.net/projects/numpy/files/NumPy/) >= 1.11.0
 - [matplotlib](http://matplotlib.org/) >= 1.5.0
 - [scipy](http://sourceforge.net/projects/scipy/files/scipy/) >= 0.14.1
-- [PyQt4](http://www.riverbankcomputing.com/software/pyqt/download) >= 4.11.4
+- [PyQt5](http://www.riverbankcomputing.com/software/pyqt/download) >= 5.15.0
 - [h5py](http://www.h5py.org/) >= 2.5.0 (for loading Matlab data)
 
 On Ubuntu and Debian these packages can be installed using the package manager:
 ```
-sudo apt-get install python python-numpy python-matplotlib python-scipy python-qt4 python-h5py
+sudo apt-get install python3 python3-numpy python3-matplotlib python3-scipy python3-pyqt5 python3-h5py
 ```
 
 On Windows (and macOS) these packages can easily be installed by downloading [Anaconda](https://www.anaconda.com/distribution/).
