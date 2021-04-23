@@ -1734,21 +1734,20 @@ the Larmor frequency of the nucleus.
 
 
 \subsection{Quadrupole+CSA}
+Quadrupole + CSA fitting combines first and second order quadrupolar effects and chemical shift anisotropy. Both spinning and static spectra can be simulated. For the effects of the individual quadrupole or CSA settings, see above at their respective sections.
 
-
-We order the EFG tensor values in the following way $|V_{zz}|>|V_{xx}|>|V_{yy}|$.
-
+Three additional parameters that need to be given are the three angles defining the rotation of the CSA tensor with respect to the EFG tensor ($\alpha$, $\beta$, $\gamma$).
+We order the EFG tensor values in the following way: $|V_{zz}|>|V_{xx}|>|V_{yy}|$.
 We define the CSA and quadrupole angles in the same way as SIMPSON does, but we rotate via
-an Z-X-Z euler rotation, while SIMPSON uses Z-Y-Z. This leads to the following conversion table:
-
-TODO: add wsolids conversion --> alpha + 90
+an Z-X-Z euler rotation, while SIMPSON uses Z-Y-Z. This leads to the following conversion table, showing the ssNake angles when using $\alpha$, $\beta$, $\gamma$ in another software package:
 
 \begin{center}
 \begin{tabular}{cc}
 \toprule
-\textbf{SIMPSON} & \textbf{ssNake}\\
+\textbf{Software} & \textbf{ssNake equivalent}\\
 \midrule
-$\alpha$, $\beta$, $\gamma$ & $\alpha + 90^\circ$, $\beta$, $\gamma + 90^\circ$ \\
+Simpson & $\alpha + 90^\circ$, $\beta$, $\gamma + 90^\circ$ \\
+wsolids & $\alpha + 90^\circ$, $\beta$, $\gamma$ \\
 \bottomrule
 \end{tabular}
 \end{center}
