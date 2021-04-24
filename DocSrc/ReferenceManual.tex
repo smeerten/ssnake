@@ -1840,6 +1840,21 @@ To speed-up the calculations of these distributions, ssNake can use the \texttt{
 the extended Czjzek distribution, around a twofold speed increase can be gained in this way. ssNake
 tests for the \texttt{numba} package itself, so regular installation of this package should be sufficient.
 
+\subsection{MQMAS}
+This fitting routine can be used to fit an MQMAS spectrum. It is a 2D fitting routine, showing a contour plot of the data. The fit result is plot on top of this using a different contour colour. As there are now two plotting dimensions, there are two Lorentz and Gauss broadening settings.
+
+For simulation of MQMAS data, we need to define the quadrupolar parameters as before (see the section on fitting of quadrupole lines). In this case, no satellite signals are included. Only infinite MAS spinning speeds are supported (no spinning sidebands are calculated). Moreover, it is an ideal simulation, so no excitation profiles are taken into account.
+
+Apart from the spin quantum number I, MQMAS simulation also requires selected the multiple quantum transition to be supplied. This is labelled `MQ' in the interface. 
+
+Two additional parameters that need to be supplied are the shearing and spectral width scale factors. These are required for the processing of MQMAS data, as is also described in our advanced tutorial on MQMAS processing. By default, the shearing is set at 0, and the sw scaling at 1. This results in unsheared data, and can be used to fit experimental data that has also not been sheared.
+
+The required sharing and sw scaling factors depend on both I and MQ. Using the 'Auto' push button in the interface, the correct values are filled in in the boxes, depending on the current I and MQ setting.
+
+
+\subsection{Czjzek MQMAS}
+This routine can be used to fit an MQMAS spectrum of a species that is influenced by a Czjzek distribution. The required inputs are describe in the section on 1D Czjzek fitting, and regular MQMAS fitting respectively. Note that this again means that firstly a library needs to be generated of a $C_\text{Q}$ and $\eta$ grid. The spectrum sharing and sw scaling are as described in the MQMAS section.
+
 
 \subsection{External}
 Simulating NMR data for fitting can be straightforward, if idealized line shapes are requires. These
