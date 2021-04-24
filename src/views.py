@@ -3809,7 +3809,7 @@ class CurrentColour2D(CurrentContour):
         vmin = -vmax
 
         self.ax.imshow(np.flipud(line_zdata), extent=[line_xdata[0],line_xdata[-1],line_ydata[0],line_ydata[-1]],
-                aspect='auto',cmap=get_cmap(self.viewSettings["pColorMap"]),vmax=vmax,vmin=vmin)
+                aspect='auto',cmap=get_cmap(self.viewSettings["pColorMap"]),vmax=vmax,vmin=vmin,interpolation='hanning')
         self.setTicks()
         if updateOnly:
             self.canvas.draw()
