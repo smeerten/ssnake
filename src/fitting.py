@@ -1,7 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# Copyright 2016 - 2020 Bas van Meerten and Wouter Franssen
+# Copyright 2016 - 2021 Bas van Meerten and Wouter Franssen
 
 # This file is part of ssNake.
 #
@@ -72,7 +72,6 @@ class TabFittingWindow(QtWidgets.QWidget):
     This handles the different tabs for multifitting.
     """
 
-    PRECIS = 4
     MINMETHOD = 'Powell'
     NUMFEVAL = 150
 
@@ -101,6 +100,7 @@ class TabFittingWindow(QtWidgets.QWidget):
         self.queue = None
         self.tabs = QtWidgets.QTabWidget(self)
         self.tabs.setTabPosition(2)
+        self.PRECIS = self.father.defaultPrecis
         self.mainFitWindow = FittingWindow(father, oldMainWindow, self, self.mainFitType)
         self.current = self.mainFitWindow.current
         self.tabs.setTabsClosable(True)
@@ -1113,9 +1113,9 @@ class AbstractParamFrame(QtWidgets.QWidget):
         tmpVal = {key: None for key in self.SINGLENAMES + self.MULTINAMES}
         for name in self.SINGLENAMES:
             if name in self.DEFAULTS.keys():
-                tmpVal[name] = self.DEFAULTS[name]
+                tmpVal[name] = np.array(self.DEFAULTS[name], dtype=object)
             else:
-                tmpVal[name] = [0.0, False]
+                tmpVal[name] = np.array([0.0, False], dtype=object)
         for name in self.MULTINAMES:
             if name in self.DEFAULTS.keys():
                 tmpVal[name] = np.repeat([np.array(self.DEFAULTS[name], dtype=object)], self.FITNUM, axis=0)
@@ -1287,6 +1287,12 @@ class AbstractParamFrame(QtWidgets.QWidget):
                 self.fitParamList[locList][name][i][0] = inp
         return True
 
+    def changeAxMult(self, oldAxMult):
+        """
+        Dummy function for changing the units.
+        """
+        pass
+    
     def getNumExp(self):
         """
         Returns the number of sites as set in the box.
@@ -1443,6 +1449,16 @@ class AbstractParamFrame(QtWidgets.QWidget):
         report += "# Data: " + self.parent.data.name + "\n"
         report += "# Trace: " + printLocList + "\n"
         report += "# Dimension: D" + str(self.parent.axes[-1]+1) + "\n"
+        if self.parent.spec() == 1:
+            if self.parent.viewSettings["ppm"][-1]:
+                axUnit = 'ppm'
+            else:
+                axUnits = ['Hz', 'kHz', 'MHz']
+                axUnit = axUnits[self.parent.getAxType()]
+        elif self.parent.spec() == 0:
+            axUnits = ['s', 'ms', "us"]
+            axUnit = axUnits[self.parent.getAxType()]
+        report += "# Units: " + axUnit + "\n"
         if self.removeLimits[locList]["limits"]:
             report += "# Excluded: "
             limitStr = str(self.removeLimits[locList]["limits"])
@@ -1526,6 +1542,8 @@ class AbstractParamFrame(QtWidgets.QWidget):
         preReport = splitReport[0].split('\n')
         preParams = {}
         removeLimits = {'invert' : False, 'limits': []}
+        savedAxType = None
+        savedPPM = False
         for line in preReport:
             tmp = line.strip()
             if tmp.startswith("#!"):
@@ -1536,6 +1554,17 @@ class AbstractParamFrame(QtWidgets.QWidget):
                     removeLimits["invert"] = True
                 else:
                     removeLimits["limits"] = safeEval(tmp.split(":")[1])
+            elif tmp.startswith("# Units:"):
+                tmp2 = tmp.split(":")[1]
+                if 'ppm' in tmp2:
+                    savedPPM = True
+                    savedAxType = 0
+                elif 'MHz' in tmp2 or 'us' in tmp2:
+                    savedAxType = 2
+                elif 'kHz' in tmp2 or 'ms' in tmp2:
+                    savedAxType = 1
+                else:
+                    savedAxType = 0
         singleReport = splitReport[1].split('\n')
         multiReport = splitReport[2].split('\n')
         singleNames = singleReport[0].split()
@@ -1556,6 +1585,13 @@ class AbstractParamFrame(QtWidgets.QWidget):
         multiVals = self.__interpretParam(multiVals)
         self.extraFileToParam(preParams, postParams)
         self.setParamFromList(singleNames, singleVals, multiNames, multiVals, removeLimits)
+        if savedAxType is not None:
+            savedAxMult = self.parent.getAxMult(self.parent.spec(),
+                                                savedAxType,
+                                                savedPPM,
+                                                self.parent.freq(),
+                                                self.parent.ref())
+            self.changeAxMult(savedAxMult)
         self.dispParams()
         self.parent.showFid()
         return True
@@ -2332,7 +2368,7 @@ class DiffusionParamFrame(AbstractParamFrame):
 
     SINGLENAMES = ['Amplitude', 'Constant']
     MULTINAMES = ['Coefficient', 'D']
-    FUNC_LABEL = u"Amplitude * (Constant + Coefficient * exp(-(γ * δ * x)² * D * (Δ - δ / 3.0)))"
+    FUNC_LABEL = u"Amplitude * (Constant + Coefficient * exp(-(2 * π * γ * δ * x)² * D * (Δ - δ / 3.0)))"
 
     def __init__(self, parent, rootwindow, isMain=True):
         """
@@ -2593,6 +2629,15 @@ class PeakDeconvParamFrame(AbstractParamFrame):
                 self.fitParamList[locList]["Lorentz"][i][0] = abs(self.fitParamList[locList]["Lorentz"][i][0])
             if struc["Gauss"][i][0] == 1:
                 self.fitParamList[locList]["Gauss"][i][0] = abs(self.fitParamList[locList]["Gauss"][i][0])
+
+    def changeAxMult(self, oldAxMult):
+        """
+        Changing the units of the parameters which depend on the plot units.
+        """
+        newAxMult = self.parent.getCurrentAxMult()
+        locList = self.getRedLocList()
+        for j in range(len(self.fitParamList[locList]["Position"])):
+            self.fitParamList[locList]["Position"][j] *= newAxMult/oldAxMult
 
 ##############################################################################
 
@@ -2971,6 +3016,17 @@ class CsaDeconvParamFrame(AbstractParamFrame):
                 if self.shiftDefType == 3:
                     self.fitParamList[locList]['Definition3'][i][0] = 1 - abs(abs(self.fitParamList[locList]['Definition3'][i][0] + 1)%4 - 2)
 
+    def changeAxMult(self, oldAxMult):
+        """
+        Changing the units of the parameters which depend on the plot units.
+        """
+        newAxMult = self.parent.getCurrentAxMult()
+        locList = self.getRedLocList()
+        for j in range(len(self.fitParamList[locList]["Definition1"])):
+            self.fitParamList[locList]["Definition1"][j] *= newAxMult/oldAxMult
+            self.fitParamList[locList]["Definition2"][j] *= newAxMult/oldAxMult
+            if self.shiftDefType in [0, 1]:
+                self.fitParamList[locList]["Definition3"][j] *= newAxMult/oldAxMult
 
 ##############################################################################
 
@@ -3183,6 +3239,15 @@ class QuadDeconvParamFrame(AbstractParamFrame):
                 self.fitParamList[locList]['eta'][i][0] = 1 - abs(abs(self.fitParamList[locList]['eta'][i][0]) % 2 - 1)
             if struc["Cq"][i][0] == 1:
                 self.fitParamList[locList]["Cq"][i][0] = abs(self.fitParamList[locList]["Cq"][i][0])
+
+    def changeAxMult(self, oldAxMult):
+        """
+        Changing the units of the parameters which depend on the plot units.
+        """
+        newAxMult = self.parent.getCurrentAxMult()
+        locList = self.getRedLocList()
+        for j in range(len(self.fitParamList[locList]["Position"])):
+            self.fitParamList[locList]["Position"][j] *= newAxMult/oldAxMult
 
 #################################################################################
 
@@ -3548,6 +3613,18 @@ class QuadCSADeconvParamFrame(AbstractParamFrame):
                 self.fitParamList[locList]["Gamma"][i][0] = self.fitParamList[locList]["Gamma"][i][0] % 180.0
                 if self.fitParamList[locList]["Gamma"][i][0] > 90:
                     self.fitParamList[locList]["Gamma"][i][0] = 180 - self.fitParamList[locList]["Gamma"][i][0]
+
+    def changeAxMult(self, oldAxMult):
+        """
+        Changing the units of the parameters which depend on the plot units.
+        """
+        newAxMult = self.parent.getCurrentAxMult()
+        locList = self.getRedLocList()
+        for j in range(len(self.fitParamList[locList]["Definition1"])):
+            self.fitParamList[locList]["Definition1"][j] *= newAxMult/oldAxMult
+            self.fitParamList[locList]["Definition2"][j] *= newAxMult/oldAxMult
+            if self.shiftDefType in [0, 1]:
+                self.fitParamList[locList]["Definition3"][j] *= newAxMult/oldAxMult
 
 ##############################################################################
 
@@ -4153,6 +4230,15 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
                 self.fitParamList[locList]["Cq0"][i][0] = abs(self.fitParamList[locList]["Cq0"][i][0])
             if struc['eta0'][i][0] == 1:
                 self.fitParamList[locList]['eta0'][i][0] = 1 - abs(abs(self.fitParamList[locList]['eta0'][i][0])%2 - 1)
+
+    def changeAxMult(self, oldAxMult):
+        """
+        Changing the units of the parameters which depend on the plot units.
+        """
+        newAxMult = self.parent.getCurrentAxMult()
+        locList = self.getRedLocList()
+        for j in range(len(self.fitParamList[locList]["Position"])):
+            self.fitParamList[locList]["Position"][j] *= newAxMult/oldAxMult
 
 #################################################################################
 
@@ -4809,6 +4895,15 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
             if struc["Cq"][i][0] == 1:
                 self.fitParamList[locList]["Cq"][i][0] = abs(self.fitParamList[locList]["Cq"][i][0])
 
+    def changeAxMult(self, oldAxMult):
+        """
+        Changing the units of the parameters which depend on the plot units.
+        """
+        newAxMult = self.parent.getCurrentAxMult()
+        locList = self.getRedLocList()
+        for j in range(len(self.fitParamList[locList]["Position"])):
+            self.fitParamList[locList]["Position"][j] *= newAxMult/oldAxMult
+
 ##############################################################################
 
 class MqmasCzjzekParamFrame(AbstractParamFrame):
@@ -5071,6 +5166,15 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
                 self.fitParamList[locList]['eta0'][i][0] = 1 - abs(abs(self.fitParamList[locList]['eta0'][i][0]) % 2 - 1)
             if struc["Cq0"][i][0] == 1:
                 self.fitParamList[locList]["Cq0"][i][0] = abs(self.fitParamList[locList]["Cq0"][i][0])
+
+    def changeAxMult(self, oldAxMult):
+        """
+        Changing the units of the parameters which depend on the plot units.
+        """
+        newAxMult = self.parent.getCurrentAxMult()
+        locList = self.getRedLocList()
+        for j in range(len(self.fitParamList[locList]["Position"])):
+            self.fitParamList[locList]["Position"][j] *= newAxMult/oldAxMult
 
 
 class NewTabDialog(QtWidgets.QDialog):

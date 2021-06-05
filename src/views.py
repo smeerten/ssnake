@@ -1,6 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-# Copyright 2016 - 2020 Bas van Meerten and Wouter Franssen
+# Copyright 2016 - 2021 Bas van Meerten and Wouter Franssen
 
 # This file is part of ssNake.
 #
@@ -409,11 +409,13 @@ class Current1D(PlotFrame):
         list:
             The new axis list
         """
-        if len(axes) != self.NDIM_PLOT:
+        if len(axes) < self.NDIM_PLOT:
             fullAxes = np.arange(self.data.ndim())
             fullAxes = np.delete(fullAxes, axes)
             diff = self.NDIM_PLOT - len(axes)
             return np.append(fullAxes[-diff:], axes[-self.NDIM_PLOT:])
+        elif len(axes) > self.NDIM_PLOT:
+            return axes[-self.NDIM_PLOT:]
         return axes
 
     def rename(self, name):
@@ -3571,16 +3573,17 @@ class CurrentContour(CurrentStacked):
                     PlotNegative = True
         vmax = max(np.abs(self.viewSettings["minLevels"] * self.differ), np.abs(self.viewSettings["maxLevels"] * self.differ))
         vmin = -vmax
-        if color is not None:
-            if PlotPositive:
-                self.ax.contour(X[YposMax[:, None], XposMax], Y[YposMax[:, None], XposMax], line_zdata[YposMax[:, None], XposMax], colors=[color[0]], levels=contourLevels, vmax=vmax, vmin=vmin, linewidths=self.viewSettings["linewidth"], linestyles='solid')
-            if PlotNegative:
-                self.ax.contour(X[YposMin[:, None], XposMin], Y[YposMin[:, None], XposMin], line_zdata[YposMin[:, None], XposMin], colors=[color[1]], levels=-contourLevels[::-1], vmax=vmax, vmin=vmin, linewidths=self.viewSettings["linewidth"], linestyles='solid')
-        else:
-            if PlotPositive:
-                self.ax.contour(X[YposMax[:, None], XposMax], Y[YposMax[:, None], XposMax], line_zdata[YposMax[:, None], XposMax], cmap=get_cmap(self.viewSettings["colorMap"]), levels=contourLevels, vmax=vmax, vmin=vmin, linewidths=self.viewSettings["linewidth"], linestyles='solid')
-            if PlotNegative:
-                self.ax.contour(X[YposMin[:, None], XposMin], Y[YposMin[:, None], XposMin], line_zdata[YposMin[:, None], XposMin], cmap=get_cmap(self.viewSettings["colorMap"]), levels=-contourLevels[::-1], vmax=vmax, vmin=vmin, linewidths=self.viewSettings["linewidth"], linestyles='solid')
+        if len(line_xdata) > 1 and len(line_ydata) > 1: # Do not plot if too few points
+            if color is not None:
+                if PlotPositive:
+                    self.ax.contour(X[YposMax[:, None], XposMax], Y[YposMax[:, None], XposMax], line_zdata[YposMax[:, None], XposMax], colors=[color[0]], levels=contourLevels, vmax=vmax, vmin=vmin, linewidths=self.viewSettings["linewidth"], linestyles='solid')
+                if PlotNegative:
+                    self.ax.contour(X[YposMin[:, None], XposMin], Y[YposMin[:, None], XposMin], line_zdata[YposMin[:, None], XposMin], colors=[color[1]], levels=-contourLevels[::-1], vmax=vmax, vmin=vmin, linewidths=self.viewSettings["linewidth"], linestyles='solid')
+            else:
+                if PlotPositive:
+                    self.ax.contour(X[YposMax[:, None], XposMax], Y[YposMax[:, None], XposMax], line_zdata[YposMax[:, None], XposMax], cmap=get_cmap(self.viewSettings["colorMap"]), levels=contourLevels, vmax=vmax, vmin=vmin, linewidths=self.viewSettings["linewidth"], linestyles='solid')
+                if PlotNegative:
+                    self.ax.contour(X[YposMin[:, None], XposMin], Y[YposMin[:, None], XposMin], line_zdata[YposMin[:, None], XposMin], cmap=get_cmap(self.viewSettings["colorMap"]), levels=-contourLevels[::-1], vmax=vmax, vmin=vmin, linewidths=self.viewSettings["linewidth"], linestyles='solid')
         self.setTicks()
         if updateOnly:
             self.canvas.draw()
@@ -3802,7 +3805,11 @@ class CurrentColour2D(CurrentContour):
         if updateOnly:  # Set some extra stuff if only the contour plot needs updating
             del self.ax.collections[:]  # Clear all plot collections
 
-        self.ax.imshow(np.flipud(line_zdata), extent=[line_xdata[0],line_xdata[-1],line_ydata[0],line_ydata[-1]],aspect='auto',cmap=get_cmap(self.viewSettings["pColorMap"]))
+        vmax = np.max(np.abs(line_zdata))
+        vmin = -vmax
+
+        self.ax.imshow(np.flipud(line_zdata), extent=[line_xdata[0],line_xdata[-1],line_ydata[0],line_ydata[-1]],
+                aspect='auto',cmap=get_cmap(self.viewSettings["pColorMap"]),vmax=vmax,vmin=vmin,interpolation='hanning')
         self.setTicks()
         if updateOnly:
             self.canvas.draw()
