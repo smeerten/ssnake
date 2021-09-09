@@ -1,7 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# Copyright 2016 - 2020 Bas van Meerten and Wouter Franssen
+# Copyright 2016 - 2021 Bas van Meerten and Wouter Franssen
 
 # This file is part of ssNake.
 #
@@ -19,13 +19,8 @@
 # along with ssNake. If not, see <http://www.gnu.org/licenses/>.
 
 import sys
-try:
-    from PyQt5 import QtGui, QtCore, QtWidgets
-    QT = 5
-except ImportError:
-    from PyQt4 import QtGui, QtCore
-    from PyQt4 import QtGui as QtWidgets
-    QT = 4
+from PyQt5 import QtGui, QtCore, QtWidgets
+QT = 5
 import os
 import math
 import loadIsotopes
@@ -489,10 +484,7 @@ class ListWindow(QtWidgets.QWidget):
         grid.addWidget(self.orderType,0,1)
 
         self.table = QtWidgets.QTableWidget(1,8)
-        if QT == 4:
-            self.table.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
-        elif QT == 5:
-            self.table.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
         self.table.verticalHeader().setVisible(False)
         self.table.setHorizontalHeaderLabels(['Nucleus','Name','Spin','Abundance [%]','Q [fm^2]','Frequency ratio [%]',
             'Frequency [MHz]','Sensitivity [1H]'])

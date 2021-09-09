@@ -1,6 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-# Copyright 2016 - 2020 Bas van Meerten and Wouter Franssen
+# Copyright 2016 - 2021 Bas van Meerten and Wouter Franssen
 
 # This file is part of ssNake.
 #
@@ -43,7 +43,7 @@ class Spectrum(object):
     The functions for processing are methods of this object.
     """
 
-    def __init__(self, data, filePath, freq, sw, spec=None, wholeEcho=None, ref=None, xaxArray=None, history=None, metaData=None, name='', dFilter=None):
+    def __init__(self, data, filePath, freq, sw, spec=None, wholeEcho=None, ref=None, xaxArray=None, customXax=None, history=None, metaData=None, name='', dFilter=None):
         """
         Initializes the Spectrum object.
 
@@ -75,6 +75,9 @@ class Spectrum(object):
             The x-axis values per dimension.
             The list should have the same number of entries as the number of dimensions of data.
             By default the x-axes are generated based on the sw values.
+        customXax : list of booleans, optional
+            Which of the arrays are custom values and have not been automatically generated based on frequency, reference, and spectral width.
+            By default all of them are False
         history : list of strings, optional
             The processing history of the data.
             By default the history is set to an empty list.
@@ -118,6 +121,10 @@ class Spectrum(object):
             self.resetXax()
         else:
             self.xaxArray = xaxArray
+            if customXax is not None and len(customXax) == len(self.xaxArray):
+                self.customXax = customXax
+            else:
+                self.customXax = [False] * len(self.xaxArray)
         if history is None:
             self.history = []  # list of strings describing all performed operations
         else:
@@ -299,8 +306,10 @@ class Spectrum(object):
         if axis is not None:
             axis = self.checkAxis(axis)
             val = [axis]
+            self.customXax[axis] = False
         else:
             val = range(self.ndim())
+            self.customXax = [False] * self.ndim()
         for i in val:
             if self.spec[i] == 0:
                 self.xaxArray[i] = np.arange(self.shape()[i]) / (self.sw[i])
@@ -309,7 +318,7 @@ class Spectrum(object):
                 if self.ref[i] is not None:
                     self.xaxArray[i] += self.freq[i] - self.ref[i]
 
-    def setXax(self, xax, axis=-1):
+    def setXax(self, xax, axis=-1, custom=True):
         """
         Sets the x-axis of a given dimension.
 
@@ -321,6 +330,9 @@ class Spectrum(object):
         axis : int, optional
             The dimension for which to set the x-axis.
             By default the last axis is used.
+        custom : bool, optional
+            Whether the new x-axis is a custom axis.
+            True by default
 
         Raises
         ------
@@ -331,11 +343,13 @@ class Spectrum(object):
         if len(xax) != self.shape()[axis]:
             raise SpectrumException("Length of new x-axis does not match length of the data")
         oldXax = self.xaxArray[axis]
+        oldCustom = self.customXax[axis]
         self.xaxArray[axis] = xax
+        self.customXax[axis] = custom
         self.addHistory("X-axis of dimension " + str(axis + 1) + " was set to " + str(xax).replace('\n', ''))
         self.redoList = []
         if not self.noUndo:
-            self.undoList.append(lambda self: self.setXax(oldXax, axis))
+            self.undoList.append(lambda self: self.setXax(oldXax, axis, oldCustom))
 
     def insert(self, data, pos, axis=-1):
         """
@@ -356,7 +370,7 @@ class Spectrum(object):
         if self.noUndo:
             returnValue = None
         else:
-            if np.all(self.data.hyper == data.hyper): # If both sets have same hyper: easy undo can be used
+            if np.all(self.data.hyper == data.hyper) and not self.customXax[axis]: # If both sets have same hyper and it does not have a custom x-axis: easy undo can be used
                 returnValue = lambda self: self.delete(range(pos, pos + data.shape()[axis]), axis)
             else: # Otherwise: do a deep copy of the class
                 copyData = copy.deepcopy(self)
@@ -395,6 +409,7 @@ class Spectrum(object):
             raise SpectrumException('Cannot delete all data')
         self.data = tmpData
         self.xaxArray[axis] = np.delete(self.xaxArray[axis], pos)
+        self.customXax[axis] = True
         if isinstance(pos, np.ndarray):
             if pos.ndim == 0:
                 pos = int(pos)
@@ -650,7 +665,7 @@ class Spectrum(object):
         """
         axis = self.checkAxis(axis)
         try:
-            self.data *= mult * scale
+            self.data[select] *= mult * scale
         except ValueError as error:
             raise SpectrumException('Normalize: ' + str(error))
         if type == 0:
@@ -703,22 +718,24 @@ class Spectrum(object):
             By default the last dimension is used.
         """
         axis = self.checkAxis(axis)
-        splitVal = self.shape()[axis]
+        splitVal = self.shape()[0]
         copyData = None
-        if self.data.isComplex(axis):
+        if self.data.isComplex(axis) or self.customXax[0] or self.customXax[axis]:
             if not self.noUndo:
                 copyData = copy.deepcopy(self)
-            self.data = self.data.real(axis)
+            if self.data.isComplex(axis):
+                self.data = self.data.real(axis)
         invAxis = self.ndim() - axis
         self.data = self.data.concatenate(axis)
         self.data.removeDim(invAxis)
-        self.freq = np.delete(self.freq, axis)
-        self.sw = np.delete(self.sw, axis)
-        self.spec = np.delete(self.spec, axis)
-        self.wholeEcho = np.delete(self.wholeEcho, axis)
-        self.ref = np.delete(self.ref, axis)
-        del self.xaxArray[axis]
-        self.resetXax()
+        self.freq = np.delete(self.freq, 0)
+        self.sw = np.delete(self.sw, 0)
+        self.spec = np.delete(self.spec, 0)
+        self.wholeEcho = np.delete(self.wholeEcho, 0)
+        self.ref = np.delete(self.ref, 0)
+        del self.xaxArray[0]
+        del self.customXax[0]
+        self.resetXax(axis)
         self.addHistory("Concatenated dimension " + str(axis + 1))
         self.redoList = []
         if not self.noUndo:
@@ -741,6 +758,10 @@ class Spectrum(object):
             By default the last dimension is used.
         """
         axis = self.checkAxis(axis)
+        copyData = None
+        if self.customXax[axis]:
+            if not self.noUndo:
+                copyData = copy.deepcopy(self)
         self.data = self.data.split(sections, axis)
         self.data.insertDim(0)
         self.freq = np.insert(self.freq, 0, self.freq[axis])
@@ -749,12 +770,16 @@ class Spectrum(object):
         self.wholeEcho = np.insert(self.wholeEcho, 0, self.wholeEcho[axis])
         self.ref = np.insert(self.ref, 0, self.ref[axis])
         self.xaxArray.insert(0, [])
+        self.customXax.insert(0, False)
         self.resetXax(0)
         self.resetXax(axis + 1)
         self.addHistory("Split dimension " + str(axis + 1) + " into " + str(sections) + " sections")
         self.redoList = []
         if not self.noUndo:
-            self.undoList.append(lambda self: self.concatenate(axis))
+            if copyData is not None:
+                self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.split(sections, axis)))
+            else:
+                self.undoList.append(lambda self: self.concatenate(axis))
 
     def real(self, axis=-1):
         """
@@ -1020,6 +1045,7 @@ class Spectrum(object):
                 self.spec = np.delete(self.spec, axis)
                 self.wholeEcho = np.delete(self.wholeEcho, axis)
                 del self.xaxArray[axis]
+                del self.customXax[axis]
                 self.data.removeDim(axis)
         else:
             self.data = tmpdata[0]
@@ -1691,6 +1717,9 @@ class Spectrum(object):
             By default the last dimension is used.
         """
         axis = self.checkAxis(axis)
+        copyData = None
+        if self.customXax[axis] and not self.noUndo:
+            copyData = copy.deepcopy(self)
         oldFreq = self.freq[axis]
         oldSw = self.sw[axis]
         if freq is None:
@@ -1703,7 +1732,10 @@ class Spectrum(object):
         self.addHistory("Frequency set to " + str(freq * 1e-6) + " MHz and sw set to " + str(sw * 1e-3) + " kHz for dimension " + str(axis + 1))
         self.redoList = []
         if not self.noUndo:
-            self.undoList.append(lambda self: self.setFreq(oldFreq, oldSw, axis))
+            if copyData is not None:
+                self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.setFreq(freq, sw, axis)))
+            else:
+                self.undoList.append(lambda self: self.setFreq(oldFreq, oldSw, axis))
 
     def scaleSw(self, scale, axis=-1):
         """
@@ -1718,13 +1750,19 @@ class Spectrum(object):
             By default the last dimension is used.
         """
         axis = self.checkAxis(axis)
+        copyData = None
+        if self.customXax[axis] and not self.noUndo:
+            copyData = copy.deepcopy(self)
         oldSw = self.sw[axis]
         self.sw[axis] = float(scale) * oldSw
         self.resetXax(axis)
         self.addHistory("Sw scaled by factor " + str(scale) +  " for dimension " + str(axis + 1))
         self.redoList = []
         if not self.noUndo:
-            self.undoList.append(lambda self: self.scaleSw(1.0 / scale, axis))
+            if copyData is not None:
+                self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.scaleSw(scale, axis)))
+            else:
+                self.undoList.append(lambda self: self.scaleSw(1.0 / scale, axis))
 
     def setRef(self, ref=None, axis=-1):
         """
@@ -1741,6 +1779,9 @@ class Spectrum(object):
             By default the last dimension is used.
         """
         axis = self.checkAxis(axis)
+        copyData = None
+        if self.customXax[axis] and not self.noUndo:
+            copyData = copy.deepcopy(self)
         oldRef = self.ref[axis]
         if ref is None:
             self.ref[axis] = None
@@ -1751,7 +1792,10 @@ class Spectrum(object):
         self.resetXax(axis)
         self.redoList = []
         if not self.noUndo:
-            self.undoList.append(lambda self: self.setRef(oldRef, axis))
+            if copyData is not None:
+                self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.setRef(ref, axis)))
+            else:
+                self.undoList.append(lambda self: self.setRef(oldRef, axis))
 
     def regrid(self, limits, numPoints, axis=-1):
         """
@@ -1900,6 +1944,9 @@ class Spectrum(object):
             By default the last dimension is used.
         """
         axis = self.checkAxis(axis)
+        copyData = None
+        if self.customXax[axis] and not self.noUndo:
+            copyData = copy.deepcopy(self)
         oldVal = self.spec[axis]
         self.spec[axis] = val
         self.resetXax(axis)
@@ -1909,7 +1956,10 @@ class Spectrum(object):
             self.addHistory("Dimension " + str(axis + 1) + " set to spectrum")
         self.redoList = []
         if not self.noUndo:
-            self.undoList.append(lambda self: self.setSpec(oldVal, axis))
+            if copyData is not None:
+                self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.setSpec(val, axis)))
+            else:
+                self.undoList.append(lambda self: self.setSpec(oldVal, axis))
 
     def swapEcho(self, idx, axis=-1):
         """
@@ -2415,11 +2465,12 @@ class Spectrum(object):
                                            self.filePath,
                                            [self.freq[axis] for axis in axes],
                                            [self.sw[axis] for axis in axes],
-                                           [self.spec[axis] for axis in axes],
-                                           [self.wholeEcho[axis] for axis in axes],
-                                           [self.ref[axis] for axis in axes],
-                                           [self.xaxArray[axis][stack[i]] for i, axis in enumerate(axes)],
-                                           self.history,
+                                           spec=[self.spec[axis] for axis in axes],
+                                           wholeEcho=[self.wholeEcho[axis] for axis in axes],
+                                           ref=[self.ref[axis] for axis in axes],
+                                           xaxArray=[self.xaxArray[axis][stack[i]] for i, axis in enumerate(axes)],
+                                           customXax=[self.customXax[axis] for axis in axes],
+                                           history=self.history,
                                            name=self.name))
         sliceSpec.noUndo = True
         return sliceSpec
@@ -2445,6 +2496,7 @@ class Spectrum(object):
         self.spec = copyData.spec
         self.wholeEcho = copyData.wholeEcho
         self.xaxArray = copyData.xaxArray
+        self.customXax = copyData.customXax
         self.ref = copyData.ref
         self.addHistory("Data was restored to a previous state ")
         self.redoList = []
