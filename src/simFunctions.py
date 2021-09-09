@@ -498,7 +498,7 @@ def fib(n):
     int
         The n+2 Fibonacci number.
     """
-    start = np.array([[1, 1], [1, 0]], dtype='int64')
+    start = np.array([[1, 1], [1, 0]], dtype=np.int64)
     temp = start[:]
     for i in range(n):
         temp = np.dot(start, temp)
@@ -527,7 +527,7 @@ def zcw_angles(m, symm=0):
         The weights of the different orientations.
     """
     samples, fib_1, fib_2 = fib(m)
-    js = np.arange(samples, dtype='Float64') / samples
+    js = np.arange(samples, dtype=np.float64) / samples
     if symm == 0:
         c = (1., 2., 1.)
     elif symm == 1:

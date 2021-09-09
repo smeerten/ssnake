@@ -3248,8 +3248,11 @@ class CurrentContour(CurrentStacked):
     def plotReset_x_ax(self):
         if not self.line_xProjData:
             return
-        minz = min([min(i) for i in self.line_xProjData])
-        maxz = max([max(i) for i in self.line_xProjData])
+        minz = min([np.nanmin(i) for i in self.line_xProjData])
+        maxz = max([np.nanmax(i) for i in self.line_xProjData])
+        if np.isnan(minz): # If there are no acceptable values minz and maxz will be NaN
+            minz = -0.01
+            maxz = 0.01
         if minz == maxz: # Prevents setting the limits equal
             minz -= 0.01
             maxz += 0.01
@@ -3262,8 +3265,11 @@ class CurrentContour(CurrentStacked):
     def plotReset_y_ax(self):
         if not self.line_yProjData:
             return
-        minz = min([min(i) for i in self.line_yProjData])
-        maxz = max([max(i) for i in self.line_yProjData])
+        minz = min([np.nanmin(i) for i in self.line_yProjData])
+        maxz = max([np.nanmax(i) for i in self.line_yProjData])
+        if np.isnan(minz): # If there are no acceptable values minz and maxz will be NaN
+            minz = -0.01
+            maxz = 0.01
         if minz == maxz: # Prevents setting the limits equal
             minz -= 0.01
             maxz += 0.01
