@@ -1169,7 +1169,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.frame3.addWidget(tick, 1, num)
         label = wc.QLabel(text)
         label.setToolTip(tooltip)
-        self.frame3.addWidget(label, 1, num+1)
+        self.frame3.addWidget(label, 1, num + 1)
         return tick, label
 
     def changeAllTicks(self, state, name):
@@ -2660,9 +2660,9 @@ class PeakDeconvParamFrame(AbstractParamFrame):
         for j in range(len(self.fitParamList[locList]["Position"])):
             if not isinstance(self.fitParamList[locList]["Position"][j][0], tuple):
                 self.fitParamList[locList]["Position"][j][0] *= newAxMult/oldAxMult
-        for j in range(len(self.fitParamList[locList]["Gauss"])):
+#        for j in range(len(self.fitParamList[locList]["Gauss"])):
             if not isinstance(self.fitParamList[locList]["Gauss"][j][0], tuple):
-                self.fitParamList[locList]["Gauss"][j] *= newAxMult/oldAxMult
+                self.fitParamList[locList]["Gauss"][j][0] *= newAxMult/oldAxMult
 
 ##############################################################################
 
@@ -3060,7 +3060,7 @@ class CsaDeconvParamFrame(AbstractParamFrame):
             if self.shiftDefType in [0, 1]:
                 if not isinstance(self.fitParamList[locList]["Definition3"][j][0], tuple):
                     self.fitParamList[locList]["Definition3"][j][0] *= newAxMult/oldAxMult
-        for j in range(len(self.fitParamList[locList]["Gauss"])):
+#        for j in range(len(self.fitParamList[locList]["Gauss"])): # same j index as for Position/Definition1
             if not isinstance(self.fitParamList[locList]["Gauss"][j][0], tuple):
                 self.fitParamList[locList]["Gauss"][j][0] *= newAxMult/oldAxMult
 
@@ -3290,7 +3290,7 @@ class QuadDeconvParamFrame(AbstractParamFrame):
         for j in range(len(self.fitParamList[locList]["Position"])):
             if not isinstance(self.fitParamList[locList]["Position"][j][0], tuple):
                 self.fitParamList[locList]["Position"][j][0] *= newAxMult/oldAxMult
-        for j in range(len(self.fitParamList[locList]["Gauss"])):
+#        for j in range(len(self.fitParamList[locList]["Gauss"])): # same j index s for Position
             if not isinstance(self.fitParamList[locList]["Gauss"][j][0], tuple):
                 self.fitParamList[locList]["Gauss"][j][0] *= newAxMult/oldAxMult
 
@@ -3678,7 +3678,7 @@ class QuadCSADeconvParamFrame(AbstractParamFrame):
             if self.shiftDefType in [0, 1]:
                 if not isinstance(self.fitParamList[locList]["Definition3"][j][0], tuple):
                     self.fitParamList[locList]["Definition3"][j][0] *= newAxMult/oldAxMult
-        for j in range(len(self.fitParamList[locList]["Gauss"])):
+#        for j in range(len(self.fitParamList[locList]["Gauss"])): # same j index as for Definition1
             if not isinstance(self.fitParamList[locList]["Gauss"][j][0], tuple):
                 self.fitParamList[locList]["Gauss"][j][0] *= newAxMult/oldAxMult
 
@@ -4301,7 +4301,7 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
         for j in range(len(self.fitParamList[locList]["Position"])):
             if not isinstance(self.fitParamList[locList]["Position"][j][0], tuple):
                 self.fitParamList[locList]["Position"][j][0] *= newAxMult/oldAxMult
-        for j in range(len(self.fitParamList[locList]["Gauss"])):
+#        for j in range(len(self.fitParamList[locList]["Gauss"])): # same j index as for Position
             if not isinstance(self.fitParamList[locList]["Gauss"][j][0], tuple):
                 self.fitParamList[locList]["Gauss"][j][0] *= newAxMult/oldAxMult
 
@@ -4977,7 +4977,7 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         for j in range(len(self.fitParamList[locList]["Position"])):
             if not isinstance(self.fitParamList[locList]["Position"][j][0], tuple):
                 self.fitParamList[locList]["Position"][j][0] *= newAxMult/oldAxMult
-        for j in range(len(self.fitParamList[locList]["SigmaCS"])):
+#        for j in range(len(self.fitParamList[locList]["SigmaCS"])):  # same j index as for Position
             if not isinstance(self.fitParamList[locList]["SigmaCS"][j][0], tuple):
                 self.fitParamList[locList]["SigmaCS"][j][0] *= newAxMult/oldAxMult
 
@@ -5260,7 +5260,7 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         for j in range(len(self.fitParamList[locList]["Position"])):
             if not isinstance(self.fitParamList[locList]["Position"][j][0], tuple):
                 self.fitParamList[locList]["Position"][j][0] *= newAxMult/oldAxMult
-        for j in range(len(self.fitParamList[locList]["SigmaCS"])):
+#        for j in range(len(self.fitParamList[locList]["SigmaCS"])): # same j index as for Position
             if not isinstance(self.fitParamList[locList]["SigmaCS"][j][0], tuple):
                 self.fitParamList[locList]["SigmaCS"][j][0] *= newAxMult/oldAxMult
 
