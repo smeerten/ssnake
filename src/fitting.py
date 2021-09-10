@@ -2596,7 +2596,7 @@ class PeakDeconvParamFrame(AbstractParamFrame):
         self.addMultiLabel("Position", "Position [" + self.axUnit + "]:", 0)
         self.addMultiLabel("Integral", "Integral:", 2)
         self.addMultiLabel("Lorentz", "Lorentz [Hz]:", 4)
-        self.addMultiLabel("Gauss", "Gauss [Hz]:", 6)
+        self.addMultiLabel("Gauss", f"Gauss [{axUnit}]:", 6)
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
                 self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
@@ -2638,6 +2638,8 @@ class PeakDeconvParamFrame(AbstractParamFrame):
         locList = self.getRedLocList()
         for j in range(len(self.fitParamList[locList]["Position"])):
             self.fitParamList[locList]["Position"][j] *= newAxMult/oldAxMult
+        for j in range(len(self.fitParamList[locList]["Gauss"])):
+            self.fitParamList[locList]["Gauss"][j] *= newAxMult/oldAxMult
 
 ##############################################################################
 
@@ -2808,7 +2810,7 @@ class CsaDeconvParamFrame(AbstractParamFrame):
         self.frame3.addWidget(self.labelskew, 1, 5)
         self.addMultiLabel("Integral", "Integral:", 6)
         self.addMultiLabel("Lorentz", "Lorentz [Hz]:", 8)
-        self.addMultiLabel("Gauss", "Gauss [Hz]:", 10)
+        self.addMultiLabel("Gauss", f"Gauss [{axUnit}]:", 10)
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
                 self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
@@ -3027,6 +3029,8 @@ class CsaDeconvParamFrame(AbstractParamFrame):
             self.fitParamList[locList]["Definition2"][j] *= newAxMult/oldAxMult
             if self.shiftDefType in [0, 1]:
                 self.fitParamList[locList]["Definition3"][j] *= newAxMult/oldAxMult
+        for j in range(len(self.fitParamList[locList]["Gauss"])):
+            self.fitParamList[locList]["Gauss"][j] *= newAxMult/oldAxMult
 
 ##############################################################################
 
@@ -3123,7 +3127,7 @@ class QuadDeconvParamFrame(AbstractParamFrame):
         self.addMultiLabel("eta", u"η:", 4)
         self.addMultiLabel("Integral", "Integral:", 6)
         self.addMultiLabel("Lorentz", "Lorentz [Hz]:", 8)
-        self.addMultiLabel("Gauss", "Gauss [Hz]:", 10)
+        self.addMultiLabel("Gauss", f"Gauss [{axUnit}]:", 10)
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
                 self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
@@ -3248,6 +3252,8 @@ class QuadDeconvParamFrame(AbstractParamFrame):
         locList = self.getRedLocList()
         for j in range(len(self.fitParamList[locList]["Position"])):
             self.fitParamList[locList]["Position"][j] *= newAxMult/oldAxMult
+        for j in range(len(self.fitParamList[locList]["Gauss"])):
+            self.fitParamList[locList]["Gauss"][j] *= newAxMult/oldAxMult
 
 #################################################################################
 
@@ -3393,7 +3399,7 @@ class QuadCSADeconvParamFrame(AbstractParamFrame):
         self.addMultiLabel("Gamma", u"γ [deg]:", 14)
         self.addMultiLabel("Integral", "Integral:", 16)
         self.addMultiLabel("Lorentz", "Lorentz [Hz]:", 18)
-        self.addMultiLabel("Gauss", "Gauss [Hz]:", 20)
+        self.addMultiLabel("Gauss", f"Gauss [{axUnit}]:", 20)
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
                 self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
@@ -3625,6 +3631,8 @@ class QuadCSADeconvParamFrame(AbstractParamFrame):
             self.fitParamList[locList]["Definition2"][j] *= newAxMult/oldAxMult
             if self.shiftDefType in [0, 1]:
                 self.fitParamList[locList]["Definition3"][j] *= newAxMult/oldAxMult
+        for j in range(len(self.fitParamList[locList]["Gauss"])):
+            self.fitParamList[locList]["Gauss"][j] *= newAxMult/oldAxMult
 
 ##############################################################################
 
@@ -4072,7 +4080,7 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
         self.addMultiLabel("eta0", u"η0:", 6)
         self.addMultiLabel("Integral", "Integral:", 8)
         self.addMultiLabel("Lorentz", "Lorentz [Hz]:", 10)
-        self.addMultiLabel("Gauss", "Gauss [Hz]:", 12)
+        self.addMultiLabel("Gauss", f"Gauss [{axUnit}]:", 12)
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
                 self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
@@ -4239,6 +4247,8 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
         locList = self.getRedLocList()
         for j in range(len(self.fitParamList[locList]["Position"])):
             self.fitParamList[locList]["Position"][j] *= newAxMult/oldAxMult
+        for j in range(len(self.fitParamList[locList]["Gauss"])):
+            self.fitParamList[locList]["Gauss"][j] *= newAxMult/oldAxMult
 
 #################################################################################
 
@@ -4652,7 +4662,7 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
     Ivalues = [1.5, 2.5, 3.5, 4.5]
     MQvalues = [3, 5, 7, 9]
     SINGLENAMES = ["Offset", "Multiplier", "Spinspeed"]
-    MULTINAMES = ["Position", "Cq", 'eta', "Integral", "Lorentz2", "Gauss2", "Lorentz1", "Gauss1"]
+    MULTINAMES = ["Position", "SigmaCS", "Cq", 'eta', "Integral", "Lorentz2", "Lorentz1"] # , "Gauss2", "Gauss1"
     EXTRANAMES = ['spinType', 'angle', 'numssb', 'cheng', 'I', 'MQ', 'shear', 'scale']
     MASTYPES = ["Static", "Finite MAS", "Infinite MAS"]
 
@@ -4672,9 +4682,9 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         self.FITFUNC = simFunc.mqmasFunc
         self.fullInt = np.sum(parent.getData1D()) * parent.sw() / float(parent.getData1D().shape[-1]) * parent.sw(-2) / float(parent.getData1D().shape[-2])
         self.DEFAULTS = {"Offset": [0.0, True], "Multiplier": [1.0, True], "Spinspeed": [10.0, True],
-                         "Position": [0.0, False], "Cq": [1.0, False], 'eta': [0.0, False],
-                         "Integral": [self.fullInt, False], "Lorentz2": [10.0, False], "Gauss2": [0.0, True],
-                         "Lorentz1": [10.0, False], "Gauss1": [0.0, True]}
+                         "Position": [0.0, False], "SigmaCS": [0.0, False], "Cq": [1.0, False], 'eta': [0.0, False],
+                         "Integral": [self.fullInt, False], "Lorentz2": [10.0, False],   # "Gauss2": [0.0, True],
+                         "Lorentz1": [10.0, False] } # ,"Gauss1": [0.0, True] }
         self.extraDefaults = {'spinType': 2, 'angle': "arctan(sqrt(2))", 'numssb': 32, 'cheng': 15, 'I': 0, 'MQ': 0, 'shear': '0.0', 'scale': '1.0'}
         super(MqmasDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
         self.optframe.addWidget(wc.QLabel("MAS:"), 2, 0)
@@ -4741,13 +4751,14 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
             axUnit = ['Hz', 'kHz', 'MHz'][self.parent.getAxType()]
         # Labels
         self.addMultiLabel("Position", u"Position [" + axUnit + "]:", 0)
-        self.addMultiLabel("Cq", u"C<sub>Q</sub> [MHz]:", 2)
-        self.addMultiLabel("eta", u"η:", 4)
-        self.addMultiLabel("Integral", "Integral:", 6)
-        self.addMultiLabel("Lorentz2", "Lorentz 2 [Hz]:", 8)
-        self.addMultiLabel("Gauss2", "Gauss 2 [Hz]:", 10)
+        self.addMultiLabel("SigmaCS", f"σ<sub>CS</sub> [{axUnit}]:", 2)
+        self.addMultiLabel("Cq", u"C<sub>Q</sub> [MHz]:", 4)
+        self.addMultiLabel("eta", u"η:", 6)
+        self.addMultiLabel("Integral", "Integral:", 8)
+        self.addMultiLabel("Lorentz2", "Lorentz 2 [Hz]:", 10)
         self.addMultiLabel("Lorentz1", "Lorentz 1 [Hz]:", 12)
-        self.addMultiLabel("Gauss1", "Gauss 1 [Hz]:", 14)
+#        self.addMultiLabel("Gauss2", "Gauss 2 [Hz]:", 14)
+#        self.addMultiLabel("Gauss1", "Gauss 1 [Hz]:", 16)
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
                 self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
@@ -4884,12 +4895,14 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         for i in range(numExp):
             if struc["Lorentz1"][i][0] == 1:
                 self.fitParamList[locList]["Lorentz1"][i][0] = abs(self.fitParamList[locList]["Lorentz1"][i][0])
-            if struc["Gauss1"][i][0] == 1:
-                self.fitParamList[locList]["Gauss1"][i][0] = abs(self.fitParamList[locList]["Gauss1"][i][0])
+            if struc["SigmaCS"][i][0] == 1:
+                self.fitParamList[locList]["SigmaCS"][i][0] = abs(self.fitParamList[locList]["SigmaCS"][i][0])
+#            if struc["Gauss1"][i][0] == 1:
+#                self.fitParamList[locList]["Gauss1"][i][0] = abs(self.fitParamList[locList]["Gauss1"][i][0])
             if struc["Lorentz2"][i][0] == 1:
                 self.fitParamList[locList]["Lorentz2"][i][0] = abs(self.fitParamList[locList]["Lorentz2"][i][0])
-            if struc["Gauss2"][i][0] == 1:
-                self.fitParamList[locList]["Gauss2"][i][0] = abs(self.fitParamList[locList]["Gauss2"][i][0])
+#            if struc["Gauss2"][i][0] == 1:
+#                self.fitParamList[locList]["Gauss2"][i][0] = abs(self.fitParamList[locList]["Gauss2"][i][0])
             if struc['eta'][i][0] == 1:
                 self.fitParamList[locList]['eta'][i][0] = 1 - abs(abs(self.fitParamList[locList]['eta'][i][0]) % 2 - 1)
             if struc["Cq"][i][0] == 1:
@@ -4903,6 +4916,8 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         locList = self.getRedLocList()
         for j in range(len(self.fitParamList[locList]["Position"])):
             self.fitParamList[locList]["Position"][j] *= newAxMult/oldAxMult
+        for j in range(len(self.fitParamList[locList]["SigmaCS"])):
+            self.fitParamList[locList]["SigmaCS"][j] *= newAxMult/oldAxMult
 
 ##############################################################################
 
@@ -4914,7 +4929,7 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
     Ivalues = [1.5, 2.5, 3.5, 4.5]
     MQvalues = [3, 5, 7, 9]
     SINGLENAMES = ["Offset", "Multiplier"]
-    MULTINAMES = ["Position", "Sigma", 'SigmaCS', "Cq0", 'eta0', "Integral", "Lorentz2", "Gauss2", "Lorentz1", "Gauss1"]
+    MULTINAMES = ["Position", 'SigmaCS', "Sigma", "Cq0", 'eta0', "Integral", "Lorentz2", "Lorentz1"] #, "Gauss2", "Gauss1"]
     EXTRANAMES = ['method', 'd', 'MQ', 'shear', 'scale']
     TYPES = ['Normal', 'Extended']
 
@@ -4936,7 +4951,7 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         self.DEFAULTS = {"Offset": [0.0, True], "Multiplier": [1.0, True], "Position": [0.0, False],
                          "Sigma": [1.0, False], 'SigmaCS': [10.0, False], "Cq0": [0.0, True],
                          'eta0': [0.0, True], "Integral": [self.fullInt, False], "Lorentz2": [10.0, False],
-                         "Gauss2": [0.0, True], "Lorentz1": [10.0, False], "Gauss1": [0.0, True]}
+                         "Lorentz1": [10.0, False]} #, "Gauss2": [0.0, True], "Gauss1": [0.0, True]}
         self.extraDefaults = {'mas': 2, 'method': 0, 'd': 5, 'cheng': 15, 'I': 3/2.0, 'MQ': 0, 'shear': '0.0', 'scale': '1.0',
                               'cqsteps': 50, 'etasteps': 10, 'cqmax': 4, 'cqmin': 0, 'etamax': 1, 'etamin': 0, 'libName': "Not available", 'lib': None, 'cqLib': None, 'etaLib': None}
         super(MqmasCzjzekParamFrame, self).__init__(parent, rootwindow, isMain)
@@ -4986,15 +5001,15 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         else:
             axUnit = ['Hz', 'kHz', 'MHz'][self.parent.getAxType()]
         self.addMultiLabel("Position", "Pos [" + axUnit + "]:", 0)
-        self.addMultiLabel("Sigma", u"σ [MHz]:", 2)
-        self.addMultiLabel("SigmaCS", u"σCS [Hz]:", 4)
+        self.addMultiLabel("SigmaCS", f"σ<sub>CS</sub> [{axUnit}]:", 2)
+        self.addMultiLabel("Sigma", u"σ<sub>Q<sub> [MHz]:", 4)
         self.addMultiLabel("Cq0", u"C<sub>Q</sub>0 [MHz]:", 6)
         self.addMultiLabel("eta0", u"η0:", 8)
         self.addMultiLabel("Integral", "Integral:", 10)
         self.addMultiLabel("Lorentz2", "Lorentz 2 [Hz]:", 12)
-        self.addMultiLabel("Gauss2", "Gauss 2 [Hz]:", 14)
-        self.addMultiLabel("Lorentz1", "Lorentz 1 [Hz]:", 16)
-        self.addMultiLabel("Gauss1", "Gauss 1 [Hz]:", 18)
+        self.addMultiLabel("Lorentz1", "Lorentz 1 [Hz]:", 14)
+#        self.addMultiLabel("Gauss2", "Gauss 2 [Hz]:", 16)
+#        self.addMultiLabel("Gauss1", "Gauss 1 [Hz]:", 18)
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
                 self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
@@ -5153,14 +5168,16 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         """
         locList = self.getRedLocList()
         for i in range(numExp):
+            if struc["SigmaCS"][i][0] == 1:
+                self.fitParamList[locList]["SigmaCS"][i][0] = abs(self.fitParamList[locList]["SigmaCS"][i][0])
             if struc["Lorentz1"][i][0] == 1:
                 self.fitParamList[locList]["Lorentz1"][i][0] = abs(self.fitParamList[locList]["Lorentz1"][i][0])
-            if struc["Gauss1"][i][0] == 1:
-                self.fitParamList[locList]["Gauss1"][i][0] = abs(self.fitParamList[locList]["Gauss1"][i][0])
+#            if struc["Gauss1"][i][0] == 1:
+#                self.fitParamList[locList]["Gauss1"][i][0] = abs(self.fitParamList[locList]["Gauss1"][i][0])
             if struc["Lorentz2"][i][0] == 1:
                 self.fitParamList[locList]["Lorentz2"][i][0] = abs(self.fitParamList[locList]["Lorentz2"][i][0])
-            if struc["Gauss2"][i][0] == 1:
-                self.fitParamList[locList]["Gauss2"][i][0] = abs(self.fitParamList[locList]["Gauss2"][i][0])
+#            if struc["Gauss2"][i][0] == 1:
+#                self.fitParamList[locList]["Gauss2"][i][0] = abs(self.fitParamList[locList]["Gauss2"][i][0])
             if struc['eta0'][i][0] == 1:
                 #eta is between 0--1 in a continuous way.
                 self.fitParamList[locList]['eta0'][i][0] = 1 - abs(abs(self.fitParamList[locList]['eta0'][i][0]) % 2 - 1)
@@ -5175,6 +5192,8 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         locList = self.getRedLocList()
         for j in range(len(self.fitParamList[locList]["Position"])):
             self.fitParamList[locList]["Position"][j] *= newAxMult/oldAxMult
+        for j in range(len(self.fitParamList[locList]["SigmaCS"])):
+            self.fitParamList[locList]["SigmaCS"][j] *= newAxMult/oldAxMult
 
 
 class NewTabDialog(QtWidgets.QDialog):
