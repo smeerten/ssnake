@@ -1138,7 +1138,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
             self.rmsdEdit.setText(('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % val)
             self.rmsdEdit.setCursorPosition(0)
     
-    def addMultiLabel(self, name, text, num):
+    def addMultiLabel(self, name, text, num, tooltip=""):
         """
         Creates a label for a parameter with multiple sites and adds it to frame3.
 
@@ -1150,6 +1150,8 @@ class AbstractParamFrame(QtWidgets.QWidget):
             The text on the label.
         num : int
             The column to place the label widget.
+        tootip : str
+            A description of the parameter to be shown as tooltip.
 
         Returns
         -------
@@ -1163,6 +1165,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
         tick.stateChanged.connect(lambda state, self=self: self.changeAllTicks(state, name))
         self.frame3.addWidget(tick, 1, num)
         label = wc.QLabel(text)
+        label.setToolTip(tooltip)
         self.frame3.addWidget(label, 1, num+1)
         return tick, label
 
@@ -2809,8 +2812,8 @@ class CsaDeconvParamFrame(AbstractParamFrame):
         self.frame3.addWidget(self.labelspan, 1, 3)
         self.frame3.addWidget(self.labelskew, 1, 5)
         self.addMultiLabel("Integral", "Integral:", 6)
-        self.addMultiLabel("Lorentz", "Lorentz [Hz]:", 8)
-        self.addMultiLabel("Gauss", f"Gauss [{axUnit}]:", 10)
+        self.addMultiLabel("Lorentz", "Lorentz [Hz]:", 8, "Lorentzian broadening (transverse relaxation)")
+        self.addMultiLabel("Gauss", f"Gauss [{axUnit}]:", 10, "Gaussian broadening (FWHM of chemical shift distribution)")
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
                 self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
@@ -3122,12 +3125,12 @@ class QuadDeconvParamFrame(AbstractParamFrame):
         else:
             axUnit = ['Hz', 'kHz', 'MHz'][self.parent.getAxType()]
         # Labels
-        self.addMultiLabel("Position", u"Position [" + axUnit + "]:", 0)
-        self.addMultiLabel("Cq", u"C<sub>Q</sub> [MHz]:", 2)
-        self.addMultiLabel("eta", u"η:", 4)
+        self.addMultiLabel("Position", u"Position [" + axUnit + "]:", 0, "Isotropic chemical shift")
+        self.addMultiLabel("Cq", u"C<sub>Q</sub> [MHz]:", 2, "Quadrupolar anisotopy")
+        self.addMultiLabel("eta", u"η:", 4, "Quadrupolar asymmetry (0-1)")
         self.addMultiLabel("Integral", "Integral:", 6)
-        self.addMultiLabel("Lorentz", "Lorentz [Hz]:", 8)
-        self.addMultiLabel("Gauss", f"Gauss [{axUnit}]:", 10)
+        self.addMultiLabel("Lorentz", "Lorentz [Hz]:", 8, "Lorentzian broadening (transverse relaxation rate)")
+        self.addMultiLabel("Gauss", f"Gauss [{axUnit}]:", 10, "Gaussian broadening (FWHM of chemical shift distribution)")
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
                 self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
@@ -3356,9 +3359,9 @@ class QuadCSADeconvParamFrame(AbstractParamFrame):
         else:
             axUnit = ['Hz', 'kHz', 'MHz'][self.parent.getAxType()]
         # Labels
-        self.addMultiLabel("Definition1", "", 0)
-        self.addMultiLabel("Definition2", "", 2)
-        self.addMultiLabel("Definition3", "", 4)
+        self.addMultiLabel("Definition1", "", 0, "CSA tensor disconitnuity 1")
+        self.addMultiLabel("Definition2", "", 2, "CSA tensor disconitnuity 2")
+        self.addMultiLabel("Definition3", "", 4, "CSA tensor disconitnuity 3")
         self.label11 = wc.QLabel(u'δ' + '<sub>11</sub> [' + axUnit + '] :')
         self.label22 = wc.QLabel(u'δ' + '<sub>22</sub> [' + axUnit + '] :')
         self.label33 = wc.QLabel(u'δ' + '<sub>33</sub> [' + axUnit + '] :')
@@ -3392,14 +3395,14 @@ class QuadCSADeconvParamFrame(AbstractParamFrame):
         self.frame3.addWidget(self.labeliso2, 1, 1)
         self.frame3.addWidget(self.labelspan, 1, 3)
         self.frame3.addWidget(self.labelskew, 1, 5)
-        self.addMultiLabel("Cq", u"C<sub>Q</sub> [MHz]:", 6)
-        self.addMultiLabel("eta", u"η:", 8)
-        self.addMultiLabel("Alpha", u"α [deg]:", 10)
-        self.addMultiLabel("Beta", u"β [deg]:", 12)
-        self.addMultiLabel("Gamma", u"γ [deg]:", 14)
+        self.addMultiLabel("Cq", u"C<sub>Q</sub> [MHz]:", 6, "Quadrupolar anisotropy")
+        self.addMultiLabel("eta", u"η:", 8, "Quadrupolar asymmetry")
+        self.addMultiLabel("Alpha", u"α [deg]:", 10, "euler angle defining CSA orientation in Quad Frame")
+        self.addMultiLabel("Beta", u"β [deg]:", 12, "euler angle defining CSA orientation in Quad Frame")
+        self.addMultiLabel("Gamma", u"γ [deg]:", 14, "euler angle defining CSA orientation in Quad Frame")
         self.addMultiLabel("Integral", "Integral:", 16)
-        self.addMultiLabel("Lorentz", "Lorentz [Hz]:", 18)
-        self.addMultiLabel("Gauss", f"Gauss [{axUnit}]:", 20)
+        self.addMultiLabel("Lorentz", "Lorentz [Hz]:", 18, "Lorentzian broadening (transverse relaxation rate)")
+        self.addMultiLabel("Gauss", f"Gauss [{axUnit}]:", 20, "Gaussian broadening (FWHM of chemical shift distribution)")
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
                 self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
@@ -4074,13 +4077,13 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
             axUnit = 'ppm'
         else:
             axUnit = ['Hz', 'kHz', 'MHz'][self.parent.getAxType()]
-        self.addMultiLabel("Position", "Pos [" + axUnit + "]:", 0)
-        self.addMultiLabel("Sigma", u"σ [MHz]:", 2)
+        self.addMultiLabel("Position", "Pos [" + axUnit + "]:", 0, "Isotropic chemical shift")
+        self.addMultiLabel("Sigma", u"σ [MHz]:", 2, "Quadrupolar anisotropy variance: most probable (average) Cq is 2*σ")
         self.addMultiLabel("Cq0", u"C<sub>Q</sub>0 [MHz]:", 4)
         self.addMultiLabel("eta0", u"η0:", 6)
         self.addMultiLabel("Integral", "Integral:", 8)
-        self.addMultiLabel("Lorentz", "Lorentz [Hz]:", 10)
-        self.addMultiLabel("Gauss", f"Gauss [{axUnit}]:", 12)
+        self.addMultiLabel("Lorentz", "Lorentz [Hz]:", 10, "Lorentzian broadening (transverse relaxation rate)")
+        self.addMultiLabel("Gauss", f"Gauss [{axUnit}]:", 12, "Gaussian broadening (FWHM of chemical shift distribution")
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
                 self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
@@ -4750,13 +4753,13 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         else:
             axUnit = ['Hz', 'kHz', 'MHz'][self.parent.getAxType()]
         # Labels
-        self.addMultiLabel("Position", u"Position [" + axUnit + "]:", 0)
-        self.addMultiLabel("SigmaCS", f"σ<sub>CS</sub> [{axUnit}]:", 2)
-        self.addMultiLabel("Cq", u"C<sub>Q</sub> [MHz]:", 4)
-        self.addMultiLabel("eta", u"η:", 6)
+        self.addMultiLabel("Position", u"Position [" + axUnit + "]:", 0, "Isotropic chemical shift")
+        self.addMultiLabel("SigmaCS", f"σ<sub>CS</sub> [{axUnit}]:", 2, "Gaussian broadening (FWHM of chemical shift distribution)")
+        self.addMultiLabel("Cq", u"C<sub>Q</sub> [MHz]:", 4, "Quadrupolar anisotropy")
+        self.addMultiLabel("eta", u"η:", 6, "Quadrupolar asymmetry")
         self.addMultiLabel("Integral", "Integral:", 8)
-        self.addMultiLabel("Lorentz2", "Lorentz 2 [Hz]:", 10)
-        self.addMultiLabel("Lorentz1", "Lorentz 1 [Hz]:", 12)
+        self.addMultiLabel("Lorentz2", "Lorentz 2 [Hz]:", 10, "Lorentzian broadening (transverse relaxation rate) in direct dimension")
+        self.addMultiLabel("Lorentz1", "Lorentz 1 [Hz]:", 12, "Lorentzian broadening (transverse relaxation rate) in indirect dimension")
 #        self.addMultiLabel("Gauss2", "Gauss 2 [Hz]:", 14)
 #        self.addMultiLabel("Gauss1", "Gauss 1 [Hz]:", 16)
         for i in range(self.FITNUM):
@@ -5000,14 +5003,14 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
             axUnit = 'ppm'
         else:
             axUnit = ['Hz', 'kHz', 'MHz'][self.parent.getAxType()]
-        self.addMultiLabel("Position", "Pos [" + axUnit + "]:", 0)
-        self.addMultiLabel("SigmaCS", f"σ<sub>CS</sub> [{axUnit}]:", 2)
-        self.addMultiLabel("Sigma", u"σ<sub>Q<sub> [MHz]:", 4)
+        self.addMultiLabel("Position", "Pos [" + axUnit + "]:", 0, "Isotropic chemical shift")
+        self.addMultiLabel("SigmaCS", f"σ<sub>CS</sub> [{axUnit}]:", 2, "Gaussian broadening (FWHM of chemical shift distribution)")
+        self.addMultiLabel("Sigma", u"σ<sub>Q<sub> [MHz]:", 4, "Quadrupolar anisotropy variance: most probable (average) Cq is 2*σ")
         self.addMultiLabel("Cq0", u"C<sub>Q</sub>0 [MHz]:", 6)
         self.addMultiLabel("eta0", u"η0:", 8)
         self.addMultiLabel("Integral", "Integral:", 10)
-        self.addMultiLabel("Lorentz2", "Lorentz 2 [Hz]:", 12)
-        self.addMultiLabel("Lorentz1", "Lorentz 1 [Hz]:", 14)
+        self.addMultiLabel("Lorentz2", "Lorentz 2 [Hz]:", 12, "Lorentzian broadening (transverse relaxation rate) in direct dimension")
+        self.addMultiLabel("Lorentz1", "Lorentz 1 [Hz]:", 14, "Lorentzian broadening (transverse relaxation rate) in indirect dimension")
 #        self.addMultiLabel("Gauss2", "Gauss 2 [Hz]:", 16)
 #        self.addMultiLabel("Gauss1", "Gauss 1 [Hz]:", 18)
         for i in range(self.FITNUM):
