@@ -1072,6 +1072,8 @@ class AbstractParamFrame(QtWidgets.QWidget):
         rmsdFrame.addWidget(self.rmsdEdit, 0, 1)
         self.setRMSD()
         self.checkFitParamList(self.getRedLocList())
+        colorList = mpl.rcParams['axes.prop_cycle'].by_key()['color']
+        self.fit_color_list = colorList[2:] + colorList[0:2]
 
     def togglePick(self):
         # Dummy function for fitting routines which require peak picking
@@ -2302,7 +2304,10 @@ class RelaxParamFrame(AbstractParamFrame):
         self.optframe.addWidget(self.ylog, 1, 0, QtCore.Qt.AlignTop)
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
-                self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
+                tmptick = QtWidgets.QCheckBox('')
+                QCB_prop = f"QCheckBox {{ background-color : {self.fit_color_list[i%len(self.fit_color_list)]};}}"
+                tmptick.setStyleSheet(QCB_prop)
+                self.ticks[self.MULTINAMES[j]].append(tmptick)
                 self.frame3.addWidget(self.ticks[self.MULTINAMES[j]][i], i + 2, 2 * j)
                 self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j], ('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % self.fitParamList[locList][self.MULTINAMES[j]][i][0]))
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2 * j + 1)
@@ -2423,7 +2428,10 @@ class DiffusionParamFrame(AbstractParamFrame):
         self.optframe.addWidget(self.ylog, 1, 0)
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
-                self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
+                tmptick = QtWidgets.QCheckBox('')
+                QCB_prop = f"QCheckBox {{ background-color : {self.fit_color_list[i%len(self.fit_color_list)]};}}"
+                tmptick.setStyleSheet(QCB_prop)
+                self.ticks[self.MULTINAMES[j]].append(tmptick)
                 self.frame3.addWidget(self.ticks[self.MULTINAMES[j]][i], i + 2, 2 * j)
                 self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j], ''))
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2 * j + 1)
@@ -2599,7 +2607,10 @@ class PeakDeconvParamFrame(AbstractParamFrame):
         self.addMultiLabel("Gauss", "Gauss [Hz]:", 6)
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
-                self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
+                tmptick = QtWidgets.QCheckBox('')
+                QCB_prop = f"QCheckBox {{ background-color : {self.fit_color_list[i%len(self.fit_color_list)]};}}"
+                tmptick.setStyleSheet(QCB_prop)
+                self.ticks[self.MULTINAMES[j]].append(tmptick)
                 self.frame3.addWidget(self.ticks[self.MULTINAMES[j]][i], i + 2, 2 * j)
                 self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j]))
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2 * j + 1)
@@ -2811,7 +2822,10 @@ class CsaDeconvParamFrame(AbstractParamFrame):
         self.addMultiLabel("Gauss", "Gauss [Hz]:", 10)
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
-                self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
+                tmptick = QtWidgets.QCheckBox('')
+                QCB_prop = f"QCheckBox {{ background-color : {self.fit_color_list[i%len(self.fit_color_list)]};}}"
+                tmptick.setStyleSheet(QCB_prop)
+                self.ticks[self.MULTINAMES[j]].append(tmptick)
                 self.frame3.addWidget(self.ticks[self.MULTINAMES[j]][i], i + 2, 2 * j)
                 self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j]))
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2 * j + 1)
@@ -3126,7 +3140,10 @@ class QuadDeconvParamFrame(AbstractParamFrame):
         self.addMultiLabel("Gauss", "Gauss [Hz]:", 10)
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
-                self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
+                tmptick = QtWidgets.QCheckBox('')
+                QCB_prop = f"QCheckBox {{ background-color : {self.fit_color_list[i%len(self.fit_color_list)]};}}"
+                tmptick.setStyleSheet(QCB_prop)
+                self.ticks[self.MULTINAMES[j]].append(tmptick)
                 self.frame3.addWidget(self.ticks[self.MULTINAMES[j]][i], i + 2, 2 * j)
                 self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j]))
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2 * j + 1)
@@ -3396,7 +3413,10 @@ class QuadCSADeconvParamFrame(AbstractParamFrame):
         self.addMultiLabel("Gauss", "Gauss [Hz]:", 20)
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
-                self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
+                tmptick = QtWidgets.QCheckBox('')
+                QCB_prop = f"QCheckBox {{ background-color : {self.fit_color_list[i%len(self.fit_color_list)]};}}"
+                tmptick.setStyleSheet(QCB_prop)
+                self.ticks[self.MULTINAMES[j]].append(tmptick)
                 self.frame3.addWidget(self.ticks[self.MULTINAMES[j]][i], i + 2, 2 * j)
                 self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j]))
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2 * j + 1)
@@ -4075,7 +4095,10 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
         self.addMultiLabel("Gauss", "Gauss [Hz]:", 12)
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
-                self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
+                tmptick = QtWidgets.QCheckBox('')
+                QCB_prop = f"QCheckBox {{ background-color : {self.fit_color_list[i%len(self.fit_color_list)]};}}"
+                tmptick.setStyleSheet(QCB_prop)
+                self.ticks[self.MULTINAMES[j]].append(tmptick)
                 self.frame3.addWidget(self.ticks[self.MULTINAMES[j]][i], i + 2, 2 * j)
                 self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j]))
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2 * j + 1)
@@ -4750,7 +4773,10 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         self.addMultiLabel("Gauss1", "Gauss 1 [Hz]:", 14)
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
-                self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
+                tmptick = QtWidgets.QCheckBox('')
+                QCB_prop = f"QCheckBox {{ background-color : {self.fit_color_list[i%len(self.fit_color_list)]};}}"
+                tmptick.setStyleSheet(QCB_prop)
+                self.ticks[self.MULTINAMES[j]].append(tmptick)
                 self.frame3.addWidget(self.ticks[self.MULTINAMES[j]][i], i + 2, 2 * j)
                 self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j]))
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2 * j + 1)
@@ -4997,7 +5023,10 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         self.addMultiLabel("Gauss1", "Gauss 1 [Hz]:", 18)
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
-                self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
+                tmptick = QtWidgets.QCheckBox('')
+                QCB_prop = f"QCheckBox {{ background-color : {self.fit_color_list[i%len(self.fit_color_list)]};}}"
+                tmptick.setStyleSheet(QCB_prop)
+                self.ticks[self.MULTINAMES[j]].append(tmptick)
                 self.frame3.addWidget(self.ticks[self.MULTINAMES[j]][i], i + 2, 2 * j)
                 self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j]))
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2 * j + 1)
