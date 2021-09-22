@@ -2599,7 +2599,7 @@ class PeakDeconvParamFrame(AbstractParamFrame):
         self.addMultiLabel("Position", "Position [" + self.axUnit + "]:", 0)
         self.addMultiLabel("Integral", "Integral:", 2)
         self.addMultiLabel("Lorentz", "Lorentz [Hz]:", 4)
-        self.addMultiLabel("Gauss", f"Gauss [{axUnit}]:", 6)
+        self.addMultiLabel("Gauss", f"Gauss [{self.axUnit}]:", 6)
         for i in range(self.FITNUM):
             for j in range(len(self.MULTINAMES)):
                 self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
