@@ -155,6 +155,7 @@ class TabFittingWindow(QtWidgets.QWidget):
         wsIndex, fitName, accept = NewTabDialog.getFitInput(self, self.father.workspaceNames, list(FITTYPEDICT.keys()), self.mainFitType)
         if not accept:
             return
+        # need to convert units to first tab unit here
         self.subFitWindows.append(FittingWindow(self.father, self.father.workspaces[wsIndex], self, fitName, False))
         self.tabs.insertTab(self.tabs.count() - 1, self.subFitWindows[-1], self.father.workspaceNames[wsIndex])
         self.tabs.setCurrentIndex(len(self.subFitWindows))
@@ -2654,7 +2655,8 @@ class PeakDeconvParamFrame(AbstractParamFrame):
         newAxMult = self.parent.getCurrentAxMult()
         locList = self.getRedLocList()
         for j in range(len(self.fitParamList[locList]["Position"])):
-            self.fitParamList[locList]["Position"][j] *= newAxMult/oldAxMult
+            if not isinstance(self.fitParamList[locList]["Position"][j][0], tuple):
+                self.fitParamList[locList]["Position"][j][0] *= newAxMult/oldAxMult
 
 ##############################################################################
 
@@ -3045,10 +3047,13 @@ class CsaDeconvParamFrame(AbstractParamFrame):
         newAxMult = self.parent.getCurrentAxMult()
         locList = self.getRedLocList()
         for j in range(len(self.fitParamList[locList]["Definition1"])):
-            self.fitParamList[locList]["Definition1"][j] *= newAxMult/oldAxMult
-            self.fitParamList[locList]["Definition2"][j] *= newAxMult/oldAxMult
+            if not isinstance(self.fitParamList[locList]["Definition1"][j][0], tuple):
+                self.fitParamList[locList]["Definition1"][j][0] *= newAxMult/oldAxMult
+            if not isinstance(self.fitParamList[locList]["Definition2"][j][0], tuple):
+                self.fitParamList[locList]["Definition2"][j][0] *= newAxMult/oldAxMult
             if self.shiftDefType in [0, 1]:
-                self.fitParamList[locList]["Definition3"][j] *= newAxMult/oldAxMult
+                if not isinstance(self.fitParamList[locList]["Definition3"][j][0], tuple):
+                    self.fitParamList[locList]["Definition3"][j][0] *= newAxMult/oldAxMult
 
 ##############################################################################
 
@@ -3274,7 +3279,8 @@ class QuadDeconvParamFrame(AbstractParamFrame):
         newAxMult = self.parent.getCurrentAxMult()
         locList = self.getRedLocList()
         for j in range(len(self.fitParamList[locList]["Position"])):
-            self.fitParamList[locList]["Position"][j] *= newAxMult/oldAxMult
+            if not isinstance(self.fitParamList[locList]["Position"][j][0], tuple):
+                self.fitParamList[locList]["Position"][j][0] *= newAxMult/oldAxMult
 
 #################################################################################
 
@@ -3653,10 +3659,13 @@ class QuadCSADeconvParamFrame(AbstractParamFrame):
         newAxMult = self.parent.getCurrentAxMult()
         locList = self.getRedLocList()
         for j in range(len(self.fitParamList[locList]["Definition1"])):
-            self.fitParamList[locList]["Definition1"][j] *= newAxMult/oldAxMult
-            self.fitParamList[locList]["Definition2"][j] *= newAxMult/oldAxMult
+            if not isinstance(self.fitParamList[locList]["Definition1"][j][0], tuple):
+                self.fitParamList[locList]["Definition1"][j][0] *= newAxMult/oldAxMult
+            if not isinstance(self.fitParamList[locList]["Definition2"][j][0], tuple):
+                self.fitParamList[locList]["Definition2"][j][0] *= newAxMult/oldAxMult
             if self.shiftDefType in [0, 1]:
-                self.fitParamList[locList]["Definition3"][j] *= newAxMult/oldAxMult
+                if not isinstance(self.fitParamList[locList]["Definition3"][j][0], tuple):
+                    self.fitParamList[locList]["Definition3"][j][0] *= newAxMult/oldAxMult
 
 ##############################################################################
 
@@ -4275,7 +4284,8 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
         newAxMult = self.parent.getCurrentAxMult()
         locList = self.getRedLocList()
         for j in range(len(self.fitParamList[locList]["Position"])):
-            self.fitParamList[locList]["Position"][j] *= newAxMult/oldAxMult
+            if not isinstance(self.fitParamList[locList]["Position"][j][0], tuple):
+                self.fitParamList[locList]["Position"][j][0] *= newAxMult/oldAxMult
 
 #################################################################################
 
@@ -4944,7 +4954,8 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         newAxMult = self.parent.getCurrentAxMult()
         locList = self.getRedLocList()
         for j in range(len(self.fitParamList[locList]["Position"])):
-            self.fitParamList[locList]["Position"][j] *= newAxMult/oldAxMult
+            if not isinstance(self.fitParamList[locList]["Position"][j][0], tuple):
+                self.fitParamList[locList]["Position"][j][0] *= newAxMult/oldAxMult
 
 ##############################################################################
 
@@ -5221,8 +5232,8 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         newAxMult = self.parent.getCurrentAxMult()
         locList = self.getRedLocList()
         for j in range(len(self.fitParamList[locList]["Position"])):
-            self.fitParamList[locList]["Position"][j] *= newAxMult/oldAxMult
-
+            if not isinstance(self.fitParamList[locList]["Position"][j][0], tuple):
+                self.fitParamList[locList]["Position"][j][0] *= newAxMult/oldAxMult
 
 class NewTabDialog(QtWidgets.QDialog):
 
