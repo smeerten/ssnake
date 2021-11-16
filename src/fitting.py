@@ -4790,15 +4790,15 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         else:
             axUnit = ['Hz', 'kHz', 'MHz'][self.parent.getAxType()]
         # Labels
-        self.addMultiLabel("Position", u"Position [" + axUnit + "]:", 0, "Isotropic chemical shift")
-        self.addMultiLabel("SigmaCS", f"σ<sub>CS</sub> [{axUnit}]:", 2, "Gaussian broadening (FWHM of chemical shift distribution)")
-        self.addMultiLabel("Cq", u"C<sub>Q</sub> [MHz]:", 4, "Quadrupolar anisotropy")
-        self.addMultiLabel("eta", u"η:", 6, "Quadrupolar asymmetry")
-        self.addMultiLabel("Integral", "Integral:", 8)
-        self.addMultiLabel("Lorentz2", "Lorentz 2 [Hz]:", 10, "Lorentzian broadening (transverse relaxation rate) in direct dimension")
-        self.addMultiLabel("Lorentz1", "Lorentz 1 [Hz]:", 12, "Lorentzian broadening (transverse relaxation rate) in indirect dimension")
-#        self.addMultiLabel("Gauss2", "Gauss 2 [Hz]:", 14)
-#        self.addMultiLabel("Gauss1", "Gauss 1 [Hz]:", 16)
+        self.addMultiLabel("Position", u"Position [" + axUnit + "]:", 1, "Isotropic chemical shift")
+        self.addMultiLabel("SigmaCS", f"σ<sub>CS</sub> [{axUnit}]:", 3, "Gaussian broadening (FWHM of chemical shift distribution)")
+        self.addMultiLabel("Cq", u"C<sub>Q</sub> [MHz]:", 5, "Quadrupolar anisotropy")
+        self.addMultiLabel("eta", u"η:", 7, "Quadrupolar asymmetry")
+        self.addMultiLabel("Integral", "Integral:", 9)
+        self.addMultiLabel("Lorentz2", "Lorentz 2 [Hz]:", 11, "Lorentzian broadening (transverse relaxation rate) in direct dimension")
+        self.addMultiLabel("Lorentz1", "Lorentz 1 [Hz]:", 13, "Lorentzian broadening (transverse relaxation rate) in indirect dimension")
+#        self.addMultiLabel("Gauss2", "Gauss 2 [Hz]:", 15)
+#        self.addMultiLabel("Gauss1", "Gauss 1 [Hz]:", 17)
         for i in range(self.FITNUM):
             colorbar = QtWidgets.QWidget()
             colorbar.setMaximumWidth(5)
@@ -5045,16 +5045,16 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
             axUnit = 'ppm'
         else:
             axUnit = ['Hz', 'kHz', 'MHz'][self.parent.getAxType()]
-        self.addMultiLabel("Position", "Pos [" + axUnit + "]:", 0, "Isotropic chemical shift")
-        self.addMultiLabel("SigmaCS", f"σ<sub>CS</sub> [{axUnit}]:", 2, "Gaussian broadening (FWHM of chemical shift distribution)")
-        self.addMultiLabel("Sigma", u"σ<sub>Q<sub> [MHz]:", 4, "Quadrupolar anisotropy variance: most probable (average) Cq is 2*σ")
-        self.addMultiLabel("Cq0", u"C<sub>Q</sub>0 [MHz]:", 6)
-        self.addMultiLabel("eta0", u"η0:", 8)
-        self.addMultiLabel("Integral", "Integral:", 10)
-        self.addMultiLabel("Lorentz2", "Lorentz 2 [Hz]:", 12, "Lorentzian broadening (transverse relaxation rate) in direct dimension")
-        self.addMultiLabel("Lorentz1", "Lorentz 1 [Hz]:", 14, "Lorentzian broadening (transverse relaxation rate) in indirect dimension")
-#        self.addMultiLabel("Gauss2", "Gauss 2 [Hz]:", 16)
-#        self.addMultiLabel("Gauss1", "Gauss 1 [Hz]:", 18)
+        self.addMultiLabel("Position", "Pos [" + axUnit + "]:", 1, "Isotropic chemical shift")
+        self.addMultiLabel("SigmaCS", f"σ<sub>CS</sub> [{axUnit}]:", 3, "Gaussian broadening (FWHM of chemical shift distribution)")
+        self.addMultiLabel("Sigma", u"σ<sub>Q<sub> [MHz]:", 5, "Quadrupolar anisotropy variance: most probable (average) Cq is 2*σ")
+        self.addMultiLabel("Cq0", u"C<sub>Q</sub>0 [MHz]:", 7)
+        self.addMultiLabel("eta0", u"η0:", 9)
+        self.addMultiLabel("Integral", "Integral:", 11)
+        self.addMultiLabel("Lorentz2", "Lorentz 2 [Hz]:", 13, "Lorentzian broadening (transverse relaxation rate) in direct dimension")
+        self.addMultiLabel("Lorentz1", "Lorentz 1 [Hz]:", 15, "Lorentzian broadening (transverse relaxation rate) in indirect dimension")
+#        self.addMultiLabel("Gauss2", "Gauss 2 [Hz]:", 17)
+#        self.addMultiLabel("Gauss1", "Gauss 1 [Hz]:", 19)
         for i in range(self.FITNUM):
             colorbar = QtWidgets.QWidget()
             colorbar.setMaximumWidth(5)
