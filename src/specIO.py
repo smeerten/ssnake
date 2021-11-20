@@ -1363,6 +1363,9 @@ def loadBrukerSpectrum(filePath):
     SW = [x['SW_p'] for x in pars]
     FREQ = [x['SF'] * 1e6 for x in pars]
     OFFSET = [x['OFFSET'] for x in pars]
+    SCALE = 1
+    if 'NC_proc' in pars[0]: # Set intensity scaling parameter
+        SCALE = 2**pars[0]['NC_proc']
     try:
         DtypeP = [np.dtype(np.int32), np.dtype(np.float32), np.dtype(np.float64)][pars[0]['DTYPP']] #The byte orders that is used
         DtypeP = DtypeP.newbyteorder(['L', 'B'][pars[0]['BYTORDP']])
@@ -1407,6 +1410,7 @@ def loadBrukerSpectrum(filePath):
             DATA[index] = np.reshape(DATA[index], [int(SIZE[2]/XDIM[2]), int(SIZE[1]/XDIM[1]), int(SIZE[0]/XDIM[0]), XDIM[2], XDIM[1], XDIM[0]])
             DATA[index] = np.concatenate(np.concatenate(np.concatenate(DATA[index], 2), 2), 2)
     spec = [True]
+    DATA = [x * SCALE for x in DATA]
     masterData = sc.Spectrum(hc.HComplexData(DATA, hyper), (filePath, None), FREQ[-1::-1], SW[-1::-1], spec=spec*dim, ref=REF[-1::-1])
     masterData.addHistory("Bruker spectrum data loaded from " + filePath)
     #Try to load main acqus and get some additional pars
