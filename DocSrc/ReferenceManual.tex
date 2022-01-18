@@ -1,4 +1,4 @@
-% Copyright 2016 - 2020 Bas van Meerten and Wouter Franssen
+% Copyright 2016 - 2021 Bas van Meerten and Wouter Franssen
 %
 %This file is part of ssNake.
 %
@@ -1534,14 +1534,14 @@ nice plot.
 This routine can be used to fit diffusion curves. The equation
 used for this is:
 \begin{equation}
-   y = \text{amp} \cdot (\text{const} + \text{coeff} \cdot \exp(-(\gamma  \delta  x)^2  D  (\Delta -\delta / 3.0)))
+   y = \text{amp} \cdot (\text{const} + \text{coeff} \cdot \exp(-(2\pi\gamma  \delta  x)^2  D  (\Delta -\delta / 3.0)))
 \end{equation}
-Here, $\gamma$ represent the $\gamma$-value of the isotope that is measured, $\delta$ is the length
+Here, $\gamma$ represent the $\gamma$-value of the isotope that is measured in Hz/T, $\delta$ is the length
 of the gradient pulse, $\Delta$ is the time between the gradient pulses (i.e. the time from the
 start of gradient pulse 1, to the start of gradient pulse 2). $D$ is the diffusion constant, which
 is what we will fit. The `const' and `coeff' parameters have the same meaning as in the relaxation
-curve fit. Note that the $x$-axis should be in terms of the gradient strength (in Tesla). ssNake
-will still show `seconds' as a unit though (1 s = 1 T).
+curve fit. Note that the $x$-axis should be in terms of the gradient strength (in Tesla/metre). ssNake
+will still show `seconds' as a unit though (1 s = 1 T/m).
 
 
 
@@ -1645,6 +1645,12 @@ When simulating an infinite MAS spectrum, a more efficient routine can be used t
 If spinning sidebands are not important in the calculation, it might be useful to switch to
 `infinite' for speed considerations.
 
+
+
+
+
+
+
 \subsubsection*{Equations}
 Quadrupole systems are influenced by both the first and second order quadrupolar coupling. The first
 order quadrupolar coupling has only rank 2 terms, while the second order has rank 0, 2 and 4
@@ -1725,6 +1731,27 @@ I_z (18 I (I + 1) -34 I_z^2 -5) \\
 
 With $B = \left( \dfrac{C_\text{Q}}{4 I (2 I - 1)} \right) ^ 2  \dfrac{2}{\nu_0}$, where $\nu_0$ is
 the Larmor frequency of the nucleus.
+
+
+\subsection{Quadrupole+CSA}
+Quadrupole + CSA fitting combines first and second order quadrupolar effects and chemical shift anisotropy. Both spinning and static spectra can be simulated. For the effects of the individual quadrupole or CSA settings, see above at their respective sections.
+
+Three additional parameters that need to be given are the three angles defining the rotation of the CSA tensor with respect to the EFG tensor ($\alpha$, $\beta$, $\gamma$).
+We order the EFG tensor values in the following way: $|V_{zz}|>|V_{xx}|>|V_{yy}|$.
+We define the CSA and quadrupole angles in the same way as SIMPSON does, but we rotate via
+an Z-X-Z euler rotation, while SIMPSON uses Z-Y-Z. This leads to the following conversion table, showing the ssNake angles when using $\alpha$, $\beta$, $\gamma$ in another software package:
+
+\begin{center}
+\begin{tabular}{cc}
+\toprule
+\textbf{Software} & \textbf{ssNake equivalent}\\
+\midrule
+Simpson & $\alpha + 90^\circ$, $\beta$, $\gamma + 90^\circ$ \\
+wsolids & $\alpha + 90^\circ$, $\beta$, $\gamma$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
 
 \subsection{Czjzek}
 This fitting routine can be used to simulate the 1D spectrum of a quadrupolar nucleus that
@@ -1812,6 +1839,21 @@ with $I_0(z)$ a modified Bessel function, and
 To speed-up the calculations of these distributions, ssNake can use the \texttt{numba} python library. With
 the extended Czjzek distribution, around a twofold speed increase can be gained in this way. ssNake
 tests for the \texttt{numba} package itself, so regular installation of this package should be sufficient.
+
+\subsection{MQMAS}
+This fitting routine can be used to fit an MQMAS spectrum. It is a 2D fitting routine, showing a contour plot of the data. The fit result is plot on top of this using a different contour colour. As there are now two plotting dimensions, there are two Lorentz and Gauss broadening settings.
+
+For simulation of MQMAS data, we need to define the quadrupolar parameters as before (see the section on fitting of quadrupole lines). In this case, no satellite signals are included. Only infinite MAS spinning speeds are supported (no spinning sidebands are calculated). Moreover, it is an ideal simulation, so no excitation profiles are taken into account.
+
+Apart from the spin quantum number I, MQMAS simulation also requires selected the multiple quantum transition to be supplied. This is labelled `MQ' in the interface. 
+
+Two additional parameters that need to be supplied are the shearing and spectral width scale factors. These are required for the processing of MQMAS data, as is also described in our advanced tutorial on MQMAS processing. By default, the shearing is set at 0, and the sw scaling at 1. This results in unsheared data, and can be used to fit experimental data that has also not been sheared.
+
+The required sharing and sw scaling factors depend on both I and MQ. Using the 'Auto' push button in the interface, the correct values are filled in in the boxes, depending on the current I and MQ setting.
+
+
+\subsection{Czjzek MQMAS}
+This routine can be used to fit an MQMAS spectrum of a species that is influenced by a Czjzek distribution. The required inputs are describe in the section on 1D Czjzek fitting, and regular MQMAS fitting respectively. Note that this again means that firstly a library needs to be generated of a $C_\text{Q}$ and $\eta$ grid. The spectrum sharing and sw scaling are as described in the MQMAS section.
 
 
 \subsection{External}
@@ -2156,7 +2198,7 @@ The final definition is the Herzfeld-Berger definition. This convention uses the
 Using the chemical shift conversion tool is quite easy. You can fill in all the necessary values for one convention, and push the `Go' button next to it to convert it to all the other definitions. Note that ssNake also checks the definitions. So if you mess up the order of the Standard Convention, for example, it will be put in the correct order. The same is done for values that are outside the defined limits (e.g. $\eta$ and $\kappa$). Pushing `Reset' will reset all the values to 0.
 
 \subsection{Quadrupole coupling conversion tool}
-Nuclei with a spin quantum number greater than 1/2 have an asymmetric charge distribution. This leads to a quadrupolar moment, and thus to a coupling between the nucleus and the electronic field gradient at the nuclear site. Just as for chemical shift, there are multiple convention in use to describe the resulting quadrupolar tensor. Apart from being a symmetric tensor, Laplace relation states that the sum of the field gradients in all direction should be zero (otherwise the nuclei would experience a net force). Due to this, there is no isotropic term, and the quadrupolar coupling can be described by two numbers: the strength and the asymmetry. Of these there are two conventions in use: C$_\text{Q}$ and $\omegaup_\text{Q}$. When the field gradients in the three independent directions are $V_\text{xx}$, $V_\text{yy}$ and $V_\text{xx}$ (with $|V_\text{zz}| \geq |V_\text{yy}| \geq |V_\text{xx}|$), C$_\text{Q}$ is defined as:
+Nuclei with a spin quantum number greater than 1/2 have an asymmetric charge distribution. This leads to a quadrupolar moment, and thus to a coupling between the nucleus and the electronic field gradient at the nuclear site. Just as for chemical shift, there are multiple convention in use to describe the resulting quadrupolar tensor. Apart from being a symmetric tensor, Laplace relation states that the sum of the field gradients in all direction should be zero (otherwise the nuclei would experience a net force). Due to this, there is no isotropic term, and the quadrupolar coupling can be described by two numbers: the strength and the asymmetry. Of these there are two conventions in use: C$_\text{Q}$ and $\omegaup_\text{Q}$. When the field gradients in the three independent directions are $V_\text{xx}$, $V_\text{yy}$ and $V_\text{xx}$ (with $|V_\text{zz}| \geq |V_\text{xx}| \geq |V_\text{yy}|$), C$_\text{Q}$ is defined as:
 \begin{equation}
 C_\text{Q} = \dfrac{eV_\text{zz}Q}{\hbar} = \dfrac{e^2qQ}{\hbar}
 \end{equation}
@@ -2170,7 +2212,7 @@ With $e$ the elementary charge, $Q$ the quadrupole moment (in m$^2$), $h$ the Pl
 \end{equation}
 For both definitions, the asymmetry is defined as:
 \begin{equation}
-\eta = \dfrac{V_\text{xx} -V_\text{yy}}{V_\text{zz}}
+\eta = \dfrac{V_\text{yy} -V_\text{xx}}{V_\text{zz}}
 \end{equation}
 which, due to the ordering of the fields gradient components, is always between 1 and 0.
 

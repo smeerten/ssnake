@@ -1,6 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-# Copyright 2016 - 2020 Bas van Meerten and Wouter Franssen
+# Copyright 2016 - 2021 Bas van Meerten and Wouter Franssen
 
 # This file is part of ssNake.
 #
@@ -379,7 +379,7 @@ def diffusionFunc(x, freq, sw, axMult, extra, amp, const, coeff, D):
     """
     x = x[-1]
     gamma, delta, triangle = extra
-    return amp * (const + coeff * np.exp(-(abs(gamma) *1e6 * abs(delta) * x)**2 * abs(D) * (abs(triangle) - abs(delta) / 3.0)))
+    return amp * (const + coeff * np.exp(-(abs(gamma) *1e6 * 2 * np.pi * abs(delta) * x)**2 * abs(D) * (abs(triangle) - abs(delta) / 3.0)))
 
 def functionRun(x, freq, sw, axMult, extra, *parameters):
     """
@@ -440,7 +440,7 @@ def externalFitRunScript(x, freq, sw, axMult, extra, bgrnd, mult, *parameters):
         The value by which the output curve is multiplied.
     *parameters
         The parameters used in the fit.
-        The last three values are interpreted as [amp, lor, gauss] and are used as the amplitude, the Lorentzian apodization (Hz) and Gaussian apodization (Hz).
+        The last three values are interpreted as [amp, lor, gauss] and are used as the amplitude, the Lorentzian apodization (Hz) and Gaussian apodization (chemical shift distribution) in axMult unit.
         Should have be three longer than names.
 
     Returns
@@ -450,6 +450,7 @@ def externalFitRunScript(x, freq, sw, axMult, extra, bgrnd, mult, *parameters):
     """
     names, command, script, output, spec = extra
     amp, lor, gauss = parameters[-3:]
+    gauss /= axMult
     x = x[-1]
     if script is None:
         return None
@@ -498,7 +499,7 @@ def fib(n):
     int
         The n+2 Fibonacci number.
     """
-    start = np.array([[1, 1], [1, 0]], dtype='int64')
+    start = np.array([[1, 1], [1, 0]], dtype=np.int64)
     temp = start[:]
     for i in range(n):
         temp = np.dot(start, temp)
@@ -527,7 +528,7 @@ def zcw_angles(m, symm=0):
         The weights of the different orientations.
     """
     samples, fib_1, fib_2 = fib(m)
-    js = np.arange(samples, dtype='Float64') / samples
+    js = np.arange(samples, dtype=np.float64) / samples
     if symm == 0:
         c = (1., 2., 1.)
     elif symm == 1:
@@ -569,7 +570,7 @@ def peakSim(x, freq, sw, axMult, extra, bgrnd, mult, pos, amp, lor, gauss):
     lor : float
         The Lorentzian broadening of the peak.
     gauss : float
-        The Gaussian broadening of the peak.
+        The Gaussian broadening of the peak (in Hz*axMult), corresponding to CS distribution.
 
     Returns
     -------
@@ -578,6 +579,7 @@ def peakSim(x, freq, sw, axMult, extra, bgrnd, mult, pos, amp, lor, gauss):
     """
     x = x[-1]
     pos /= axMult
+    gauss /= axMult
     if pos < np.min(x) or pos > np.max(x):
         return np.zeros_like(x)
     lor = np.abs(lor)
@@ -621,7 +623,7 @@ def makeSpectrum(x, sw, v, gauss, lor, weight):
     inten *= len(inten)  / abs(sw)
     return inten
 
-def makeMQMASSpectrum(x, sw, v, gauss, lor, weight):
+def makeMQMASSpectrum(x, sw, v, gauss, lor, weight, slope):
     """
     Creates an 2D FID from a list of frequencies with corresponding weights.
     Also applies Lorentzian and Gaussian broadening.
@@ -644,6 +646,8 @@ def makeMQMASSpectrum(x, sw, v, gauss, lor, weight):
         Lorentzian broadening in Hz for the first and second dimension.
     weight : ndarray
         The weights corresponding to the frequencies. Should have the same length as the arrays in v.
+    slope : slope (t2/t1) along which the CS and CS distribution is refocused 
+            to simulate CS distribution with gaussian g=broadening 
 
     Returns
     -------
@@ -657,10 +661,22 @@ def makeMQMASSpectrum(x, sw, v, gauss, lor, weight):
     t2 = np.fft.fftfreq(length2, sw[-1]/float(length2))
     diff2 = (x[-1][1] - x[-1][0])*0.5
     t1 = t1[:, np.newaxis]
-    final, _, _ = np.histogram2d(v[0], v[1], [length1, length2], range=[[x[-2][0]-diff1, x[-2][-1]+diff1], [x[-1][0]-diff2, x[-1][-1]+diff2]], weights=weight)
+    minD1 = x[-2][0] - diff1
+    maxD1 = x[-2][-1] + diff1
+    minD2 = x[-1][0] - diff2
+    maxD2 = x[-1][-1] + diff2
+    if minD1 > maxD1:
+        minD1, maxD1 = maxD1, minD1
+        v[0] *= -1
+    if minD2 > maxD2:
+        minD2, maxD2 = maxD2, minD2
+        v[1] *= -1
+    final, _, _ = np.histogram2d(v[0], v[1], [length1, length2], range=[[minD1, maxD1], [minD2, maxD2]], weights=weight)
     final = np.fft.ifftn(final)
-    apod2 = np.exp(-np.pi * np.abs(lor[1] * t2) - ((np.pi * np.abs(gauss[1]) * t2)**2) / (4 * np.log(2)))
-    apod1 = np.exp(-np.pi * np.abs(lor[0] * t1) - ((np.pi * np.abs(gauss[0]) * t1)**2) / (4 * np.log(2)))
+    apod2 = np.exp(-np.pi * np.abs(lor[1] * t2) - 
+                   ((np.pi * np.abs(gauss[1]) * (t2 + t1*slope))**2) / (4 * np.log(2)))
+    apod1 = np.exp(-np.pi * np.abs(lor[0] * t1) - 
+                   ((np.pi * np.abs(gauss[0]) * t1)**2) / (4 * np.log(2)))
     final *= apod1 * apod2 * length1 / abs(sw[-2]) * length2 / abs(sw[-1])
     return final
 
@@ -748,15 +764,15 @@ def csaFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, t11, t22, t33, a
     """
     shiftdef, numssb, angle, D2, weight, MAStype = extra
     extra = [False, 0.5, numssb, angle, D2, None, weight, MAStype, shiftdef]
-    return quadCSAFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, t11, t22, t33, 0.0, 0.0, 0.0, 0.0, 0.0, amp, lor, gauss)
+    return quadCSAFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, t11, t22, t33, 0.0, 0.0, 0.0, 0.0, 0.0, amp, lor, gauss, 0)
 
-def quadFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, pos, cq, eta, amp, lor, gauss):
+def quadFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, pos, cq, eta, amp, lor, gauss, lorST):
     """
     Uses the quadCSAFunc function for the specific case where the CSA interaction is zero.
     """
     satBool, I, numssb, angle, D2, D4, weight, MAStype = extra
     extra = [satBool, I, numssb, angle, D2, D4, weight, MAStype, 0]
-    return quadCSAFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, pos, pos, pos, cq, eta, 0.0, 0.0, 0.0, amp, lor, gauss)
+    return quadCSAFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, pos, pos, pos, cq, eta, 0.0, 0.0, 0.0, amp, lor, gauss, lorST)
 
 def quadFreqBase(I, m1, m2, cq, eta, freq, angle, D2, D4, numssb, spinspeed):
     """
@@ -831,7 +847,7 @@ def quadFreqBase(I, m1, m2, cq, eta, freq, angle, D2, D4, numssb, spinspeed):
         v = np.matmul(dat2, spinD2) + np.matmul(dat4, spinD4)
     return v, vConstant
 
-def quadCSAFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, t11, t22, t33, cq, eta, alphaCSA, betaCSA, gammaCSA, amp, lor, gauss):
+def quadCSAFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, t11, t22, t33, cq, eta, alphaCSA, betaCSA, gammaCSA, amp, lor, gauss, lorST):
     """
     Calculates an FID of a powder averaged site under influence of CSA and a quadrupole interaction.
     This function works for static, finite, and infinite spinnning.
@@ -878,6 +894,8 @@ def quadCSAFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, t11, t22, t3
         The Lorentzian broadening of the peak.
     gauss : float
         The Gaussian broadening of the peak.
+    lorST : float
+        The Lorentzian broadening of STs of the peak.
 
     Returns
     -------
@@ -901,6 +919,7 @@ def quadCSAFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, t11, t22, t3
         t33 = 1 - abs(abs(t33 + 1)%4 - 2)
     tensor = np.array(func.shiftConversion([t11, t22, t33], shiftdef)[1], dtype=float)
     tensor /= float(axMult)
+    gauss /= axMult
     cq *= 1e6
     eta = 1 - abs(abs(eta) % 2 - 1)      # Force eta to 0--1 in a continuous way: 0.9 == 1.1, 0 == 2
     spinspeed *= 1e3
@@ -926,7 +945,11 @@ def quadCSAFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, t11, t22, t3
         tot = weight
         if spinspeed not in (0.0, np.inf):
             v, tot = carouselAveraging(spinspeed, v, weight, vConstant)
-        spectrum += eff * makeSpectrum(x, sw, v, gauss, lor, tot)
+        if m == -0.5:
+            lb = lor
+        else:
+            lb = lorST
+        spectrum += eff * makeSpectrum(x, sw, v, gauss, lb, tot)
     return mult * amp * spectrum
 
 def quadCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, mult, pos, sigma, cq0, eta0, amp, lor, gauss):
@@ -967,7 +990,7 @@ def quadCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, mult, pos, sigma, cq0, eta
     lor : float
         The Lorentzian broadening of the peak.
     gauss : float
-        The Gaussian broadening of the peak.
+        The Gaussian broadening of the peak in the units defined by axMult.
 
     Returns
     -------
@@ -981,6 +1004,7 @@ def quadCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, mult, pos, sigma, cq0, eta
         cq0 = 0
         eta0 = 0
     pos /= axMult
+    gauss /= axMult
     sigma = abs(sigma) * 1e6
     cq0 *= 1e6
     czjzek = Czjzek.czjzekIntensities(sigma, d, cq, eta, cq0, eta0)
@@ -991,7 +1015,7 @@ def quadCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, mult, pos, sigma, cq0, eta
     apod = np.exp(2j * np.pi * pos * t - np.pi * np.abs(lor) * np.abs(t) - ((np.pi * np.abs(gauss) * t)**2) / (4 * np.log(2)))
     return mult * amp * fid * apod
 
-def mqmasFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, pos, cq, eta, amp, lor2, gauss2, lor1, gauss1):
+def mqmasFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, pos, sigmaCS, cq, eta, amp, lor2, lor1, gauss2=0, gauss1=0):
     """
     Calculates a 2-D FID of an MQMAS spectrum.
     This function works for static, finite, and infinite spinnning.
@@ -1029,6 +1053,8 @@ def mqmasFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, pos, cq, eta, 
         The spinning speed in kHz.
     pos : float
         The isotropic chemical shift value defined in terms of axMult.
+    sigmaCS : float
+        The Gaussian broadening along the chemical shift axis in units defined by axMult.
     cq : float
         The quadrupole coupling constant Cq given in MHz.
     eta : float
@@ -1038,11 +1064,11 @@ def mqmasFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, pos, cq, eta, 
     lor2 : float
         The Lorentzian broadening in the direct dimension.
     gauss2 : float
-        The Gaussian broadening in the direct dimension.
+        The Gaussian broadening in the direct dimension defined (not used).
     lor1 : float
         The Lorentzian broadening in the indirect dimension.
     gauss1 : float
-        The Gaussian broadening in the indirect dimension.
+        The Gaussian broadening in the indirect dimension (not used).
 
     Returns
     -------
@@ -1057,6 +1083,7 @@ def mqmasFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, pos, cq, eta, 
     elif MAStype == 2:
         spinspeed = np.inf
     pos /= axMult
+    sigmaCS /= axMult
     spinspeed *= 1e3
     cq *= 1e6
     eta = 1 - abs(abs(eta)%2 - 1)
@@ -1070,13 +1097,14 @@ def mqmasFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, pos, cq, eta, 
     v2 += pos
     v1 += mq*pos - v2 * shear
     v1 *= scale
-    return mult * amp * makeMQMASSpectrum(x, sw, [np.real(v1.flatten()), np.real(v2.flatten())], [gauss1, gauss2], [lor1, lor2], np.real(tot).flatten())
+    slope = (mq-shear)*scale  # t1/t2 slope along which to apply CS gaussian distribution
+    return mult * amp * makeMQMASSpectrum(x, sw, [np.real(v1.flatten()), np.real(v2.flatten())], [0, sigmaCS], [lor1, lor2], np.real(tot).flatten(), slope)
 
-def mqmasCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, mult, pos, sigma, sigmaCS, cq0, eta0, amp, lor2, gauss2, lor1, gauss1):
+def mqmasCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, mult, pos, sigmaCS, sigma, cq0, eta0, amp, lor2, lor1, gauss2=0, gauss1=0):
     """
     Calculates a 2-D FID of an MQMAS spectrum with an (extended) Czjzek distribution using a library of 1-D spectra.
 
-    Parameters
+    , shear_factorParameters
     ----------
     x : list of ndarray
         A list of axes values for the simulation.
@@ -1108,7 +1136,7 @@ def mqmasCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, mult, pos, sigma, sigmaCS
     sigma : float
         The width of the Czjzek distribution in MHz.
     sigmaCS : float
-        The Gaussian broadening along the chemical shift axis in Hz.
+        The Gaussian broadening along the chemical shift axis in units defined by axMult.
     cq0 : float
         The extended Czjzek quadrupole coupling constant Cq0 given in MHz (only used when method=True).
     eta0 : float
@@ -1118,11 +1146,11 @@ def mqmasCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, mult, pos, sigma, sigmaCS
     lor2 : float
         The Lorentzian broadening in the direct dimension.
     gauss2 : float
-        The Gaussian broadening in the direct dimension.
+        The Gaussian broadening in the direct dimension (not used).
     lor1 : float
         The Lorentzian broadening in the indirect dimension.
     gauss1 : float
-        The Gaussian broadening in the indirect dimension.
+        The Gaussian broadening in the indirect dimension (not used).
 
     Returns
     -------
@@ -1138,6 +1166,7 @@ def mqmasCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, mult, pos, sigma, sigmaCS
         cq0 = 0
         eta0 = 0
     pos /= axMult
+    sigmaCS /= axMult
     sigma *= 1e6
     czjzek = Czjzek.czjzekIntensities(sigma, d, cq, eta, cq0, eta0)
     length2 = len(x[-1])
@@ -1147,8 +1176,6 @@ def mqmasCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, mult, pos, sigma, sigmaCS
     t1 = np.fft.fftfreq(length1, sw[-2]/float(length1))
     t1 = t1[:, np.newaxis]
     t2 = np.fft.fftfreq(length2, sw[-1]/float(length2))
-    apod2 = np.exp(-np.pi * np.abs(lor2 * t2) - ((np.pi * np.abs(gauss2) * t2)**2) / (4 * np.log(2)))
-    apod1 = np.exp(-np.pi * np.abs(lor1 * t1) - ((np.pi * np.abs(gauss1) * t1)**2) / (4 * np.log(2)))
     V40 = 1.0 / 140 * (18  + eta**2)
     T40_m = mq * (18 * I * (I + 1) - 34 * (mq/2.0)**2 - 5)
     T40_1 = (18 * I * (I + 1) - 34 * (0.5)**2 - 5)
@@ -1166,6 +1193,10 @@ def mqmasCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, mult, pos, sigma, sigmaCS
     posIndirect = pos * (mq - shearFactor) * scale
     offsetMat = np.exp(2j * np.pi * (posIndirect * t1 + (pos - x[-1][length2//2])*t2))
     shiftGauss = np.exp(-((np.pi * np.abs(sigmaCS) * (t2 + t1*(mq-shearFactor)*scale))**2) / (4 * np.log(2)))
+#    apod2 = np.exp(-np.pi * np.abs(lor2 * t2) - ((np.pi * np.abs(gauss2) * t2)**2) / (4 * np.log(2)))
+#    apod1 = np.exp(-np.pi * np.abs(lor1 * t1) - ((np.pi * np.abs(gauss1) * t1)**2) / (4 * np.log(2)))
+    apod2 = np.exp(-np.pi * np.abs(lor2 * t2) )
+    apod1 = np.exp(-np.pi * np.abs(lor1 * t1) )
     fid *= offsetMat * apod1 * apod2 * shiftGauss
     shearMat = np.exp((shearFactor-shear) * 2j * np.pi * t1 * x[-1])
     fid = np.fft.fft(fid, axis=1) * shearMat
@@ -1207,5 +1238,5 @@ def genLib(length, minCq, maxCq, minEta, maxEta, numCq, numEta, extra, freq, sw,
     x = np.fft.fftshift(np.fft.fftfreq(length, 1/float(sw)))
     lib = np.zeros((len(cq), length), dtype=complex)
     for i, (cqi, etai) in enumerate(zip(cq, eta)):
-        lib[i] = quadFunc([x], [freq], [sw], 1.0, extra, 0.0, 1.0, spinspeed, 0.0, cqi, etai, 1.0, 0.0, 0.0)
+        lib[i] = quadFunc([x], [freq], [sw], 1.0, extra, 0.0, 1.0, spinspeed, 0.0, cqi, etai, 1.0, 0.0, 0.0, 0.0)
     return lib, cq*1e6, eta

@@ -1,7 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# Copyright 2016 - 2020 Bas van Meerten and Wouter Franssen
+# Copyright 2016 - 2021 Bas van Meerten and Wouter Franssen
 
 # This file is part of ssNake.
 #
@@ -21,29 +21,16 @@
 EXE = False
 
 import sys
-if sys.version_info.major == 2:
-    import sip
-    sip.setapi('QString', 2)
-    print('DEPRECATION WARNING: From version 1.4 onwards, python2 is no longer supported. Consider upgrading to python3.')
 import os
 import importlib
-try:
-    from PyQt5 import QtGui, QtCore, QtWidgets
-    QT = 5
-except ImportError:
-    from PyQt4 import QtGui, QtCore
-    from PyQt4 import QtGui as QtWidgets
-    QT = 4
-    print('DEPRECATION WARNING: From version 1.4 onwards, PyQt4 is no longer supported. Consider upgrading to PyQt5.')
+from PyQt5 import QtGui, QtCore, QtWidgets
+QT = 5
+
 QtCore.pyqtRemoveInputHook()
 import matplotlib
 # First import matplotlib and Qt
-if QT == 4:
-    matplotlib.use('Qt4Agg')
-    from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
-else:
-    matplotlib.use('Qt5Agg')
-    from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+matplotlib.use('Qt5Agg')
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import multiprocessing
 
 # Create splash window
@@ -109,7 +96,7 @@ matplotlib.rc('font', family='DejaVu Sans')
 np.set_printoptions(threshold=sys.maxsize)
 QtCore.QLocale.setDefault(QtCore.QLocale('en_US'))
 
-VERSION = 'v1.3'
+VERSION = 'v1.4b'
 # Required library version
 NPVERSION = '1.11.0'
 MPLVERSION = '1.5.0'
@@ -230,15 +217,13 @@ class MainProgram(QtWidgets.QMainWindow):
             canvas = self.mainWindow.tabs.currentWidget().canvas
         else:
             canvas = self.mainWindow.canvas
-        if QT == 5:
-            screen = self.root.primaryScreen()
-            pixmap = screen.grabWindow(canvas.winId())
-        else:
-            pixmap = QtGui.QPixmap.grabWidget(canvas)
+        screen = self.root.primaryScreen()
+        pixmap = screen.grabWindow(canvas.winId())
         QtWidgets.QApplication.clipboard().setPixmap(pixmap)
 
     def resetDefaults(self):
         self.defaultUnits = 1
+        self.defaultPrecis = 4
         self.defaultShowTitle = True
         self.defaultPPM = False
         self.defaultWidth = 1
@@ -344,6 +329,7 @@ class MainProgram(QtWidgets.QMainWindow):
             self.defaultDiagonalMult = settings.value("contour/diagonalmult", self.defaultDiagonalMult, float)
         except TypeError:
             self.dispMsg("Incorrect value in the config file for the diagonal multiplier")
+        self.defaultPrecis = settings.value("precision", self.defaultPrecis, int)
         self.defaultMaximized = settings.value("maximized", self.defaultMaximized, bool)
         try:
             self.defaultWidth = settings.value("width", self.defaultWidth, int)
@@ -385,6 +371,7 @@ class MainProgram(QtWidgets.QMainWindow):
         settings.setValue("plot/ygrid", self.defaultGrids[1])
         settings.setValue("plot/zeroscroll", self.defaultZeroScroll)
         settings.setValue("plot/zoomstep", self.defaultZoomStep)
+        settings.setValue("precision", self.defaultPrecis)
         settings.setValue("maximized", self.defaultMaximized)
         settings.setValue("width", self.defaultWidth)
         settings.setValue("height", self.defaultHeight)
@@ -975,9 +962,9 @@ class MainProgram(QtWidgets.QMainWindow):
             if type(self.mainWindow) is Main1DWindow:
                 self.menuEnable(True)
                 for act in self.specOnlyList:
-                    act.setEnabled(self.mainWindow.current.spec() == 1)  # Only on for spec
+                    act.setEnabled(int(self.mainWindow.current.spec() == 1))  # Only on for spec
                 for act in self.fidOnlyList:
-                    act.setEnabled(self.mainWindow.current.spec() == 0)  # Only on for FID
+                    act.setEnabled(int(self.mainWindow.current.spec() == 0))  # Only on for FID
                   #Limit functions based on plot type
                 if type(self.mainWindow.current) == views.CurrentMulti or type(self.mainWindow.current) == views.CurrentStacked or type(self.mainWindow.current) == views.CurrentArrayed:
                     for act in self.Only1DPlot:
@@ -1551,10 +1538,10 @@ class MainProgram(QtWidgets.QMainWindow):
                                  filePath,
                                  freq,
                                  sw,
-                                 spec,
-                                 wholeEcho,
-                                 ref,
-                                 xaxArray,
+                                 spec=spec,
+                                 wholeEcho=wholeEcho,
+                                 ref=ref,
+                                 xaxArray=xaxArray,
                                  history=['Data obtained from fit'],
                                  name=name)
         masterData.resetXax(axes)
@@ -3141,14 +3128,14 @@ class TextFrame(QtWidgets.QScrollArea):
     def setLabels(self, position):
         if len(position) > 3:
             self.ypos.setText(str(position[3]))
-            self.deltaypoint.setText('%#.4g' % np.abs(self.oldy - position[4]))
-            self.ypoint.setText('%#.4g' % position[4])
+            self.deltaypoint.setText(('%#.'+str(self.father.father.defaultPrecis)+'g') % np.abs(self.oldy - position[4]))
+            self.ypoint.setText(('%#.'+str(self.father.father.defaultPrecis)+'g') % position[4])
             self.oldy = position[4]
-        self.deltaxpoint.setText('%#.4g' % np.abs(self.oldx - position[1]))
-        self.deltaamppoint.setText('%#.4g' % np.abs(self.oldamp - position[2]))
+        self.deltaxpoint.setText(('%#.'+str(self.father.father.defaultPrecis)+'g') % np.abs(self.oldx - position[1]))
+        self.deltaamppoint.setText(('%#.'+str(self.father.father.defaultPrecis)+'g') % np.abs(self.oldamp - position[2]))
         self.xpos.setText(str(position[0]))
-        self.xpoint.setText('%#.4g' % position[1])
-        self.amppoint.setText('%#.4g' % position[2])
+        self.xpoint.setText(('%#.'+str(self.father.father.defaultPrecis)+'g') % position[1])
+        self.amppoint.setText(('%#.'+str(self.father.father.defaultPrecis)+'g') % position[2])
         self.oldx = position[1]
         self.oldamp = position[2]
 
@@ -3832,7 +3819,7 @@ class ApodWindow(wc.ToolWindow):
     def setLorGauss(self,value, type, *args):
         #type: 'lor' or 'gauss'
         if self.available:
-            self.entries[type][0].setText('%.4g' % (float(value) * self.maximum / self.RESOLUTION))
+            self.entries[type][0].setText(('%.'+str(self.father.father.defaultPrecis)+'g') % (float(value) * self.maximum / self.RESOLUTION))
             if not self.ticks[type].isChecked():
                 self.ticks[type].setChecked(1)
             self.apodPreview()
@@ -3860,9 +3847,9 @@ class ApodWindow(wc.ToolWindow):
             self.ticks[type].setChecked(1)
         lor, gauss, cos2, cos2Ph, hamming, shift, shifting, shiftingAxis = self.checkInput()
         if type == 'lor':
-            self.entries[type][0].setText('%.4g' % (lor + step))
+            self.entries[type][0].setText(('%.'+str(self.father.father.defaultPrecis)+'g') % (lor + step))
         elif type == 'gauss':
-            self.entries[type][0].setText('%.4g' % (gauss + step))
+            self.entries[type][0].setText(('%.'+str(self.father.father.defaultPrecis)+'g') % (gauss + step))
         self.apodPreview()
 
     def checkInput(self):
@@ -6974,6 +6961,10 @@ class PreferenceWindow(QtWidgets.QWidget):
         self.showTitleCheck = QtWidgets.QCheckBox("Show title in plot")
         self.showTitleCheck.setChecked(self.father.defaultShowTitle)
         grid2.addWidget(self.showTitleCheck, 15, 0, 1, 2)
+        grid2.addWidget(QtWidgets.QLabel("Significant digits:"), 16, 0)
+        self.precisSpinBox = wc.SsnakeSpinBox()
+        self.precisSpinBox.setValue(self.father.defaultPrecis)
+        grid2.addWidget(self.precisSpinBox, 16, 1)
         # grid3 definitions
         grid3.addWidget(QtWidgets.QLabel("Colourmap:"), 0, 0)
         self.cmEntry = QtWidgets.QComboBox(self)
@@ -7065,6 +7056,7 @@ class PreferenceWindow(QtWidgets.QWidget):
         self.father.defaultGrids[1] = self.ygridCheck.isChecked()
         self.father.defaultZeroScroll = self.zeroScrollCheck.isChecked()
         self.father.defaultShowTitle = self.showTitleCheck.isChecked()
+        self.father.defaultPrecis = self.precisSpinBox.value()
         self.father.defaultZoomStep = self.ZoomStepSpinBox.value()
         self.father.defaultColorMap = self.cmEntry.currentText()
         self.father.defaultContourConst = self.constColorCheck.isChecked()
@@ -7181,7 +7173,7 @@ class aboutWindow(wc.ToolWindow):
         pythonVersion = pythonVersion[:pythonVersion.index(' ')]
         from scipy import __version__ as scipyVersion
         self.text.setText('<p><b>ssNake ' + VERSION + '</b></p>' +
-                          '<p>Copyright (&copy;) 2016&ndash;2020 Bas van Meerten & Wouter Franssen</p>' + '<p>Email: <a href="mailto:ssnake@science.ru.nl" >ssnake@science.ru.nl</a></p>' +
+                          '<p>Copyright (&copy;) 2016&ndash;2021 Bas van Meerten & Wouter Franssen</p>' + '<p>Email: <a href="mailto:ssnake@science.ru.nl" >ssnake@science.ru.nl</a></p>' +
                           '<p>Publication: <a href="https://doi.org/10.1016/j.jmr.2019.02.006" >https://doi.org/10.1016/j.jmr.2019.02.006</a></p>' +
                           '<b>Library versions</b>:<br>Python ' + pythonVersion + '<br>numpy ' + np.__version__ +
                           '<br>SciPy ' + scipyVersion +
@@ -7350,25 +7342,25 @@ class shiftConversionWindow(wc.ToolWindow):
                 raise SsnakeException("Shift Conversion: Invalid input in Hertzfeld-Berger Convention")
         Results = func.shiftConversion(Values, Type)  # Do the actual conversion
         # Standard convention
-        self.D11.setText('%#.4g' % Results[0][0])
-        self.D22.setText('%#.4g' % Results[0][1])
-        self.D33.setText('%#.4g' % Results[0][2])
+        self.D11.setText(('%#.'+str(self.father.defaultPrecis)+'g') % Results[0][0])
+        self.D22.setText(('%#.'+str(self.father.defaultPrecis)+'g') % Results[0][1])
+        self.D33.setText(('%#.'+str(self.father.defaultPrecis)+'g') % Results[0][2])
         # Convert to haeberlen convention and xxyyzz
-        self.dxx.setText('%#.4g' % Results[1][0])
-        self.dyy.setText('%#.4g' % Results[1][1])
-        self.dzz.setText('%#.4g' % Results[1][2])
+        self.dxx.setText(('%#.'+str(self.father.defaultPrecis)+'g') % Results[1][0])
+        self.dyy.setText(('%#.'+str(self.father.defaultPrecis)+'g') % Results[1][1])
+        self.dzz.setText(('%#.'+str(self.father.defaultPrecis)+'g') % Results[1][2])
         # Haeberlen def
-        self.diso.setText('%#.4g' % Results[2][0])
-        self.daniso.setText('%#.4g' % Results[2][1])
+        self.diso.setText(('%#.'+str(self.father.defaultPrecis)+'g') % Results[2][0])
+        self.daniso.setText(('%#.'+str(self.father.defaultPrecis)+'g') % Results[2][1])
         try:  # If a number
-            self.eta.setText('%#.4g' % Results[2][2])
+            self.eta.setText(('%#.'+str(self.father.defaultPrecis)+'g') % Results[2][2])
         except Exception:
             self.eta.setText('ND')
         # Convert to Herzfeld-Berger Convention
-        self.hbdiso.setText('%#.4g' % Results[3][0])
-        self.hbdaniso.setText('%#.4g' % Results[3][1])
+        self.hbdiso.setText(('%#.'+str(self.father.defaultPrecis)+'g') % Results[3][0])
+        self.hbdaniso.setText(('%#.'+str(self.father.defaultPrecis)+'g') % Results[3][1])
         try:
-            self.hbskew.setText('%#.4g' % Results[3][2])
+            self.hbskew.setText(('%#.'+str(self.father.defaultPrecis)+'g') % Results[3][2])
         except Exception:
             self.hbskew.setText('ND')
 
@@ -7460,7 +7452,9 @@ class quadConversionWindow(wc.ToolWindow):
         self.grid.addWidget(self.WqGroup, 7, 0, 1, 2)
         self.fieldGroup = QtWidgets.QGroupBox('Field Gradients:')
         self.fieldFrame = QtWidgets.QGridLayout()
-        Vxxlabel = wc.QLabel('V<sub>xx</sub> [V/m<sup>2</sup>]:')
+        # Vxx and Vyy labels interchanged to follow the Quad+CSa fitting deifnitions
+        # WF: 2021-01
+        Vxxlabel = wc.QLabel('V<sub>yy</sub> [V/m<sup>2</sup>]:')
         self.fieldFrame.addWidget(Vxxlabel, 9, 1)
         VGO = QtWidgets.QPushButton("Go")
         self.fieldFrame.addWidget(VGO, 10, 0)
@@ -7468,7 +7462,7 @@ class quadConversionWindow(wc.ToolWindow):
         self.Vxx = wc.QLineEdit("ND")
         self.Vxx.setMinimumWidth(100)
         self.fieldFrame.addWidget(self.Vxx, 10, 1)
-        Vyylabel = wc.QLabel('V<sub>yy</sub> [V/m<sup>2</sup>]:')
+        Vyylabel = wc.QLabel('V<sub>xx</sub> [V/m<sup>2</sup>]:')
         self.fieldFrame.addWidget(Vyylabel, 9, 2)
         self.Vyy = wc.QLineEdit("ND")
         self.Vyy.setMinimumWidth(100)
@@ -7534,18 +7528,18 @@ class quadConversionWindow(wc.ToolWindow):
         if Result[0][1] is None:
             self.Eta.setText('ND')
         else:
-            self.Eta.setText('%#.4g' % Result[0][1])
-        self.Cq.setText('%#.4g' % Result[0][0])
-        self.Wq.setText('%#.4g' % Result[1][0])
+            self.Eta.setText(('%#.'+str(self.father.defaultPrecis)+'g') % Result[0][1])
+        self.Cq.setText(('%#.'+str(self.father.defaultPrecis)+'g') % Result[0][0])
+        self.Wq.setText(('%#.'+str(self.father.defaultPrecis)+'g') % Result[1][0])
         if Result[2][0] is None:
             self.Moment.setText('ND')
             self.Vxx.setText('ND')
             self.Vyy.setText('ND')
             self.Vzz.setText('ND')
         else:
-            self.Vxx.setText('%#.4g' % Result[2][0])
-            self.Vyy.setText('%#.4g' % Result[2][1])
-            self.Vzz.setText('%#.4g' % Result[2][2])
+            self.Vxx.setText(('%#.'+str(self.father.defaultPrecis)+'g') % Result[2][0])
+            self.Vyy.setText(('%#.'+str(self.father.defaultPrecis)+'g') % Result[2][1])
+            self.Vzz.setText(('%#.'+str(self.father.defaultPrecis)+'g') % Result[2][2])
 
     def valueReset(self):  # Resets all the boxes to 0
         self.Cq.setText('0')
@@ -8077,10 +8071,7 @@ def checkVersions():
     libs = [['numpy', np.__version__, NPVERSION],
             ['matplotlib', matplotlib.__version__, MPLVERSION],
             ['scipy', scipyVersion, SPVERSION]]
-    if sys.version_info.major == 3:
-        libs.append(['python', str(sys.version_info.major) + '.' + str(sys.version_info.minor), PY3VERSION])
-    elif sys.version_info.major == 2:
-        libs.append(['python', str(sys.version_info.major) + '.' + str(sys.version_info.minor), PY2VERSION])
+    libs.append(['python', str(sys.version_info.major) + '.' + str(sys.version_info.minor), PY3VERSION])
     messages = []
     error = False
     for elem in libs:
