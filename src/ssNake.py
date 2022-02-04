@@ -7563,14 +7563,16 @@ class dipolarDistanceWindow(wc.ToolWindow):
 
     def __init__(self, parent):
         super(dipolarDistanceWindow, self).__init__(parent)
-        self.comGroup = QtWidgets.QGroupBox("Gyromagnetic Ratios:")
+        # Nuclei group
+        self.comGroup = QtWidgets.QGroupBox("Gyromagnetic Ratios and Spin Quantum Numbers:")
         self.comFrame = QtWidgets.QGridLayout()
         gamma1label = wc.QLabel(u'γ<sub>1</sub> [10<sup>7</sup> rad/s/T]:')
         self.comFrame.addWidget(gamma1label, 0, 0)
 
         gammaindex = [x for (x, val) in enumerate(ISOTOPES['gamma']) if val is not None]
         self.gammaValues = [0.0] + [val for (x, val) in enumerate(ISOTOPES['gamma']) if x in gammaindex]
-        self.names = ['User'] +  [val for (x, val) in enumerate(ISOTOPES['formatName']) if x in gammaindex]
+        self.spinValues = [0.0] + [val for (x, val) in enumerate(ISOTOPES['spin']) if x in gammaindex]
+        self.names = ['User'] + [val for (x, val) in enumerate(ISOTOPES['formatName']) if x in gammaindex]
         self.gamma1Drop = QtWidgets.QComboBox()
         self.gamma1Drop.addItems(self.names)
         self.gamma1Drop.currentIndexChanged.connect(self.setGamma1)
@@ -7583,39 +7585,90 @@ class dipolarDistanceWindow(wc.ToolWindow):
         self.gamma1.setMinimumWidth(100)
         self.gamma1.textEdited.connect(self.gamma1Changed)
         self.comFrame.addWidget(self.gamma1, 2, 0)
+        spin1label = wc.QLabel(u'<i>I</i><sub>1</sub>:')
+        self.comFrame.addWidget(spin1label, 3, 0)
+        self.spin1 = wc.QLineEdit("0")
+        self.spin1.setMinimumWidth(100)
+        self.spin1.textEdited.connect(self.gamma1Changed)
+        self.comFrame.addWidget(self.spin1, 4, 0)
         gamma2label = wc.QLabel(u'γ<sub>2</sub> [10<sup>7</sup> rad/s/T]:')
         self.comFrame.addWidget(gamma2label, 0, 1)
         self.gamma2 = wc.QLineEdit("0.0")
         self.gamma2.setMinimumWidth(100)
         self.gamma2.textEdited.connect(self.gamma2Changed)
         self.comFrame.addWidget(self.gamma2, 2, 1)
+        spin2label = wc.QLabel(u'<i>I</i><sub>2</sub>:')
+        self.comFrame.addWidget(spin2label, 3, 1)
+        self.spin2 = wc.QLineEdit("0")
+        self.spin2.setMinimumWidth(100)
+        self.spin2.textEdited.connect(self.gamma2Changed)
+        self.comFrame.addWidget(self.spin2, 4, 1)
         self.comGroup.setLayout(self.comFrame)
-        self.grid.addWidget(self.comGroup, 1, 0, 1, 3)
+        #addWidget - fromRow, fromColumn, rowSpan, columnSpan
+        self.grid.addWidget(self.comGroup, 0, 0, 5, 2)
+        # Distance group
         self.distanceGroup = QtWidgets.QGroupBox("Distance:")
         self.distanceFrame = QtWidgets.QGridLayout()
         distancelabel = wc.QLabel(u'r [Å]')
-        self.distanceFrame.addWidget(distancelabel, 3, 1)
+        self.distanceFrame.addWidget(distancelabel, 0, 1)
         distanceGO = QtWidgets.QPushButton("Go")
-        self.distanceFrame.addWidget(distanceGO, 4, 0)
+        self.distanceFrame.addWidget(distanceGO, 1, 0)
         distanceGO.clicked.connect(lambda: self.Calc(0))
         self.distance = wc.QLineEdit("0")
         self.distance.setMinimumWidth(100)
-        self.distanceFrame.addWidget(self.distance, 4, 1)
+        self.distanceFrame.addWidget(self.distance, 1, 1)
         self.distanceGroup.setLayout(self.distanceFrame)
-        self.grid.addWidget(self.distanceGroup, 3, 0, 1, 2)
-
+        self.grid.addWidget(self.distanceGroup, 5, 0, 2, 2)
+        # Dipolar coupling group
         self.dipolarGroup = QtWidgets.QGroupBox("Dipolar Coupling:")
         self.dipolarFrame = QtWidgets.QGridLayout()
         dipolarlabel = wc.QLabel(u'D [kHz]')
-        self.dipolarFrame.addWidget(dipolarlabel, 3, 1)
+        self.dipolarFrame.addWidget(dipolarlabel, 0, 1)
         dipolarGO = QtWidgets.QPushButton("Go")
-        self.dipolarFrame.addWidget(dipolarGO, 4, 0)
+        self.dipolarFrame.addWidget(dipolarGO, 1, 0)
         dipolarGO.clicked.connect(lambda: self.Calc(1))
         self.dipolar = wc.QLineEdit("0")
         self.dipolar.setMinimumWidth(100)
-        self.dipolarFrame.addWidget(self.dipolar, 4, 1)
+        self.dipolarFrame.addWidget(self.dipolar, 1, 1)
+        self.grid.addWidget(self.dipolarGroup, 7, 0, 2, 2)
         self.dipolarGroup.setLayout(self.dipolarFrame)
-        self.grid.addWidget(self.dipolarGroup, 4, 0, 1, 2)
+        # Second-moment group
+        self.M2Group = QtWidgets.QGroupBox("Second Moments: ")
+        self.M2Frame = QtWidgets.QGridLayout()
+        
+        M2hetGO = QtWidgets.QPushButton("Go")
+        self.M2Frame.addWidget(M2hetGO, 1, 0)
+        M2hetGO.clicked.connect(lambda: self.Calc(2))
+        M2label1 = wc.QLabel(u'M<sub>2</sub> [10<sup>6</sup> rad<sup>2</sup>/s<sup>2</sup>]')
+        self.M2Frame.addWidget(M2label1, 0, 1)
+        M2hetlabel = wc.QLabel(u'Heteronuclear')
+        self.M2Frame.addWidget(M2hetlabel, 0, 0)
+        self.M2het = wc.QLineEdit("0")
+        self.M2het.setMinimumWidth(100)
+        self.M2Frame.addWidget(self.M2het, 1, 1)
+        
+        M2homGO = QtWidgets.QPushButton("Go")
+        self.M2Frame.addWidget(M2homGO, 4, 0)
+        M2homGO.clicked.connect(lambda: self.Calc(3))
+        noqplabel = wc.QLabel(u'No quadrupolar interaction')
+        self.M2Frame.addWidget(noqplabel, 2, 1)
+        M2homlabel = wc.QLabel(u'Homonuclear')
+        self.M2Frame.addWidget(M2homlabel, 2, 0)
+        self.M2hom = wc.QLineEdit("0")
+        self.M2hom.setMinimumWidth(100)
+        self.M2Frame.addWidget(self.M2hom, 4, 1)
+        
+        M2SEDGO = QtWidgets.QPushButton("Go")
+        self.M2Frame.addWidget(M2SEDGO, 6, 0)
+        M2SEDGO.clicked.connect(lambda: self.Calc(4))
+        M2SEDlabel = wc.QLabel(u'Spin Echo Decay Envelope (C<sub>Q</sub> > 0)')
+        self.M2Frame.addWidget(M2SEDlabel, 5, 1)
+        self.M2SED = wc.QLineEdit("0")
+        self.M2SED.setMinimumWidth(100)
+        self.M2Frame.addWidget(self.M2SED, 6, 1)
+        
+        self.grid.addWidget(self.M2Group, 9, 0, 2, 2)
+        self.M2Group.setLayout(self.M2Frame)
 
         # Reset
         self.cancelButton.setText("Close")
@@ -7634,15 +7687,18 @@ class dipolarDistanceWindow(wc.ToolWindow):
     def setGamma1(self, index):
         if index != 0:
             self.gamma1.setText(str(self.gammaValues[index]))
+            self.spin1.setText(str(self.spinValues[index]))
 
     def setGamma2(self, index):
         if index != 0:
             self.gamma2.setText(str(self.gammaValues[index]))
-
+            self.spin2.setText(str(self.spinValues[index]))
     def Calc(self, Type):
         try:
             gamma1 = float(safeEval(self.gamma1.text(), Type='FI')) * 1e7
             gamma2 = float(safeEval(self.gamma2.text(), Type='FI')) * 1e7
+            spin1 = float(safeEval(self.spin1.text(), Type='FI'))
+            spin2 = float(safeEval(self.spin2.text(), Type='FI'))
         except Exception:
             raise SsnakeException("Dipolar Distance: Invalid input in gamma values")
         if Type == 0:  # Distance as input
@@ -7650,32 +7706,148 @@ class dipolarDistanceWindow(wc.ToolWindow):
                 r = abs(float(safeEval(self.distance.text(), Type='FI')))
             except Exception:
                 raise SsnakeException("Dipolar Distance: Invalid input in r")
-        if Type == 1:
+        if Type == 1:  # Dipolar coupling as input
             try:
                 D = abs(float(safeEval(self.dipolar.text(), Type='FI')))
             except Exception:
                 raise SsnakeException("Dipolar Distance: Invalid input in D")
+        if Type == 2:  # Heteronuclear second-moment as input
+            try:
+                M2het = abs(float(safeEval(self.M2het.text(), Type='FI'))) 
+            except Exception:
+                raise SsnakeException("Dipolar Distance: Invalid input in M2")
+        if Type == 3:  # Homonuclear second-moment as input
+            try:
+                M2hom = abs(float(safeEval(self.M2hom.text(), Type='FI'))) 
+            except Exception:
+                raise SsnakeException("Dipolar Distance: Invalid input in M2")
+        if Type == 4: # Homonuclear second-moment from spin echo decay
+            try:
+                M2SED = abs(float(safeEval(self.M2SED.text(), Type='FI'))) 
+            except Exception:
+                raise SsnakeException("Dipolar Distance: Invalid input in M2")
+                
         hbar = 1.054573e-34
+        def wm(m):
+            return (1/2) * np.sqrt(spin2 * (spin2 + 1) - m * (m + 1))
+        
+        M2_Factor = (2/(9*(2*spin2+1))) * (1 + 4*wm(-1/2)**2 + 4*wm(-1/2)**4 + wm(1/2)**4)
+
         if Type == 0:
             if r == 0.0:
                 D = np.inf
+                M2het = np.inf
+                M2hom = np.inf
+                M2SED = np.inf
             else:
                 D = abs(- 1e-7 * gamma1 * gamma2 * hbar / (r * 10**-10) **3 / (2 * np.pi))
                 D /= 1000
+                if gamma1 == gamma2:
+                    M2SED = abs(M2_Factor * (4/5) * (3/5) * 1e-14 * gamma1**4 * spin2 * (spin2 + 1) * hbar**2 / ((r * 10**-10) **6))
+                    # factor 4/5 results after powder averaging
+                    M2SED /= 1e6
+                    M2hom = M2SED / (M2_Factor * (4/5))
+                    M2het = 0
+                else:
+                    M2het = abs((4/15) * 1e-14 * gamma1**2 * gamma2**2 * spin2 * (spin2 + 1) * hbar**2 / ((r * 10**-10) **6))
+                    M2het /= 1e6
+                    M2hom = 0
+                    M2SED = 0
+                    
         if Type == 1:
             if D == 0.0:
                 r = np.inf
+                M2het = 0.0
+                M2hom = 0.0
+                M2SED = 0.0
             else:
-                r = 1 / abs(D * 1000 /gamma1 / gamma2 / hbar / 1e-7 * (2 * np.pi))**(1.0/3)
+                r = 1 / abs(D * 1000 / gamma1 / gamma2 / hbar / 1e-7 * (2 * np.pi))**(1.0/3)
                 r *= 1e10
+                if gamma1 == gamma2:
+                    M2SED = abs(M2_Factor * (4/5) * (3/5) * 1e-14 * gamma1**4 * spin2 * (spin2 + 1) * hbar**2 / ((r * 10**-10) **6))
+                    M2SED /= 1e6
+                    M2hom = M2SED / (M2_Factor * (4/5))
+                    M2het = 0
+                    #factor 4/5 results after powder averaging
+                else:
+                    M2het = abs((4/15) * 1e-14 * gamma1**2 * gamma2**2 * spin2 * (spin2 + 1) * hbar**2 / ((r * 10**-10) **6))
+                    M2het /= 1e6
+                    M2SED = 0.0
+                    M2hom = 0.0
+        if Type == 2:
+            if M2het == 0:
+                r = np.inf
+                D = 0.0
+                M2hom = 0.0
+                M2SED = 0.0
+            else:
+                if gamma1 == gamma2:
+                    raise SsnakeException("Choose two different nuclei.")
+                else:
+                    r = abs((4/15) * 1e-14 * gamma1**2 * gamma2**2 * spin2 * (spin2 + 1) * hbar**2 / (M2het * 10**6))
+                    r = r**(1/6)
+                    r *= 10**10
+                    D = abs(- 1e-7 * gamma1 * gamma2 * hbar / (r * 10**-10) **3 / (2 * np.pi))
+                    D /= 1000
+                    M2SED = 0.0
+                    M2hom = 0.0
+                
+        if Type == 3:
+            if M2hom == 0:
+                r = np.inf
+                D = 0.0
+                M2het = 0.0
+                M2SED = 0.0
+            else:
+                if gamma1 == gamma2:
+                    r = abs((3/5) * 1e-14 * gamma1**4 * spin2 * (spin2 + 1) * hbar**2 / (M2hom * 10**6))
+                    r = r**(1/6)
+                    r *= 10**10
+                    D = abs(- 1e-7 * gamma1 * gamma2 * hbar / (r * 10**-10) **3 / (2 * np.pi))
+                    D /= 1000
+                    M2SED = M2hom * (M2_Factor * (4/5))
+                    M2het = 0.0
+                else:
+                    raise SsnakeException("Choose two identical nuclei.")
+                
+        if Type == 4:
+            if M2SED == 0:
+                r = np.inf
+                D = 0.0
+                M2het = 0.0
+                M2hom = 0.0
+            else:
+                if gamma1 == gamma2:
+                    r = abs(M2_Factor * (4/5) * (3/5) * 1e-14 * gamma1**4 * spin2 * (spin2 + 1) * hbar**2 / (M2SED * 10**6))
+                    # factor 4/5 results after powder averaging
+                    r = r**(1/6)
+                    r *= 10**10
+                    D = abs(- 1e-7 * gamma1 * gamma2 * hbar / (r * 10**-10) **3 / (2 * np.pi))
+                    D /= 1000
+                    M2hom = M2SED / (M2_Factor * (4/5))
+                    M2het = 0
+                    
+                else:
+                    raise SsnakeException("Choose two identical nuclei.")
+            # else:
+                
         self.dipolar.setText('%#.5g' % D)
         self.distance.setText('%#.5g' % r)
+        self.M2het.setText('%#.5g' % M2het)
+        self.M2hom.setText('%#.5g' % M2hom)
+        self.M2SED.setText('%#.5g' % M2SED)
+        # Implement FWHM of dipolar line as input
 
     def valueReset(self):  # Resets all the boxes to 0
         self.dipolar.setText('0.0')
         self.distance.setText('0.0')
+        self.M2het.setText('0.0')
+        self.M2hom.setText('0.0')
+        self.M2SED.setText('0.0')
         self.gamma1.setText('0.0')
         self.gamma2.setText('0.0')
+        self.spin1.setText('0.0')
+        self.spin2.setText('0.0')
         self.gamma1Drop.setCurrentIndex(0)
         self.gamma2Drop.setCurrentIndex(0)
 
