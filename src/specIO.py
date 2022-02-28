@@ -1961,7 +1961,7 @@ def loadJCAMP(filePath):
         masterData = sc.Spectrum(spectDat, (filePath, None), [freq], [sw], spec=[True], ref=[None])
     return masterData
 
-def saveASCIIFile(filePath, spectrum, axMult=1):
+def saveASCIIFile(filePath, spectrum, axMult=1, delim = '\t'):
     """
     Save to ASCII format data.
 
@@ -1985,7 +1985,7 @@ def saveASCIIFile(filePath, spectrum, axMult=1):
         splitdata[:, line * 2] = np.real(data[:, line])
         splitdata[:, line * 2 + 1] = np.imag(data[:, line])
     data = np.concatenate((axis, splitdata), axis=1)
-    np.savetxt(filePath, data, delimiter='\t')
+    np.savetxt(filePath, data, delimiter=delim)
 
 def loadAscii(filePath, asciiInfo=None):
     """
