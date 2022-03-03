@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# Copyright 2016 - 2021 Bas van Meerten and Wouter Franssen
+# Copyright 2016 - 2022 Bas van Meerten and Wouter Franssen
 
 # This file is part of ssNake.
 #
@@ -7192,7 +7192,7 @@ class aboutWindow(wc.ToolWindow):
         pythonVersion = pythonVersion[:pythonVersion.index(' ')]
         from scipy import __version__ as scipyVersion
         self.text.setText('<p><b>ssNake ' + VERSION + '</b></p>' +
-                          '<p>Copyright (&copy;) 2016&ndash;2021 Bas van Meerten & Wouter Franssen</p>' + '<p>Email: <a href="mailto:ssnake@science.ru.nl" >ssnake@science.ru.nl</a></p>' +
+                          '<p>Copyright (&copy;) 2016&ndash;2022 Bas van Meerten & Wouter Franssen</p>' + '<p>Email: <a href="mailto:ssnake@science.ru.nl" >ssnake@science.ru.nl</a></p>' +
                           '<p>Publication: <a href="https://doi.org/10.1016/j.jmr.2019.02.006" >https://doi.org/10.1016/j.jmr.2019.02.006</a></p>' +
                           '<b>Library versions</b>:<br>Python ' + pythonVersion + '<br>numpy ' + np.__version__ +
                           '<br>SciPy ' + scipyVersion +
