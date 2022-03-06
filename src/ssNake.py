@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# Copyright 2016 - 2021 Bas van Meerten and Wouter Franssen
+# Copyright 2016 - 2022 Bas van Meerten and Wouter Franssen
 
 # This file is part of ssNake.
 #
@@ -411,6 +411,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                    ['File --> Export --> Figure', self.savefigAct],
                                    ['File --> Export --> Simpson', self.saveSimpsonAct],
                                    ['File --> Export --> ASCII (1D/2D)', self.saveASCIIAct],
+                                   ['File --> Export --> CSV (1D/2D)', self.saveCSVAct],
                                    ['File --> Preferences', self.preferencesAct],
                                    ['File --> Quit', self.quitAct],
                                    ['Workspaces --> Duplicate', self.newAct],
@@ -554,14 +555,16 @@ class MainProgram(QtWidgets.QMainWindow):
         self.saveSimpsonAct.setToolTip('Export as Simpson File')
         self.saveASCIIAct = self.exportmenu.addAction(QtGui.QIcon(IconDirectory + 'ASCII.png'), 'ASCII (1D/2D)', self.saveASCIIFile)
         self.saveASCIIAct.setToolTip('Save as ASCII Text File')
+        self.saveCSVAct = self.exportmenu.addAction(QtGui.QIcon(IconDirectory + 'CSV.png'),'CSV (1D/2D)', self.saveCSVFile)
+        self.saveCSVAct.setToolTip('Save as CSV Text File')
         self.preferencesAct = self.filemenu.addAction(QtGui.QIcon(IconDirectory + 'preferences.png'), '&Preferences', lambda: PreferenceWindow(self))
         self.preferencesAct.setToolTip('Open Preferences Window')
         self.quitAct = self.filemenu.addAction(QtGui.QIcon(IconDirectory + 'quit.png'), '&Quit', self.fileQuit, QtGui.QKeySequence.Quit)
         self.quitAct.setToolTip('Close ssNake')
         self.saveActList = [self.saveAct, self.saveMatAct]
-        self.exportActList = [self.savefigAct, self.saveSimpsonAct, self.saveASCIIAct]
+        self.exportActList = [self.savefigAct, self.saveSimpsonAct, self.saveASCIIAct,self.saveCSVAct]
         self.fileActList = [self.openAct, self.saveAct, self.saveMatAct,
-                            self.savefigAct, self.saveSimpsonAct, self.saveASCIIAct,
+                            self.savefigAct, self.saveSimpsonAct, self.saveASCIIAct,self.saveCSVAct,
                             self.combineLoadAct, self.preferencesAct, self.quitAct]
         # Workspaces menu
         self.workspacemenu = QtWidgets.QMenu('&Workspaces', self)
@@ -1556,6 +1559,9 @@ class MainProgram(QtWidgets.QMainWindow):
     def saveASCIIFile(self):
         self.mainWindow.get_mainWindow().saveASCIIFile()
 
+    def saveCSVFile(self):
+        self.mainWindow.get_mainWindow().saveCSVFile()
+
     def saveJSONFile(self):
         self.mainWindow.get_mainWindow().saveJSONFile()
 
@@ -1821,6 +1827,19 @@ class Main1DWindow(QtWidgets.QWidget):
         self.father.lastLocation = os.path.dirname(name)  # Save used path
         axMult = self.current.getCurrentAxMult()
         io.saveASCIIFile(name, self.masterData, axMult)
+
+    def saveCSVFile(self):
+        if self.masterData.ndim() > 2:
+            raise SsnakeException('Saving to CSV format only allowed for 1D and 2D data!')
+        WorkspaceName = self.father.workspaceNames[self.father.workspaceNum]  # Set name of file to be saved to workspace name to start
+        name = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', self.father.lastLocation + os.path.sep + WorkspaceName + '.txt', 'CSV file (*.csv)')
+        if isinstance(name, tuple):
+            name = name[0]
+        if not name:
+            return
+        self.father.lastLocation = os.path.dirname(name)  # Save used path
+        axMult = self.current.getCurrentAxMult()
+        io.saveASCIIFile(name, self.masterData, axMult,delim = ',')
 
     def reloadLast(self):
         self.current.reload()
@@ -7173,7 +7192,7 @@ class aboutWindow(wc.ToolWindow):
         pythonVersion = pythonVersion[:pythonVersion.index(' ')]
         from scipy import __version__ as scipyVersion
         self.text.setText('<p><b>ssNake ' + VERSION + '</b></p>' +
-                          '<p>Copyright (&copy;) 2016&ndash;2021 Bas van Meerten & Wouter Franssen</p>' + '<p>Email: <a href="mailto:ssnake@science.ru.nl" >ssnake@science.ru.nl</a></p>' +
+                          '<p>Copyright (&copy;) 2016&ndash;2022 Bas van Meerten & Wouter Franssen</p>' + '<p>Email: <a href="mailto:ssnake@science.ru.nl" >ssnake@science.ru.nl</a></p>' +
                           '<p>Publication: <a href="https://doi.org/10.1016/j.jmr.2019.02.006" >https://doi.org/10.1016/j.jmr.2019.02.006</a></p>' +
                           '<b>Library versions</b>:<br>Python ' + pythonVersion + '<br>numpy ' + np.__version__ +
                           '<br>SciPy ' + scipyVersion +
