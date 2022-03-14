@@ -764,15 +764,15 @@ def csaFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, t11, t22, t33, a
     """
     shiftdef, numssb, angle, D2, weight, MAStype = extra
     extra = [False, 0.5, numssb, angle, D2, None, weight, MAStype, shiftdef]
-    return quadCSAFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, t11, t22, t33, 0.0, 0.0, 0.0, 0.0, 0.0, amp, lor, gauss)
+    return quadCSAFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, t11, t22, t33, 0.0, 0.0, 0.0, 0.0, 0.0, amp, lor, gauss, 0)
 
-def quadFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, pos, cq, eta, amp, lor, gauss):
+def quadFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, pos, cq, eta, amp, lor, gauss, lorST):
     """
     Uses the quadCSAFunc function for the specific case where the CSA interaction is zero.
     """
     satBool, I, numssb, angle, D2, D4, weight, MAStype = extra
     extra = [satBool, I, numssb, angle, D2, D4, weight, MAStype, 0]
-    return quadCSAFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, pos, pos, pos, cq, eta, 0.0, 0.0, 0.0, amp, lor, gauss)
+    return quadCSAFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, pos, pos, pos, cq, eta, 0.0, 0.0, 0.0, amp, lor, gauss, lorST)
 
 def quadFreqBase(I, m1, m2, cq, eta, freq, angle, D2, D4, numssb, spinspeed):
     """
@@ -847,7 +847,7 @@ def quadFreqBase(I, m1, m2, cq, eta, freq, angle, D2, D4, numssb, spinspeed):
         v = np.matmul(dat2, spinD2) + np.matmul(dat4, spinD4)
     return v, vConstant
 
-def quadCSAFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, t11, t22, t33, cq, eta, alphaCSA, betaCSA, gammaCSA, amp, lor, gauss):
+def quadCSAFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, t11, t22, t33, cq, eta, alphaCSA, betaCSA, gammaCSA, amp, lor, gauss, lorST):
     """
     Calculates an FID of a powder averaged site under influence of CSA and a quadrupole interaction.
     This function works for static, finite, and infinite spinnning.
@@ -894,6 +894,8 @@ def quadCSAFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, t11, t22, t3
         The Lorentzian broadening of the peak.
     gauss : float
         The Gaussian broadening of the peak.
+    lorST : float
+        The Lorentzian broadening of STs of the peak.
 
     Returns
     -------
@@ -943,7 +945,11 @@ def quadCSAFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, t11, t22, t3
         tot = weight
         if spinspeed not in (0.0, np.inf):
             v, tot = carouselAveraging(spinspeed, v, weight, vConstant)
-        spectrum += eff * makeSpectrum(x, sw, v, gauss, lor, tot)
+        if m == -0.5:
+            lb = lor
+        else:
+            lb = lorST
+        spectrum += eff * makeSpectrum(x, sw, v, gauss, lb, tot)
     return mult * amp * spectrum
 
 def quadCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, mult, pos, sigma, cq0, eta0, amp, lor, gauss):
@@ -1232,5 +1238,5 @@ def genLib(length, minCq, maxCq, minEta, maxEta, numCq, numEta, extra, freq, sw,
     x = np.fft.fftshift(np.fft.fftfreq(length, 1/float(sw)))
     lib = np.zeros((len(cq), length), dtype=complex)
     for i, (cqi, etai) in enumerate(zip(cq, eta)):
-        lib[i] = quadFunc([x], [freq], [sw], 1.0, extra, 0.0, 1.0, spinspeed, 0.0, cqi, etai, 1.0, 0.0, 0.0)
+        lib[i] = quadFunc([x], [freq], [sw], 1.0, extra, 0.0, 1.0, spinspeed, 0.0, cqi, etai, 1.0, 0.0, 0.0, 0.0)
     return lib, cq*1e6, eta
