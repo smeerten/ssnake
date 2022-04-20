@@ -7762,10 +7762,11 @@ class dipolarDistanceWindow(wc.ToolWindow):
                 D = abs(- 1e-7 * gamma1 * gamma2 * hbar / (r * 10**-10) **3 / (2 * np.pi))
                 D /= 1000
                 if gamma1 == gamma2:
-                    M2SED = abs(M2_Factor * (4/5) * (3/5) * 1e-14 * gamma1**4 * spin2 * (spin2 + 1) * hbar**2 / ((r * 10**-10) **6))
+                    M2SED = abs(M2_Factor * (4/5) * (9/4) * 1e-14 * gamma1**4 * hbar**2 / ((r * 10**-10) **6))
                     # factor 4/5 results after powder averaging
                     M2SED /= 1e6
-                    M2hom = M2SED / (M2_Factor * (4/5))
+                    M2hom = abs((3/5) * 1e-14 * gamma1**4 * spin2 * (spin2 + 1)* hbar**2 / ((r * 10**-10) **6))
+                    M2hom /= 1e6
                     M2het = 0
                 else:
                     M2het = abs((4/15) * 1e-14 * gamma1**2 * gamma2**2 * spin2 * (spin2 + 1) * hbar**2 / ((r * 10**-10) **6))
@@ -7783,9 +7784,10 @@ class dipolarDistanceWindow(wc.ToolWindow):
                 r = 1 / abs(D * 1000 / gamma1 / gamma2 / hbar / 1e-7 * (2 * np.pi))**(1.0/3)
                 r *= 1e10
                 if gamma1 == gamma2:
-                    M2SED = abs(M2_Factor * (4/5) * (3/5) * 1e-14 * gamma1**4 * spin2 * (spin2 + 1) * hbar**2 / ((r * 10**-10) **6))
+                    M2SED = abs(M2_Factor * (4/5) * (9/4) * 1e-14 * gamma1**4 * hbar**2 / ((r * 10**-10) **6))
                     M2SED /= 1e6
-                    M2hom = M2SED / (M2_Factor * (4/5))
+                    M2hom = abs((3/5) * 1e-14 * gamma1**4 * spin2 * (spin2 + 1)* hbar**2 / ((r * 10**-10) **6))
+                    M2hom /= 1e6
                     M2het = 0
                     #factor 4/5 results after powder averaging
                 else:
@@ -7824,7 +7826,9 @@ class dipolarDistanceWindow(wc.ToolWindow):
                     r *= 10**10
                     D = abs(- 1e-7 * gamma1 * gamma2 * hbar / (r * 10**-10) **3 / (2 * np.pi))
                     D /= 1000
-                    M2SED = M2hom * (M2_Factor * (4/5))
+                    M2SED = abs(M2_Factor * (4/5) * (9/4) * 1e-14 * gamma1**4 * hbar**2 / ((r * 10**-10) **6))
+                    M2SED /= 1e6
+
                     M2het = 0.0
                 else:
                     raise SsnakeException("Choose two identical nuclei.")
@@ -7837,13 +7841,14 @@ class dipolarDistanceWindow(wc.ToolWindow):
                 M2hom = 0.0
             else:
                 if gamma1 == gamma2:
-                    r = abs(M2_Factor * (4/5) * (3/5) * 1e-14 * gamma1**4 * spin2 * (spin2 + 1) * hbar**2 / (M2SED * 10**6))
-                    # factor 4/5 results after powder averaging
+                    r = abs(M2_Factor * (4/5) * (9/4) * 1e-14 * gamma1**4 * hbar**2 / (M2SED * 10**6))
+                    # factors 4/5 and 9/4 result from powder averaging
                     r = r**(1/6)
                     r *= 10**10
                     D = abs(- 1e-7 * gamma1 * gamma2 * hbar / (r * 10**-10) **3 / (2 * np.pi))
                     D /= 1000
-                    M2hom = M2SED / (M2_Factor * (4/5))
+                    M2hom = abs((3/5) * 1e-14 * gamma1**4 * spin2 * (spin2 + 1)* hbar**2 / ((r * 10**-10) **6))
+                    M2hom /= 1e6
                     M2het = 0
                     
                 else:
