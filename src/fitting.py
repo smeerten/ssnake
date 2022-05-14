@@ -3895,8 +3895,18 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
             self.czjzek = Czjzek.czjzekIntensities(sigma, d, cq.flatten(), eta.flatten())
         else:
             self.czjzek = Czjzek.czjzekIntensities(sigma, d, cq.flatten(), eta.flatten(), cq0, eta0)
+
         self.czjzek = self.czjzek.reshape(etasteps, cqsteps)
-        self.ax.contour(cq.transpose(), eta.transpose(), self.czjzek.transpose(), 10)
+        # Calculate peak CQ values (DMFit Approach) or average SOQE values
+        cgCQs = cq[0, np.argmax(self.czjzek, axis=1)]
+        cgSOQES = cgCQs[1:] * np.sqrt(1 + eta[1:,0]/3)
+
+        indices = np.where(self.czjzek == np.max(self.czjzek))
+        peakCQ = float(cq[indices[0], indices[1]])
+        avgSOQE = np.average(cgSOQES)
+        self.ax.contour(cq.transpose(), eta.transpose(), self.czjzek.transpose(), 15)
+        self.ax.text(0, 1.05, '$\overline{P_Q}$ = ' + str(np.round(avgSOQE, decimals=3)) 
+            + ' MHz' + '   -   $C_{Q,peak}$ = ' + str(np.round(peakCQ, decimals=3)) + ' MHz')
         self.ax.set_xlabel(u"C$_Q$ [MHz]")
         self.ax.set_ylabel(u"η")
         self.canvas.draw()
