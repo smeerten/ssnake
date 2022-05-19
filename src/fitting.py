@@ -3906,7 +3906,7 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         avgSOQE = np.average(cgSOQES)
         self.ax.contour(cq.transpose(), eta.transpose(), self.czjzek.transpose(), 15)
         self.ax.text(0, 1.05, '$\overline{P_Q}$ = ' + str(np.round(avgSOQE, decimals=3)) 
-            + ' MHz' + '   -   $C_{Q,peak}$ = ' + str(np.round(peakCQ, decimals=3)) + ' MHz')
+            + ' MHz' + '        $C_{Q,peak}$ = ' + str(np.round(peakCQ, decimals=3)) + ' MHz')
         self.ax.set_xlabel(u"C$_Q$ [MHz]")
         self.ax.set_ylabel(u"η")
         self.canvas.draw()
