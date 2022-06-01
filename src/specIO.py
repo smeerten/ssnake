@@ -1355,14 +1355,15 @@ def loadBrukerSpectrum(filePath):
     for File in ['procs', 'proc2s', 'proc3s']:
         if os.path.exists(Dir + os.path.sep + File):
             pars.append(brukerTopspinGetPars(Dir + os.path.sep + File))
-    SIZE = [x['SI'] for x in pars]
+    SIZE = [x['STSI'] for x in pars]  # STSI is processing status SI. It may not be equal to SI in procs on old topspin versions
     try:
         XDIM = [x['XDIM'] for x in pars]
     except KeyError:
         XDIM = SIZE # If not specified the data is assumed to be 1D
     SW = [x['SW_p'] for x in pars]
-    FREQ = [x['SF'] * 1e6 for x in pars]
-    OFFSET = [x['OFFSET'] for x in pars]
+    REF = [x['SF'] * 1e6 for x in pars]  # These are the reference frequencies
+    OFFSET = [x['OFFSET'] for x in pars] # the first (left) point in ppm
+    FREQ = [ (ref*(1+offset/1e6)- sw/2.0) for ref, offset, sw in zip(REF, OFFSET, SW) ]
     SCALE = 1
     if 'NC_proc' in pars[0]: # Set intensity scaling parameter
         SCALE = 2**pars[0]['NC_proc']
@@ -1374,11 +1375,6 @@ def loadBrukerSpectrum(filePath):
         DtypeP = DtypeP.newbyteorder('L')
     # The byte orders that is used as stored in BYTORDP proc parameter:
     #  '< or L' =little endian, '>' or 'B' = big endian
-    REF = []
-    for index, _ in enumerate(SIZE): #For each axis
-        pos = np.fft.fftshift(np.fft.fftfreq(SIZE[index], 1.0 / SW[index]))[-1] #Get last point of axis
-        pos2 = OFFSET[index] * 1e-6 * FREQ[index] #offset in Hz
-        REF.append(FREQ[index] + pos - pos2)
     totsize = np.prod(SIZE)
     dim = len(SIZE)
     DATA = []
