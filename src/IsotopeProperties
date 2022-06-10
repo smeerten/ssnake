@@ -1,6 +1,6 @@
 Atom	Nucleus	Name	Mass	Spin	Abundance(%)	Gamma	Q(fm^2)	FreqRatio	Refsample	SampleCondition	Lifetime(y)
-1	H	Hydrogen	1	0.5	99.9885	26.7522128	-	100.000000	Me<sub>4</sub>Si	CDCl<sub>3</sub>, φ = 1%	-
-1	H	Hydrogen	2	1	0.0115	4.10662791	0.2860	15.350609	(CD<sub>3</sub>)<sub>4</sub>Si	neat	-
+1	H	Hydrogen	1	0.5	99.9885	26.7522128	0	100.000000	Me<sub>4</sub>Si	CDCl<sub>3</sub>, φ = 1%	-
+1	H	Hydrogen	2	1	0.0115	4.10662791	0.285783	15.350609	(CD<sub>3</sub>)<sub>4</sub>Si	neat	-
 1	H	Hydrogen	3	0.5	-	28.5349779	0	106.663974	Me<sub>4</sub>Si-t1	-	12.32 y
 2	He	Helium	3	0.5	1.37e-4	-20.3801587	0	76.179437	He	gas	-
 3	Li	Lithium	6	1	7.59	3.9371709	-0.0808	14.716086	LiCl	D<sub>2</sub>O, 9.7 m 	-
@@ -20,14 +20,14 @@ Atom	Nucleus	Name	Mass	Spin	Abundance(%)	Gamma	Q(fm^2)	FreqRatio	Refsample	Sampl
 13	Al	Aluminium	27	2.5	100	6.9762715	14.66	26.056859	Al(NO<sub>3</sub>)<sub>3</sub>	D<sub>2</sub>O, 1.1 m	-
 14	Si	Silicon	29	0.5	4.6832	-5.3190	0	19.867187	Me<sub>4</sub>Si	CDCl<sub>3</sub>, φ = 1%	-
 15	P	Phosphorus	31	0.5	100	10.8394	0	40.480742	H<sub>3</sub>PO<sub>4</sub>	-	-
-16	S	Sulfur	33	1.5	0.76	2.055685	-6.78	7.676000	(NH<sub>4</sub>)<sub>2</sub>SO<sub>4</sub>	D<sub>2</sub>O, sat.	-
-17	Cl	Chlorine	35	1.5	75.78	2.624198	-8.165	9.797909	NaCl	D<sub>2</sub>O, 0.1 M	-
-17	Cl	Chlorine	37	1.5	24.22	2.184368	-6.435	8.155725	NaCl	D<sub>2</sub>O, 0.1 M	-
+16	S	Sulfur	33	1.5	0.76	2.055685	-6.94	7.676000	(NH<sub>4</sub>)<sub>2</sub>SO<sub>4</sub>	D<sub>2</sub>O, sat.	-
+17	Cl	Chlorine	35	1.5	75.78	2.624198	-8.112	9.797909	NaCl	D<sub>2</sub>O, 0.1 M	-
+17	Cl	Chlorine	37	1.5	24.22	2.184368	-6.393	8.155725	NaCl	D<sub>2</sub>O, 0.1 M	-
 18	Ar	Argon	37	1.5	-	3.656	7.6	13.67	-	-	35.0 d
 18	Ar	Argon	39	3.5	-	2.17	-12	8.13	-	-	268 y
-19	K	Potassium	39	1.5	93.2581	1.2500608	5.85	4.666373	KCl	D<sub>2</sub>O, 0.1 M	-
-19	K	Potassium	40	4	0.0117	-1.5542854	-7.3	5.802018	KCl	D<sub>2</sub>O, 0.1 M	1.248e9 y
-19	K	Potassium	41	1.5	6.7302	0.68606808	7.11	2.561305	KCl	D<sub>2</sub>O, 0.1 M	-
+19	K	Potassium	39	1.5	93.2581	1.2500608	6.03	4.666373	KCl	D<sub>2</sub>O, 0.1 M	-
+19	K	Potassium	40	4	0.0117	-1.5542854	-7.50	5.802018	KCl	D<sub>2</sub>O, 0.1 M	1.248e9 y
+19	K	Potassium	41	1.5	6.7302	0.68606808	7.34	2.561305	KCl	D<sub>2</sub>O, 0.1 M	-
 20	Ca	Calcium	43	3.5	0.135	-1.803069	-4.08	6.730029	CaCl<sub>2</sub>	D<sub>2</sub>O, 0.1 M	-
 21	Sc	Scandium	45	3.5	100	6.5087973	-22.0	24.291747	Sc(NO<sub>3</sub>)<sub>3</sub>	D<sub>2</sub>O, 0.06 M	-
 22	Ti	Titanium	47	2.5	7.44	-1.5105	30.2	5.637534	TiCl<sub>4</sub>	neat	-
@@ -41,18 +41,18 @@ Atom	Nucleus	Name	Mass	Spin	Abundance(%)	Gamma	Q(fm^2)	FreqRatio	Refsample	Sampl
 28	Ni	Nickel	61	1.5	1.1399	-2.3948	16.2	8.936051	Ni(CO)<sub>4</sub>	neat/C<sub>6</sub>D<sub>6</sub>	-
 29	Cu	Copper	63	1.5	69.17	7.1117890	-22.0	26.515473	[Cu(CH<sub>3</sub>CN)<sub>4</sub>][ClO<sub>4</sub>]	CH<sub>3</sub>CN, sat.	-
 29	Cu	Copper	65	1.5	30.83	7.60435	-20.4	28.403693	[Cu(CH<sub>3</sub>CN)<sub>4</sub>][ClO<sub>4</sub>]	CH<sub>3</sub>CN, sat.	-
-30	Zn	Zinc	67	2.5	4.10	1.676688	15.0	6.256803	Zn(NO<sub>3</sub>)<sub>2</sub>	D<sub>2</sub>O, sat.	-
+30	Zn	Zinc	67	2.5	4.10	1.676688	12.2	6.256803	Zn(NO<sub>3</sub>)<sub>2</sub>	D<sub>2</sub>O, sat.	-
 31	Ga	Gallium	69	1.5	60.108	6.438855	17.1	24.001354	Ga(NO<sub>3</sub>)<sub>3</sub>	D<sub>2</sub>O, 1.1 m	-
 31	Ga	Gallium	71	1.5	39.892	8.181171	10.7	30.496704	Ga(NO<sub>3</sub>)<sub>3</sub>	D<sub>2</sub>O, 1.1 m	-
 32	Ge	Germanium	73	4.5	7.73	-0.9360303	-19.6	3.488315	(CH<sub>3</sub>)<sub>4</sub>Ge	neat	-
-33	As	Arsenic	75	1.5	100	4.596163	31.4	17.122614	NaAsF<sub>6</sub>	CD<sub>3</sub>CN, 0.5 M	-
+33	As	Arsenic	75	1.5	100	4.596163	31.1	17.122614	NaAsF<sub>6</sub>	CD<sub>3</sub>CN, 0.5 M	-
 34	Se	Selenium	77	0.5	7.63	5.1253857	0	19.071513	Me<sub>2</sub>Se	neat/C<sub>6</sub>D<sub>6</sub>	-
-35	Br	Bromine	79	1.5	50.69	6.725616	31.3	25.053980	NaBr	D<sub>2</sub>O, 0.01 M	-
-35	Br	Bromine	81	1.5	49.31	7.249776	26.2	27.006518	NaBr	D<sub>2</sub>O, 0.01 M	-
+35	Br	Bromine	79	1.5	50.69	6.725616	30.87	25.053980	NaBr	D<sub>2</sub>O, 0.01 M	-
+35	Br	Bromine	81	1.5	49.31	7.249776	25.79	27.006518	NaBr	D<sub>2</sub>O, 0.01 M	-
 36	Kr	Krypton	83	4.5	11.49	-1.03310	25.9	3.847600	Kr	gas	-
 37	Rb	Rubidium	85	2.5	72.17	2.5927050	27.6	9.654943	RbCl	D<sub>2</sub>O, 0.01 M	-
 37	Rb	Rubidium	87	1.5	27.83	8.786400	13.35	32.720454	RbCl	D<sub>2</sub>O, 0.01 M	4.97e10 y
-38	Sr	Strontium	87	4.5	7.00	-1.1639376	33.5	4.333822	SrCl<sub>2</sub>	D<sub>2</sub>O, 0.5 M	-
+38	Sr	Strontium	87	4.5	7.00	-1.1639376	30.5	4.333822	SrCl<sub>2</sub>	D<sub>2</sub>O, 0.5 M	-
 39	Y	Yttrium	89	0.5	100	-1.3162791	0	4.900198	Y(NO<sub>3</sub>)<sub>3</sub>	H<sub>2</sub>O/D<sub>2</sub>O	-
 40	Zr	Zirconium	91	2.5	11.22	-2.49743	-17.6	9.296298	Zr(C<sub>5</sub>H<sub>5</sub>)<sub>2</sub>Cl<sub>2</sub>	CH<sub>2</sub>Cl<sub>2</sub>, sat.	-
 41	Nb	Niobium	93	4.5	100	6.5674	-32.0	24.476170	K[NbCl<sub>6</sub>]	CH<sub>3</sub>CN, sat.	-
@@ -67,23 +67,23 @@ Atom	Nucleus	Name	Mass	Spin	Abundance(%)	Gamma	Q(fm^2)	FreqRatio	Refsample	Sampl
 47	Ag	Silver	109	0.5	48.161	-1.2518634	0	4.653533	AgNO<sub>3</sub>	D<sub>2</sub>O, sat.	-
 48	Cd	Cadmium	111	0.5	12.80	-5.6983131	0	21.215480	Me<sub>2</sub>Cd	neat	-
 48	Cd	Cadmium	113	0.5	12.22	-5.9609155	0	22.193175	Me<sub>2</sub>Cd	neat	8.04e15 y
-49	In	Indium	113	4.5	4.29	5.8845	79.9	21.865755	In(NO<sub>3</sub>)<sub>3</sub>	D<sub>2</sub>O, 0.1 M	-
-49	In	Indium	115	4.5	95.71	5.8972	81.0	21.912629	In(NO<sub>3</sub>)<sub>3</sub>	D<sub>2</sub>O, 0.1 M	4.4e14 y
+49	In	Indium	113	4.5	4.29	5.8845	76.1	21.865755	In(NO<sub>3</sub>)<sub>3</sub>	D<sub>2</sub>O, 0.1 M	-
+49	In	Indium	115	4.5	95.71	5.8972	77.2	21.912629	In(NO<sub>3</sub>)<sub>3</sub>	D<sub>2</sub>O, 0.1 M	4.4e14 y
 50	Sn	Tin	115	0.5	0.34	-8.8013	0	32.718749	Me<sub>4</sub>Sn	neat/C<sub>6</sub>D<sub>6</sub>	-
 50	Sn	Tin	117	0.5	7.68	-9.58879	0	35.632259	Me<sub>4</sub>Sn	neat/C<sub>6</sub>D<sub>6</sub>	-
 50	Sn	Tin	119	0.5	8.59	-10.0317	0	37.290632	Me<sub>4</sub>Sn	neat/C<sub>6</sub>D<sub>6</sub>	-
-51	Sb	Antimony	121	2.5	57.21	6.4435	-36.0	23.930577	KSbCl<sub>6</sub>	CH<sub>3</sub>CN, sat.	-
-51	Sb	Antimony	123	3.5	42.79	3.4892	-49.0	12.959217	KSbCl<sub>6</sub>	CH<sub>3</sub>CN, sat.	-
+51	Sb	Antimony	121	2.5	57.21	6.4435	-54.3	23.930577	KSbCl<sub>6</sub>	CH<sub>3</sub>CN, sat.	-
+51	Sb	Antimony	123	3.5	42.79	3.4892	-69.2	12.959217	KSbCl<sub>6</sub>	CH<sub>3</sub>CN, sat.	-
 52	Te	Tellurium	123	0.5	0.89	-7.059098	0	26.169742	Me<sub>2</sub>Te	neat/C<sub>6</sub>D<sub>6</sub>	-
 52	Te	Tellurium	125	0.5	7.07	-8.5108404	0	31.549769	Me<sub>2</sub>Te	neat/C<sub>6</sub>D<sub>6</sub>	-
-53	I	Iodine	127	2.5	100	5.389573	-71.0	20.007486	KI	D<sub>2</sub>O, 0.01 M	-
+53	I	Iodine	127	2.5	100	5.389573	-68.822	20.007486	KI	D<sub>2</sub>O, 0.01 M	-
 54	Xe	Xenon	129	0.5	26.44	-7.452103	0	27.810186	XeOF<sub>4</sub>	neat	-
-54	Xe	Xenon	131	1.5	21.18	2.209076	-11.4	8.243921	XeOF<sub>4</sub>	neat	-
+54	Xe	Xenon	131	1.5	21.18	2.209076	-11.46	8.243921	XeOF<sub>4</sub>	neat	-
 55	Cs	Cesium	133	3.5	100	3.5332539	-0.343	13.116142	CsNO<sub>3</sub>	D<sub>2</sub>O, 0.1 M	-
-56	Ba	Barium	135	1.5	6.592	2.67550	16.0	9.934457	BaCl<sub>2</sub>	D<sub>2</sub>O, 0.5 M	-
-56	Ba	Barium	137	1.5	11.232	2.99295	24.5	11.112928	BaCl<sub>2</sub>	D<sub>2</sub>O, 0.5 M	-
+56	Ba	Barium	135	1.5	6.592	2.67550	15.3	9.934457	BaCl<sub>2</sub>	D<sub>2</sub>O, 0.5 M	-
+56	Ba	Barium	137	1.5	11.232	2.99295	23.6	11.112928	BaCl<sub>2</sub>	D<sub>2</sub>O, 0.5 M	-
 57	La	Lanthanum	138	5	0.090	3.557239	45.0	13.194300	LaCl<sub>3</sub>	D<sub>2</sub>O/H<sub>2</sub>O	1.06e11 y
-57	La	Lanthanum	139	3.5	99.910	3.8083318	20.0	14.125641	LaCl<sub>3</sub>	D<sub>2</sub>O, 0.01 M	-
+57	La	Lanthanum	139	3.5	99.910	3.8083318	20.6	14.125641	LaCl<sub>3</sub>	D<sub>2</sub>O, 0.01 M	-
 58	Ce	Cerium	137	1.5	-	3.07	-	11.5	-	-	9.0 h
 58	Ce	Cerium	139	1.5	-	3.39	-	12.7	-	-	137.6 d
 58	Ce	Cerium	141	3.5	-	1.49	-	5.57	-	-	32.50 d
@@ -91,9 +91,9 @@ Atom	Nucleus	Name	Mass	Spin	Abundance(%)	Gamma	Q(fm^2)	FreqRatio	Refsample	Sampl
 60	Nd	Neodymium	143	3.5	12.2	-1.457	-63.0	5.45	-	-	-
 60	Nd	Neodymium	145	3.5	8.3	-0.898	-33.0	3.36	-	-	-
 61	Pm	Promethium	143	2.5	-	7.282	-	13.2	-	-	265 d
-61	Pm	Promethium	147	3.5	-	3.53	74	21.0	-	-	2.623 y
+61	Pm	Promethium	147	3.5	-	3.53	74.0	21.0	-	-	2.623 y
 62	Sm	Samarium	147	3.5	14.99	-1.115	-25.9	4.17	-	-	1.06e11 y
-62	Sm	Samarium	149	3.5	13.82	-0.9192	7.4	3.44	-	-	1e16 y
+62	Sm	Samarium	149	3.5	13.82	-0.9192	7.5	3.44	-	-	1e16 y
 63	Eu	Europium	151	2.5	47.81	6.6510	90.3	24.86	-	-	5e18 y
 63	Eu	Europium	153	2.5	52.19	2.9369	241.2	10.98	-	-	5.5e17 y
 64	Gd	Gadolinium	155	1.5	14.80	-0.82132	127.0	3.07	-	-	-
@@ -103,8 +103,8 @@ Atom	Nucleus	Name	Mass	Spin	Abundance(%)	Gamma	Q(fm^2)	FreqRatio	Refsample	Sampl
 66	Dy	Dysprosium	163	2.5	24.90	1.289	264.8	4.82	-	-	-
 67	Ho	Holmium	165	3.5	100	5.710	358.0	21.34	-	-	-
 68	Er	Erbium	167	3.5	22.93	-0.77157	356.5	2.88	-	-	-
-69	Tm	Thullum	169	0.5	100	-2.218	-	8.29	-	-	-
-70	Yb	Ytterbium	171	0.5	14.28	4.7288	-	17.499306	Yb(η-C<sub>5</sub>Me<sub>5</sub>)<sub>2</sub>(THF)<sub>2</sub>	0.171 M in THF	-
+69	Tm	Thullum	169	0.5	100	-2.218	0	8.29	-	-	-
+70	Yb	Ytterbium	171	0.5	14.28	4.7288	0	17.499306	Yb(η-C<sub>5</sub>Me<sub>5</sub>)<sub>2</sub>(THF)<sub>2</sub>	0.171 M in THF	-
 70	Yb	Ytterbium	173	2.5	16.13	-1.3025	280.0	4.821	-	-	-
 71	Lu	Lutetium	175	3.5	97.41	3.0552	349.0	11.404	-	-	-
 71	Lu	Lutetium	176	7	2.59	2.1684	497.0	8.131	-	-	3.73e10 y
@@ -121,7 +121,7 @@ Atom	Nucleus	Name	Mass	Spin	Abundance(%)	Gamma	Q(fm^2)	FreqRatio	Refsample	Sampl
 78	Pt	Platinum	195	0.5	33.832	5.8385	0	21.496784	Na<sub>2</sub>PtCl<sub>6</sub>	D<sub>2</sub>O, 1.2 M	7.3e18 y
 79	Au	Gold	197	1.5	100	0.473060	54.7	1.729	-	-	-
 80	Hg	Mercury	199	0.5	16.87	4.8457916	0	17.910822	Me<sub>2</sub>Hg	neat	-
-80	Hg	Mercury	201	1.5	13.18	-1.788769	38.6	6.611583	C(CH<sub>3</sub>)<sub>2</sub>Hg	neat	-
+80	Hg	Mercury	201	1.5	13.18	-1.788769	38.7	6.611583	C(CH<sub>3</sub>)<sub>2</sub>Hg	neat	-
 81	Tl	Thalium	203	0.5	29.524	15.5393338	0	57.123200	Tl(NO<sub>3</sub>)<sub>3</sub>	-	-
 81	Tl	Thalium	205	0.5	70.476	15.6921808	0	57.683838	Tl(NO<sub>3</sub>)<sub>3</sub>	-	-
 82	Pb	Lead	207	0.5	22.1	5.58046	0	20.920599	Me<sub>4</sub>Pb	neat/C<sub>6</sub>D<sub>6</sub>	>1.9e21 y
@@ -132,13 +132,13 @@ Atom	Nucleus	Name	Mass	Spin	Abundance(%)	Gamma	Q(fm^2)	FreqRatio	Refsample	Sampl
 87	Fr	Francium	223	1.5	-	3.85	117	14.0	-	-	22.0 m
 88	Ra	Radium	223	1.5	-	0.86369	121	3.2293	-	-	11.43 d
 88	Ra	Radium	225	0.5	-	7.0290	0	26.275	-	-	14.9 d
-89	Ac	Actinium	227	1.5	-	3.5	170	13	-	-	21.77 y
-90	Th	Thorium	229	2.5	-	0.40	430	1.5	-	-	7.93e3 y
-91	Pa	Protactinium	231	1.5	100	3.21	-172	12.0	-	-	3.25e4 y
+89	Ac	Actinium	227	1.5	-	3.5	170.0	13	-	-	21.77 y
+90	Th	Thorium	229	2.5	-	0.40	311.0	1.5	-	-	7.93e3 y
+91	Pa	Protactinium	231	1.5	100	3.21	-172.0	12.0	-	-	3.25e4 y
 92	U	Uranium	235	3.5	0.7200	-0.52	493.6	1.841400	UF<sub>6</sub>	C<sub>6</sub>D<sub>6</sub>, φ = 10% 	7.03e8 y
 93	Np	Neptunium	237	2.5	-	6.01	388.6	22.5	-	-	2.14e6 y
 94	Pu	Plutonium	239	0.5	-	0.974	0	3.63	-	-	2.410e4 y
-95	Am	Amercium	243	2.5	-	1.54	421	5.76	-	-	7.37e3 y
+95	Am	Amercium	243	2.5	-	1.54	420.0	5.76	-	-	7.37e3 y
 96	Cm	Curium	247	4.5	-	0.20	-	0.75	-	-	1.56e7 y
 97	Bk	Berkelium	-	-	-	-	-	-	-	-	-
 98	Cf	Californium	-	-	-	-	-	-	-	-	-
