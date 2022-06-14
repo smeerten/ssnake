@@ -1047,7 +1047,9 @@ def loadMatNMRFile(filePath):
     
 def brukerTopspinGetPars(file):
     """
-    Loads Bruker Topspin parameter file.
+    Loads Bruker Topspin parameter file. The file is parsed and a dict is returned with name:value pairs.
+    Parameters can be string, int, float or boolean. Or list of these.
+    The type is guessed. Ambiguity can arise between float and integer.
 
     Parameters
     ----------
@@ -1060,36 +1062,49 @@ def brukerTopspinGetPars(file):
         Dictionary with all parameters
     """
     with open(file, 'r') as f:
-        data = f.read().split('\n')
+        data = f.read().splitlines()
     pos = 0
     pars = dict()
     while pos < len(data):
         if data[pos].startswith('##$'):
             line = data[pos].split('=')
-            line[1] = re.sub('^ ', '', line[1])
+            line[1] = line[1].strip()
             name = line[0].strip('##$=')
             val = line[1]
-            if val[0] == '<':
-                val = val.strip('<>')
-            elif val[0] == '(': #If list of values (always int/floats)
+            if val[0] == '(': # list of values 
+                val = val.strip(')(')
+                start, stop = [ int(i) for i in val.split('..')]
+                length = stop - start + 1
+                # concatenate the lines containing values
                 pos += 1
-                val = []
+                vals = data[pos]
+                pos += 1
                 while not data[pos].startswith('##$') and not data[pos].startswith('$$'):
-                    try:
-                        val = val + [float(x) for x in data[pos].strip('<>').split()]
-                    except Exception:
-                        val = val + data[pos].strip('<>').split()
-
+                    vals = vals + " " + data[pos]
                     pos += 1
                 pos += -1
+
+                val = []
+                if '<' in vals : # strings
+                    for i in range(length):
+                        v, vals = vals.split('<', maxsplit=1)
+                        v, vals = vals.split('>', maxsplit=1)
+                        val.append(v)
+                elif 'yes' in vals or 'no' in vals:
+                    val = [v == 'yes' for v in vals.split()]
+                elif '.' in vals or 'e' in vals or 'E' in vals: # float
+                    val =  [float(v) for v in vals.split()]
+                else : # default to int
+                    val =  [int(v) for v in vals.split()]
             else:
-                try: #Both int, float and string can be in...
+                if val[0] == '<': # string type
+                    val = val.lstrip('<').rstrip('>')
+                elif val in ['yes', 'no']: # boolean
+                    val = val == 'yes'
+                elif '.' in val or 'e' in val or 'E' in val: # float
+                    val = float(val)
+                else : # default to int
                     val = int(val)
-                except ValueError:
-                    try:
-                        val = float(val)
-                    except ValueError:
-                        pass
             pars[name] = val
         pos += 1
     return pars
@@ -1133,7 +1148,10 @@ def getBrukerFilter(pars):
 
 def loadBrukerTopspin(filePath):
     """
-    Loads Bruker Topspin/Xwinnmr data (i.e. time-domain data).
+    Loads Bruker Topspin/Xwinnmr data (i.e. time-domain data). Looks for SF parameters (reference frequencies) 
+    in all processing sub folders matching the acquisition dimensionality (1D, ..., nD)
+    If several SF sets differs in values, then it uses the set in lowest processing number folder and stores 
+    the alternative sets in metadata of SpectrumClass for further knowledge by user
 
     Parameters
     ----------
@@ -1149,20 +1167,50 @@ def loadBrukerTopspin(filePath):
         Dir = os.path.dirname(filePath)
     else:
         Dir = filePath
-    pars = []
-    # makes list of par file names
-    parFileN = ['acqus'] + [f'acqu{int(x)}s' for x in range(2,9)]
-    for File in parFileN:
-        if os.path.exists(Dir + os.path.sep + File):
-            pars.append(brukerTopspinGetPars(Dir + os.path.sep + File))
-    SIZE = [x['TD'] for x in pars]
-    FREQ = [x['SFO1'] * 1e6 for x in pars]
-    SW = [x['SW']*x['SFO1'] for x in pars]
-    REF = [x['O1'] for x in pars]
-    DtypeA = [np.dtype(np.int32), np.dtype(np.float32), np.dtype(np.float64)][pars[0]['DTYPA']] #The byte orders that is used
-    DtypeA = DtypeA.newbyteorder(['L', 'B'][pars[0]['BYTORDA']]) #The byte orders that is used 'L' =little endian, 'B' = big endian
-    REF = list(- np.array(REF) + np.array(FREQ))
-    dFilter = getBrukerFilter(pars[0])
+    # TODO : search for valid procs files then propose found procno with SF/SR values
+    
+    parsA = [brukerTopspinGetPars(os.path.join(Dir, 'acqus'))]
+    dimA = parsA[0]['PARMODE'] + 1
+    # makes list of proc file names
+
+    procDirs = []
+    for root, dirs, files in os.walk(os.path.join(Dir, 'pdata')):
+        if f'proc{int(dimA)}s' in files:
+            procDirs.append(root)
+    procDirs.sort(key=lambda x : int(os.path.split(x)[-1]))
+    if len(procDirs) == 0:
+        # one didn't find a processing having the same dimension size as the acquisition
+        # how to deal with that ? search a lower dimensionality processing dir ? but how to
+        # match the dimensions ?
+        skipSF = True
+    else :
+        skipSF = False
+    SF_sets = []
+    if not skipSF:
+        for procDir in procDirs:
+            parPFileN = ['procs'] + [f'proc{int(x)}s' for x in range(2,1+dimA)]
+            SFs = []
+            for File in parPFileN:
+                ffilename = os.path.join(procDir, File)
+                if os.path.exists(ffilename):
+                    SFs.append(brukerTopspinGetPars(ffilename)['SF'])
+            SF_sets.append(tuple(SFs))
+
+    parAFileN = [f'acqu{int(x)}s' for x in range(2,1+dimA)]
+    for File in parAFileN:
+        if os.path.exists(os.path.join(Dir, File)):
+            parsA.append(brukerTopspinGetPars(os.path.join(Dir, File)))
+    SIZE = [x['TD'] for x in parsA]
+    FREQ = [x['SFO1'] * 1e6 for x in parsA]
+    SW = [x['SW']*x['SFO1'] for x in parsA]
+    if skipSF:
+        REF = [x['BF1']*1e6 for x in parsA]
+    else:
+        REF = [sf*1e6 for sf in SF_sets.pop(0)]
+    DtypeA = [np.dtype(np.int32), np.dtype(np.float32), np.dtype(np.float64)][parsA[0]['DTYPA']] #The byte orders that is used
+    DtypeA = DtypeA.newbyteorder(['L', 'B'][parsA[0]['BYTORDA']]) #The byte orders that is used 'L' =little endian, 'B' = big endian
+#    REF = list(- np.array(REF) + np.array(FREQ))
+    dFilter = getBrukerFilter(parsA[0])
     totsize = np.prod(SIZE)
     dim = len(SIZE)
     directSize = int(np.ceil(float(SIZE[0]*DtypeA.itemsize) / 1024)) * int(1024 / DtypeA.itemsize)  #Size of direct dimension including
@@ -1180,33 +1228,28 @@ def loadBrukerTopspin(filePath):
         ComplexData = ComplexData.reshape(*newSize[-1::-1])
         ComplexData = ComplexData[..., 0:int(SIZE[0]/2)] #Cut off placeholder data
     masterData = sc.Spectrum(ComplexData, (filePath, None), FREQ[-1::-1], SW[-1::-1], spec=[False]*dim, ref=REF[-1::-1], dFilter=dFilter)
-    # TODO: Inserting metadata should be made more generic
-    try:
-        masterData.metaData['# Scans'] = str(pars[0]['NS'])
-    except Exception:
-        pass
-    try:
-        masterData.metaData['Receiver Gain'] = str(pars[0]['RG'])
-    except Exception:
-        pass
-    try:
-        masterData.metaData['Experiment Name'] = pars[0]['PULPROG']
-    except Exception:
-        pass
-    try:        
-        masterData.metaData['Offset [Hz]'] = str(pars[0]['O1'])
-    except Exception:
-        pass
-    try:
-        masterData.metaData['Recycle Delay [s]'] = str(pars[0]['D'][1])
-    except Exception:
-        pass
-    try:
-        import time
-        masterData.metaData['Time Completed'] = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(pars[0]['DATE'])))
-    except Exception:
-        pass
 
+    metafields = {'# Scans': 'NS', 'Receiver Gain': 'RG', 'Experiment Name': 'PULPROG', 'Offset [Hz]': 'O1', 
+'Recycle Delay [s]': 'D 1', 'Time Completed': 'DATE',
+'MAS Rate [Hz]': 'MASR', 'Alternate reference': [str(s) for s in set(SF_sets)]}
+
+    def conv_val(val):
+        if not type(val) == str:
+            return str(val)
+        if val == 'DATE':
+            import time
+            return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(parsA[0][val])))
+        if ' ' in val: # array parameter
+            P_, I_ = val.split()
+            return str(parsA[0][P_][int(I_)])
+        else: # simple parameter string
+            return str(parsA[0][val])
+
+    for key, val in metafields.items():
+        try:
+            masterData.metaData[key] = conv_val(val)
+        except Exception as exc:
+            print(exc)
     
     masterData.addHistory("Bruker TopSpin data loaded from " + filePath)
     return masterData
