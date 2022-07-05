@@ -968,6 +968,10 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.isMain = isMain              # display fitting buttons
         self.ticks = {key: [] for key in self.SINGLENAMES + self.MULTINAMES}
         self.entries = {key: [] for key in self.SINGLENAMES + self.MULTINAMES + self.EXTRANAMES}
+
+        # sets a default position of MULTINAMES according to their position in definition list
+        self.MULTINAMES_ORDER = {self.MULTINAMES[i]:i for i in range(len(self.MULTINAMES))} 
+
         tmp = np.array(self.parent.data.shape(), dtype=int)
         tmp = np.delete(tmp, self.parent.axes)
         self.fitParamList = np.zeros(tmp, dtype=object)
@@ -1152,7 +1156,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
         text : str
             The text on the label.
         num : int
-            The column to place the label widget.
+            The position where to place the checkBox/label widgets [0 to ...].
         tootip : str
             A description of the parameter to be shown as tooltip.
 
@@ -1163,13 +1167,14 @@ class AbstractParamFrame(QtWidgets.QWidget):
         QLabel
             The label.
         """
+        num = self.MULTINAMES_ORDER[name]
         tick = QtWidgets.QCheckBox('')
         tick.setChecked(self.DEFAULTS[name][1])
         tick.stateChanged.connect(lambda state, self=self: self.changeAllTicks(state, name))
-        self.frame3.addWidget(tick, 1, num)
+        self.frame3.addWidget(tick, 1, 2*num+1) # 1st widget is color widget
         label = wc.QLabel(text)
         label.setToolTip(tooltip)
-        self.frame3.addWidget(label, 1, num + 1)
+        self.frame3.addWidget(label, 1, 2*num+2)
         return tick, label
 
     def changeAllTicks(self, state, name):
@@ -1932,7 +1937,30 @@ class AbstractParamFrame(QtWidgets.QWidget):
             if removeLimits['invert']:
                 mask = np.abs(mask-1.0)
             return mask
-            
+    def update_LorentzST_state(self):
+        """ disable/enable LorentzST entries and checkboxes if exist.
+        """
+        if 'LorentzST' in self.MULTINAMES:
+            # OK there should be LorentzST entry
+            if 'satBool' in self.entries.keys():
+                satBool = self.entries['satBool'][-1].isChecked()
+                if satBool :
+                    #update the column labels and global check button
+                    CB = self.frame3.layout().itemAt(2*self.MULTINAMES_ORDER['LorentzST']+1).widget()
+                    CB.setEnabled(True)
+                    #update the sites widgets
+                    for site in range(self.FITNUM):
+                        self.entries['LorentzST'][site].setEnabled(True)
+                        self.ticks['LorentzST'][site].setEnabled(True)
+                else:
+                    #update the column labels and global check button
+                    CB = self.frame3.layout().itemAt(2*self.MULTINAMES_ORDER['LorentzST']+1).widget()
+                    CB.setEnabled(False)
+                    CB.setChecked(True)
+                    for site in range(self.FITNUM):
+                        self.entries['LorentzST'][site].setEnabled(False)
+                        self.ticks['LorentzST'][site].setChecked(True)
+                        self.ticks['LorentzST'][site].setEnabled(False)
             
 ##############################################################################
 
@@ -3172,6 +3200,8 @@ class QuadDeconvParamFrame(AbstractParamFrame):
                 self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j]))
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2 * j + 2)
         self.reset()
+        self.entries['satBool'][-1].stateChanged.connect(self.update_LorentzST_state)
+        self.update_LorentzST_state()
 
     def MASChange(self, MAStype):
         """
@@ -3454,6 +3484,8 @@ class QuadCSADeconvParamFrame(AbstractParamFrame):
                 self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j]))
                 self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2 * j + 2)
         self.reset()
+        self.entries['satBool'][-1].stateChanged.connect(self.update_LorentzST_state)
+        self.update_LorentzST_state()
 
     def MASChange(self, MAStype):
         """
@@ -3989,6 +4021,7 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
                 self.father.angle = self.angleEntry.text()
                 self.father.numssb = self.numssbEntry.value()
                 self.father.satBool = self.satBoolEntry.isChecked()
+                # satBool
             else:
                 self.father.I = self.Ientry.currentIndex() + 1.5
             inp = safeEval(self.cqmax.text(), Type='FI')
@@ -4193,19 +4226,31 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
             Czjzek fitting type (0=regular, 1=extended).
         """
         if index == 0:
+            #update the column labels and global check button
+            CB = self.frame3.layout().itemAt(2*self.MULTINAMES_ORDER['Cq0']+1).widget()
+            CB.setEnabled(False)
+            CB.setChecked(True)
+            CB = self.frame3.layout().itemAt(2*self.MULTINAMES_ORDER['eta0']+1).widget()
+            CB.setEnabled(False)
+            CB.setChecked(True)
             for i in range(self.FITNUM):
                 self.entries["Cq0"][i].setEnabled(False)
-                self.entries['eta0'][i].setEnabled(False)
+                self.entries["eta0"][i].setEnabled(False)
                 self.ticks["Cq0"][i].setChecked(True)
-                self.ticks['eta0'][i].setChecked(True)
+                self.ticks["eta0"][i].setChecked(True)
                 self.ticks["Cq0"][i].setEnabled(False)
-                self.ticks['eta0'][i].setEnabled(False)
+                self.ticks["eta0"][i].setEnabled(False)
         elif index == 1:
+            #update the column labels and global check button
+            CB = self.frame3.layout().itemAt(2*self.MULTINAMES_ORDER['Cq0']+1).widget()
+            CB.setEnabled(True)
+            CB = self.frame3.layout().itemAt(2*self.MULTINAMES_ORDER['eta0']+1).widget()
+            CB.setEnabled(True)
             for i in range(self.FITNUM):
                 self.entries["Cq0"][i].setEnabled(True)
-                self.entries['eta0'][i].setEnabled(True)
+                self.entries["eta0"][i].setEnabled(True)
                 self.ticks["Cq0"][i].setEnabled(True)
-                self.ticks['eta0'][i].setEnabled(True)
+                self.ticks["eta0"][i].setEnabled(True)
 
     def createCzjzekPrefWindow(self, *args):
         CzjzekPrefWindow(self)
