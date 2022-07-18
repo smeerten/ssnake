@@ -291,6 +291,8 @@ class TabFittingWindow(QtWidgets.QWidget):
         for i in tmp:
             tmp2 += (np.arange(i),)
         grid = np.array([i.flatten() for i in np.meshgrid(*tmp2)]).T
+        if args[0] == "allCopy":
+            self.mainFitWindow.paramframe.copyParams()
         for i in grid:
             QtWidgets.qApp.processEvents()
             if self.runningAll is False:
@@ -298,6 +300,8 @@ class TabFittingWindow(QtWidgets.QWidget):
             self.mainFitWindow.current.setSlice(self.mainFitWindow.current.axes, i)
             self.fit()
             self.mainFitWindow.sideframe.upd()
+            if args[0] == "incrCopy":
+                self.mainFitWindow.paramframe.copyParams2NextSlice()
         self.mainFitWindow.paramframe.stopAllButton.hide()
 
     def fit(self):
@@ -1047,9 +1051,23 @@ class AbstractParamFrame(QtWidgets.QWidget):
             self.stopButton.setStyleSheet('background-color: green')
             self.frame1.addWidget(self.stopButton, 0, 1)
             self.stopButton.hide()
+
+            fitAllLayout = QtWidgets.QGridLayout()
+            self.frame1.addLayout(fitAllLayout, 1, 0)
             fitAllButton = QtWidgets.QPushButton("Fit all")
-            fitAllButton.clicked.connect(self.rootwindow.tabWindow.fitAll)
-            self.frame1.addWidget(fitAllButton, 1, 0)
+            fitAllButton.clicked.connect(lambda x: self.rootwindow.tabWindow.fitAll(self.fitAllMode))
+            self.fitAllRBnoCopy = QtWidgets.QRadioButton('no cpy')
+            self.fitAllRBnoCopy.setChecked(True)
+            self.fitAllRBnoCopy.toggled.connect(self.setfitAllRBState)
+            self.fitAllRBallCopy = QtWidgets.QRadioButton('cpy all')
+            self.fitAllRBallCopy.toggled.connect(self.setfitAllRBState)
+            self.fitAllRBincrCopy = QtWidgets.QRadioButton('inc cpy')
+            self.fitAllRBincrCopy.toggled.connect(self.setfitAllRBState)
+            fitAllLayout.addWidget(fitAllButton, 0, 0, 3, 1)
+            fitAllLayout.addWidget(self.fitAllRBnoCopy, 0, 1)
+            fitAllLayout.addWidget(self.fitAllRBallCopy, 1, 1)
+            fitAllLayout.addWidget(self.fitAllRBincrCopy, 2, 1)
+
             self.stopAllButton = QtWidgets.QPushButton("Stop all")
             self.stopAllButton.clicked.connect(self.rootwindow.tabWindow.stopAll)
             self.stopAllButton.setStyleSheet('background-color: green')
@@ -1088,6 +1106,15 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.checkFitParamList(self.getRedLocList())
         colorList = mpl.rcParams['axes.prop_cycle'].by_key()['color']
         self.fit_color_list = colorList[2:] + colorList[0:2]
+
+    def setfitAllRBState(self):
+        if self.fitAllRBnoCopy.isChecked():
+            self.fitAllMode = "noCopy"
+        elif self.fitAllRBallCopy.isChecked():
+            self.fitAllMode = "allCopy"
+        if self.fitAllRBincrCopy.isChecked():
+            self.fitAllMode = "incrCopy"
+        
 
     def togglePick(self):
         # Dummy function for fitting routines which require peak picking
@@ -1205,6 +1232,18 @@ class AbstractParamFrame(QtWidgets.QWidget):
         """
         self.rootwindow.tabWindow.stopMP()
         self.rootwindow.cancel()
+
+    def copyParams2NextSlice(self):
+        """
+        Copies the parameters of the current slice to all other slices of the data.
+        """
+        self.checkInputs()
+        locList = self.getRedLocList()
+        self.checkFitParamList(locList)
+        if locList[0] + 1 < len(self.fitParamList):
+            self.fitParamList[locList[0]+1] = copy.deepcopy(self.fitParamList[locList])
+            self.fitNumList[locList[0]+1] = self.fitNumList[locList]
+            self.removeLimits[locList[0]+1] = self.removeLimits[locList]
 
     def copyParams(self):
         """
@@ -3897,9 +3936,9 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
             self.czjzek = Czjzek.czjzekIntensities(sigma, d, cq.flatten(), eta.flatten(), cq0, eta0)
 
         self.czjzek = self.czjzek.reshape(etasteps, cqsteps)
-        # Calculate average and peak CQ and PQ values
-        # peak CQ is obtained from DMFit
-        PQs = cq * np.sqrt(1 + eta/3)
+
+        # Calculate peak CQ values (DMFit Approach) or average SOQE (PQ) values
+        PQs = cq*np.sqrt(1 + eta/3)
         PQavg = np.average(PQs, None, self.czjzek)
         CQavg = np.average(cq, None, self.czjzek)
         indices = np.unravel_index(self.czjzek.argmax(), self.czjzek.shape)
