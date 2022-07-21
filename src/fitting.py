@@ -968,6 +968,10 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.isMain = isMain              # display fitting buttons
         self.ticks = {key: [] for key in self.SINGLENAMES + self.MULTINAMES}
         self.entries = {key: [] for key in self.SINGLENAMES + self.MULTINAMES + self.EXTRANAMES}
+
+        # sets a default position of MULTINAMES according to their position in definition list
+        self.MULTINAMES_ORDER = {self.MULTINAMES[i]:i for i in range(len(self.MULTINAMES))} 
+
         tmp = np.array(self.parent.data.shape(), dtype=int)
         tmp = np.delete(tmp, self.parent.axes)
         self.fitParamList = np.zeros(tmp, dtype=object)
@@ -1141,7 +1145,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
             self.rmsdEdit.setText(('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % val)
             self.rmsdEdit.setCursorPosition(0)
     
-    def addMultiLabel(self, name, text, num, tooltip=""):
+    def addMultiLabel(self, name, text, tooltip=""):
         """
         Creates a label for a parameter with multiple sites and adds it to frame3.
 
@@ -1151,8 +1155,6 @@ class AbstractParamFrame(QtWidgets.QWidget):
             Name of the parameter.
         text : str
             The text on the label.
-        num : int
-            The column to place the label widget.
         tootip : str
             A description of the parameter to be shown as tooltip.
 
@@ -1163,13 +1165,14 @@ class AbstractParamFrame(QtWidgets.QWidget):
         QLabel
             The label.
         """
+        num = self.MULTINAMES_ORDER[name]
         tick = QtWidgets.QCheckBox('')
         tick.setChecked(self.DEFAULTS[name][1])
         tick.stateChanged.connect(lambda state, self=self: self.changeAllTicks(state, name))
-        self.frame3.addWidget(tick, 1, num)
+        self.frame3.addWidget(tick, 1, 2*num+1) # 1st widget is color widget
         label = wc.QLabel(text)
         label.setToolTip(tooltip)
-        self.frame3.addWidget(label, 1, num + 1)
+        self.frame3.addWidget(label, 1, 2*num+2)
         return tick, label
 
     def changeAllTicks(self, state, name):
@@ -1932,8 +1935,46 @@ class AbstractParamFrame(QtWidgets.QWidget):
             if removeLimits['invert']:
                 mask = np.abs(mask-1.0)
             return mask
+    def update_LorentzST_state(self):
+        """ disable/enable LorentzST entries and checkboxes if exist.
+        """
+        if 'LorentzST' in self.MULTINAMES:
+            # OK there should be LorentzST entry
+            if 'satBool' in self.entries.keys():
+                satBool = self.entries['satBool'][-1].isChecked()
+                if satBool :
+                    #update the column labels and global check button
+                    CB = self.frame3.layout().itemAt(2*self.MULTINAMES_ORDER['LorentzST']+1).widget()
+                    CB.setEnabled(True)
+                    #update the sites widgets
+                    for site in range(self.FITNUM):
+                        self.entries['LorentzST'][site].setEnabled(True)
+                        self.ticks['LorentzST'][site].setEnabled(True)
+                else:
+                    #update the column labels and global check button
+                    CB = self.frame3.layout().itemAt(2*self.MULTINAMES_ORDER['LorentzST']+1).widget()
+                    CB.setEnabled(False)
+                    CB.setChecked(True)
+                    for site in range(self.FITNUM):
+                        self.entries['LorentzST'][site].setEnabled(False)
+                        self.ticks['LorentzST'][site].setChecked(True)
+                        self.ticks['LorentzST'][site].setEnabled(False)
             
-            
+    def populates_MULTINAMES_sites(self):
+        """ Add the QTextEdit and QCheckBox widgets to frame3 grid for each site
+        """
+        for i in range(self.FITNUM):
+            colorbar = QtWidgets.QWidget()
+            colorbar.setMaximumWidth(5)
+            colorbar.setMinimumWidth(5)
+            colorbar.setStyleSheet(f"QWidget {{ background-color : {self.fit_color_list[i%len(self.fit_color_list)]};}}")
+            self.frame3.addWidget(colorbar, i + 2, 0)
+            for name in self.MULTINAMES:
+                self.ticks[name].append(QtWidgets.QCheckBox(''))
+                self.frame3.addWidget(self.ticks[name][i], i + 2, 2 * self.MULTINAMES_ORDER[name] + 1)
+                self.entries[name].append(wc.FitQLineEdit(self, name, ''))
+                self.frame3.addWidget(self.entries[name][i], i + 2, 2 * self.MULTINAMES_ORDER[name] + 2)
+
 ##############################################################################
 
 def lstSqrs(dataList, maskList, *args):
@@ -2298,25 +2339,17 @@ class RelaxParamFrame(AbstractParamFrame):
         self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
         self.numExp.currentIndexChanged.connect(self.changeNum)
         self.frame3.addWidget(self.numExp, 0, 0, 1, 2)
-        self.addMultiLabel("Coefficient", "Coefficient:", 1)
-        self.addMultiLabel("T", "T [s]:", 3)
+        self.addMultiLabel("Coefficient", "Coefficient:")
+        self.addMultiLabel("T", "T [s]:")
         self.xlog = QtWidgets.QCheckBox('x-log')
         self.xlog.stateChanged.connect(self.setLog)
         self.optframe.addWidget(self.xlog, 0, 0, QtCore.Qt.AlignTop)
         self.ylog = QtWidgets.QCheckBox('y-log')
         self.ylog.stateChanged.connect(self.setLog)
         self.optframe.addWidget(self.ylog, 1, 0, QtCore.Qt.AlignTop)
-        for i in range(self.FITNUM):
-            colorbar = QtWidgets.QWidget()
-            colorbar.setMaximumWidth(5)
-            colorbar.setMinimumWidth(5)
-            colorbar.setStyleSheet(f"QWidget {{ background-color : {self.fit_color_list[i%len(self.fit_color_list)]};}}")
-            self.frame3.addWidget(colorbar, i + 2, 0)
-            for j in range(len(self.MULTINAMES)):
-                self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
-                self.frame3.addWidget(self.ticks[self.MULTINAMES[j]][i], i + 2, 2 * j + 1)
-                self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j], ('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % self.fitParamList[locList][self.MULTINAMES[j]][i][0]))
-                self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2 * j + 2)
+        self.populates_MULTINAMES_sites()
+        # WARNING entries line is different in populates_MULTINAMES_sites (what is the need)
+        #self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j], ('%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g') % self.fitParamList[locList][self.MULTINAMES[j]][i][0]))
         self.reset()
 
     def reset(self):
@@ -2422,8 +2455,8 @@ class DiffusionParamFrame(AbstractParamFrame):
         self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
         self.numExp.currentIndexChanged.connect(self.changeNum)
         self.frame3.addWidget(self.numExp, 0, 0, 1, 2)
-        self.addMultiLabel('Coefficient', "Coefficient:", 1)
-        self.addMultiLabel('D', "D [m^2/s]:", 3)
+        self.addMultiLabel('Coefficient', "Coefficient:")
+        self.addMultiLabel('D', "D [m^2/s]:")
         self.frame3.setColumnStretch(20, 1)
         self.frame3.setAlignment(QtCore.Qt.AlignTop)
         self.xlog = QtWidgets.QCheckBox('x-log')
@@ -2432,17 +2465,7 @@ class DiffusionParamFrame(AbstractParamFrame):
         self.ylog = QtWidgets.QCheckBox('y-log')
         self.ylog.stateChanged.connect(self.setLog)
         self.optframe.addWidget(self.ylog, 1, 0)
-        for i in range(self.FITNUM):
-            colorbar = QtWidgets.QWidget()
-            colorbar.setMaximumWidth(5)
-            colorbar.setMinimumWidth(5)
-            colorbar.setStyleSheet(f"QWidget {{ background-color : {self.fit_color_list[i%len(self.fit_color_list)]};}}")
-            self.frame3.addWidget(colorbar, i + 2, 0)
-            for j in range(len(self.MULTINAMES)):
-                self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
-                self.frame3.addWidget(self.ticks[self.MULTINAMES[j]][i], i + 2, 2 * j + 1)
-                self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j], ''))
-                self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2 * j + 2)
+        self.populates_MULTINAMES_sites()
         self.reset()
 
     def reset(self):
@@ -2609,21 +2632,11 @@ class PeakDeconvParamFrame(AbstractParamFrame):
         self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
         self.numExp.currentIndexChanged.connect(self.changeNum)
         self.frame3.addWidget(self.numExp, 0, 0, 1, 2)
-        self.addMultiLabel("Position", "Position [" + self.axUnit + "]:", 1)
-        self.addMultiLabel("Integral", "Integral:", 3)
-        self.addMultiLabel("Lorentz", "Lorentz [Hz]:", 5)
-        self.addMultiLabel("Gauss", f"Gauss [{self.axUnit}]:", 7)
-        for i in range(self.FITNUM):
-            colorbar = QtWidgets.QWidget()
-            colorbar.setMaximumWidth(5)
-            colorbar.setMinimumWidth(5)
-            colorbar.setStyleSheet(f"QWidget {{ background-color : {self.fit_color_list[i%len(self.fit_color_list)]};}}")
-            self.frame3.addWidget(colorbar, i + 2, 0)
-            for j in range(len(self.MULTINAMES)):
-                self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
-                self.frame3.addWidget(self.ticks[self.MULTINAMES[j]][i], i + 2, 2 * j + 1)
-                self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j]))
-                self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2 * j + 2)
+        self.addMultiLabel("Position", "Position [" + self.axUnit + "]:")
+        self.addMultiLabel("Integral", "Integral:")
+        self.addMultiLabel("Lorentz", "Lorentz [Hz]:")
+        self.addMultiLabel("Gauss", f"Gauss [{self.axUnit}]:")
+        self.populates_MULTINAMES_sites()
         self.reset()
 
     def reset(self):
@@ -2794,56 +2807,46 @@ class CsaDeconvParamFrame(AbstractParamFrame):
         else:
             axUnit = ['Hz', 'kHz', 'MHz'][self.parent.getAxType()]
         # Labels
-        self.addMultiLabel("Definition1", "", 1)
-        self.addMultiLabel("Definition2", "", 3)
-        self.addMultiLabel("Definition3", "", 5)
+        self.addMultiLabel("Definition1", "")
+        self.addMultiLabel("Definition2", "")
+        self.addMultiLabel("Definition3", "")
         self.label11 = wc.QLabel(u'δ' + '<sub>11</sub> [' + axUnit + '] :')
         self.label22 = wc.QLabel(u'δ' + '<sub>22</sub> [' + axUnit + '] :')
         self.label33 = wc.QLabel(u'δ' + '<sub>33</sub> [' + axUnit + '] :')
-        self.frame3.addWidget(self.label11, 1, 2)
-        self.frame3.addWidget(self.label22, 1, 4)
-        self.frame3.addWidget(self.label33, 1, 6)
+        self.frame3.addWidget(self.label11, 1, 2*self.MULTINAMES_ORDER['Definition1']+2)
+        self.frame3.addWidget(self.label22, 1, 2*self.MULTINAMES_ORDER['Definition2']+2)
+        self.frame3.addWidget(self.label33, 1, 2*self.MULTINAMES_ORDER['Definition3']+2)
         self.labelxx = wc.QLabel(u'δ' + '<sub>xx</sub> [' + axUnit + '] :')
         self.labelyy = wc.QLabel(u'δ' + '<sub>yy</sub> [' + axUnit + '] :')
         self.labelzz = wc.QLabel(u'δ' + '<sub>zz</sub> [' + axUnit + '] :')
         self.labelxx.hide()
         self.labelyy.hide()
         self.labelzz.hide()
-        self.frame3.addWidget(self.labelxx, 1, 2)
-        self.frame3.addWidget(self.labelyy, 1, 4)
-        self.frame3.addWidget(self.labelzz, 1, 6)
+        self.frame3.addWidget(self.labelxx, 1, 2*self.MULTINAMES_ORDER['Definition1']+2)
+        self.frame3.addWidget(self.labelyy, 1, 2*self.MULTINAMES_ORDER['Definition2']+2)
+        self.frame3.addWidget(self.labelzz, 1, 2*self.MULTINAMES_ORDER['Definition3']+2)
         self.labeliso = wc.QLabel(u'δ' + '<sub>iso</sub> [' + axUnit + '] :')
         self.labelaniso = wc.QLabel(u'δ' + '<sub>aniso</sub> [' + axUnit + '] :')
         self.labeleta = wc.QLabel(u'η:')
         self.labeliso.hide()
         self.labelaniso.hide()
         self.labeleta.hide()
-        self.frame3.addWidget(self.labeliso, 1, 2)
-        self.frame3.addWidget(self.labelaniso, 1, 4)
-        self.frame3.addWidget(self.labeleta, 1, 6)
+        self.frame3.addWidget(self.labeliso, 1, 2*self.MULTINAMES_ORDER['Definition1']+2)
+        self.frame3.addWidget(self.labelaniso, 1, 2*self.MULTINAMES_ORDER['Definition2']+2)
+        self.frame3.addWidget(self.labeleta, 1, 2*self.MULTINAMES_ORDER['Definition3']+2)
         self.labeliso2 = wc.QLabel(u'δ' + '<sub>iso</sub> [' + axUnit + '] :')
         self.labelspan = wc.QLabel(u'Ω [' + axUnit + '] :')
         self.labelskew = wc.QLabel(u'κ:')
         self.labeliso2.hide()
         self.labelspan.hide()
         self.labelskew.hide()
-        self.frame3.addWidget(self.labeliso2, 1, 2)
-        self.frame3.addWidget(self.labelspan, 1, 4)
-        self.frame3.addWidget(self.labelskew, 1, 6)
-        self.addMultiLabel("Integral", "Integral:", 7)
-        self.addMultiLabel("Lorentz", "Lorentz [Hz]:", 9, "Lorentzian broadening (transverse relaxation)")
-        self.addMultiLabel("Gauss", f"Gauss [{axUnit}]:", 11, "Gaussian broadening (FWHM of chemical shift distribution)")
-        for i in range(self.FITNUM):
-            colorbar = QtWidgets.QWidget()
-            colorbar.setMaximumWidth(5)
-            colorbar.setMinimumWidth(5)
-            colorbar.setStyleSheet(f"QWidget {{ background-color : {self.fit_color_list[i%len(self.fit_color_list)]};}}")
-            self.frame3.addWidget(colorbar, i + 2, 0)
-            for j in range(len(self.MULTINAMES)):
-                self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
-                self.frame3.addWidget(self.ticks[self.MULTINAMES[j]][i], i + 2, 2 * j + 1)
-                self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j]))
-                self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2 * j + 2)
+        self.frame3.addWidget(self.labeliso2, 1, 2*self.MULTINAMES_ORDER['Definition1']+2)
+        self.frame3.addWidget(self.labelspan, 1, 2*self.MULTINAMES_ORDER['Definition2']+2)
+        self.frame3.addWidget(self.labelskew, 1, 2*self.MULTINAMES_ORDER['Definition3']+2)
+        self.addMultiLabel("Integral", "Integral:")
+        self.addMultiLabel("Lorentz", "Lorentz [Hz]:", "Lorentzian broadening (transverse relaxation)")
+        self.addMultiLabel("Gauss", f"Gauss [{axUnit}]:", "Gaussian broadening (FWHM of chemical shift distribution)")
+        self.populates_MULTINAMES_sites()
         self.reset()
 
     def MASChange(self, MAStype):
@@ -3153,25 +3156,17 @@ class QuadDeconvParamFrame(AbstractParamFrame):
         else:
             axUnit = ['Hz', 'kHz', 'MHz'][self.parent.getAxType()]
         # Labels
-        self.addMultiLabel("Position", u"Position [" + axUnit + "]:", 1, "Isotropic chemical shift")
-        self.addMultiLabel("Cq", u"C<sub>Q</sub> [MHz]:", 3, "Quadrupolar anisotopy")
-        self.addMultiLabel("eta", u"η:", 5, "Quadrupolar asymmetry (0-1)")
-        self.addMultiLabel("Integral", "Integral:", 7)
-        self.addMultiLabel("Lorentz", "Lorentz [Hz]:", 9, "Lorentzian broadening of central transition (transverse relaxation rate)")
-        self.addMultiLabel("Gauss", f"Gauss [{axUnit}]:", 11, "Gaussian broadening (FWHM of chemical shift distribution)")
-        self.addMultiLabel("LorentzST", "ST Lorentz [Hz]:", 13, "Lorentzian broadening of satellite transition(transverse relaxation rate)")
-        for i in range(self.FITNUM):
-            colorbar = QtWidgets.QWidget()
-            colorbar.setMaximumWidth(5)
-            colorbar.setMinimumWidth(5)
-            colorbar.setStyleSheet(f"QWidget {{ background-color : {self.fit_color_list[i%len(self.fit_color_list)]};}}")
-            self.frame3.addWidget(colorbar, i + 2, 0)
-            for j in range(len(self.MULTINAMES)):
-                self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
-                self.frame3.addWidget(self.ticks[self.MULTINAMES[j]][i], i + 2, 2 * j + 1)
-                self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j]))
-                self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2 * j + 2)
+        self.addMultiLabel("Position", u"Position [" + axUnit + "]:", "Isotropic chemical shift")
+        self.addMultiLabel("Cq", u"C<sub>Q</sub> [MHz]:", "Quadrupolar anisotopy")
+        self.addMultiLabel("eta", u"η:", "Quadrupolar asymmetry (0-1)")
+        self.addMultiLabel("Integral", "Integral:")
+        self.addMultiLabel("Lorentz", "Lorentz [Hz]:", "Lorentzian broadening of central transition (transverse relaxation rate)")
+        self.addMultiLabel("Gauss", f"Gauss [{axUnit}]:", "Gaussian broadening (FWHM of chemical shift distribution)")
+        self.addMultiLabel("LorentzST", "ST Lorentz [Hz]:", "Lorentzian broadening of satellite transition(transverse relaxation rate)")
+        self.populates_MULTINAMES_sites()
         self.reset()
+        self.entries['satBool'][-1].stateChanged.connect(self.update_LorentzST_state)
+        self.update_LorentzST_state()
 
     def MASChange(self, MAStype):
         """
@@ -3397,9 +3392,9 @@ class QuadCSADeconvParamFrame(AbstractParamFrame):
         else:
             axUnit = ['Hz', 'kHz', 'MHz'][self.parent.getAxType()]
         # Labels
-        self.addMultiLabel("Definition1", "", 1, "CSA tensor discontinuity 1")
-        self.addMultiLabel("Definition2", "", 3, "CSA tensor discontinuity 2")
-        self.addMultiLabel("Definition3", "", 5, "CSA tensor discontinuity 3")
+        self.addMultiLabel("Definition1", "", "CSA tensor discontinuity 1")
+        self.addMultiLabel("Definition2", "", "CSA tensor discontinuity 2")
+        self.addMultiLabel("Definition3", "", "CSA tensor discontinuity 3")
         self.label11 = wc.QLabel(u'δ' + '<sub>11</sub> [' + axUnit + '] :')
         self.label22 = wc.QLabel(u'δ' + '<sub>22</sub> [' + axUnit + '] :')
         self.label33 = wc.QLabel(u'δ' + '<sub>33</sub> [' + axUnit + '] :')
@@ -3433,27 +3428,19 @@ class QuadCSADeconvParamFrame(AbstractParamFrame):
         self.frame3.addWidget(self.labeliso2, 1, 2)
         self.frame3.addWidget(self.labelspan, 1, 4)
         self.frame3.addWidget(self.labelskew, 1, 6)
-        self.addMultiLabel("Cq", u"C<sub>Q</sub> [MHz]:", 7, "Quadrupolar anisotropy")
-        self.addMultiLabel("eta", u"η:", 9, "Quadrupolar asymmetry")
-        self.addMultiLabel("Alpha", u"α [deg]:", 11, "euler angle defining CSA orientation in Quad Frame")
-        self.addMultiLabel("Beta", u"β [deg]:", 13, "euler angle defining CSA orientation in Quad Frame")
-        self.addMultiLabel("Gamma", u"γ [deg]:", 15, "euler angle defining CSA orientation in Quad Frame")
-        self.addMultiLabel("Integral", "Integral:", 17)
-        self.addMultiLabel("Lorentz", "Lorentz [Hz]:", 19, "Lorentzian broadening of central transition (transverse relaxation rate)")
-        self.addMultiLabel("Gauss", f"Gauss [{axUnit}]:", 21, "Gaussian broadening (FWHM of chemical shift distribution)")
-        self.addMultiLabel("LorentzST", "LorentzST [Hz]:", 23, "Lorentzian broadening of satellite transitions (transverse relaxation rate)")
-        for i in range(self.FITNUM):
-            colorbar = QtWidgets.QWidget()
-            colorbar.setMaximumWidth(5)
-            colorbar.setMinimumWidth(5)
-            colorbar.setStyleSheet(f"QWidget {{ background-color : {self.fit_color_list[i%len(self.fit_color_list)]};}}")
-            self.frame3.addWidget(colorbar, i + 2, 0)
-            for j in range(len(self.MULTINAMES)):
-                self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
-                self.frame3.addWidget(self.ticks[self.MULTINAMES[j]][i], i + 2, 2 * j + 1)
-                self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j]))
-                self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2 * j + 2)
+        self.addMultiLabel("Cq", u"C<sub>Q</sub> [MHz]:", "Quadrupolar anisotropy")
+        self.addMultiLabel("eta", u"η:", "Quadrupolar asymmetry")
+        self.addMultiLabel("Alpha", u"α [deg]:", "euler angle defining CSA orientation in Quad Frame")
+        self.addMultiLabel("Beta", u"β [deg]:", "euler angle defining CSA orientation in Quad Frame")
+        self.addMultiLabel("Gamma", u"γ [deg]:", "euler angle defining CSA orientation in Quad Frame")
+        self.addMultiLabel("Integral", "Integral:")
+        self.addMultiLabel("Lorentz", "Lorentz [Hz]:", "Lorentzian broadening of central transition (transverse relaxation rate)")
+        self.addMultiLabel("Gauss", f"Gauss [{axUnit}]:", "Gaussian broadening (FWHM of chemical shift distribution)")
+        self.addMultiLabel("LorentzST", "LorentzST [Hz]:", "Lorentzian broadening of satellite transitions (transverse relaxation rate)")
+        self.populates_MULTINAMES_sites()
         self.reset()
+        self.entries['satBool'][-1].stateChanged.connect(self.update_LorentzST_state)
+        self.update_LorentzST_state()
 
     def MASChange(self, MAStype):
         """
@@ -3989,6 +3976,7 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
                 self.father.angle = self.angleEntry.text()
                 self.father.numssb = self.numssbEntry.value()
                 self.father.satBool = self.satBoolEntry.isChecked()
+                # satBool
             else:
                 self.father.I = self.Ientry.currentIndex() + 1.5
             inp = safeEval(self.cqmax.text(), Type='FI')
@@ -4137,24 +4125,14 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
             axUnit = 'ppm'
         else:
             axUnit = ['Hz', 'kHz', 'MHz'][self.parent.getAxType()]
-        self.addMultiLabel("Position", "Pos [" + axUnit + "]:", 1, "Isotropic chemical shift")
-        self.addMultiLabel("Sigma", u"σ [MHz]:", 3, "Quadrupolar anisotropy variance: most probable (average) Cq is 2*σ")
-        self.addMultiLabel("Cq0", u"C<sub>Q</sub>0 [MHz]:", 5)
-        self.addMultiLabel("eta0", u"η0:", 7)
-        self.addMultiLabel("Integral", "Integral:", 9)
-        self.addMultiLabel("Lorentz", "Lorentz [Hz]:", 11, "Lorentzian broadening (transverse relaxation rate)")
-        self.addMultiLabel("Gauss", f"Gauss [{axUnit}]:", 13, "Gaussian broadening (FWHM of chemical shift distribution")
-        for i in range(self.FITNUM):
-            colorbar = QtWidgets.QWidget()
-            colorbar.setMaximumWidth(5)
-            colorbar.setMinimumWidth(5)
-            colorbar.setStyleSheet(f"QWidget {{ background-color : {self.fit_color_list[i%len(self.fit_color_list)]};}}")
-            self.frame3.addWidget(colorbar, i + 2, 0)
-            for j in range(len(self.MULTINAMES)):
-                self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
-                self.frame3.addWidget(self.ticks[self.MULTINAMES[j]][i], i + 2, 2 * j + 1)
-                self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j]))
-                self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2 * j + 2)
+        self.addMultiLabel("Position", "Pos [" + axUnit + "]:", "Isotropic chemical shift")
+        self.addMultiLabel("Sigma", u"σ [MHz]:", "Quadrupolar anisotropy variance: most probable (average) Cq is 2*σ")
+        self.addMultiLabel("Cq0", u"C<sub>Q</sub>0 [MHz]:")
+        self.addMultiLabel("eta0", u"η0:")
+        self.addMultiLabel("Integral", "Integral:")
+        self.addMultiLabel("Lorentz", "Lorentz [Hz]:", "Lorentzian broadening (transverse relaxation rate)")
+        self.addMultiLabel("Gauss", f"Gauss [{axUnit}]:", "Gaussian broadening (FWHM of chemical shift distribution")
+        self.populates_MULTINAMES_sites()
         self.reset()
 
     def reset(self):
@@ -4193,19 +4171,31 @@ class QuadCzjzekParamFrame(AbstractParamFrame):
             Czjzek fitting type (0=regular, 1=extended).
         """
         if index == 0:
+            #update the column labels and global check button
+            CB = self.frame3.layout().itemAt(2*self.MULTINAMES_ORDER['Cq0']+1).widget()
+            CB.setEnabled(False)
+            CB.setChecked(True)
+            CB = self.frame3.layout().itemAt(2*self.MULTINAMES_ORDER['eta0']+1).widget()
+            CB.setEnabled(False)
+            CB.setChecked(True)
             for i in range(self.FITNUM):
                 self.entries["Cq0"][i].setEnabled(False)
-                self.entries['eta0'][i].setEnabled(False)
+                self.entries["eta0"][i].setEnabled(False)
                 self.ticks["Cq0"][i].setChecked(True)
-                self.ticks['eta0'][i].setChecked(True)
+                self.ticks["eta0"][i].setChecked(True)
                 self.ticks["Cq0"][i].setEnabled(False)
-                self.ticks['eta0'][i].setEnabled(False)
+                self.ticks["eta0"][i].setEnabled(False)
         elif index == 1:
+            #update the column labels and global check button
+            CB = self.frame3.layout().itemAt(2*self.MULTINAMES_ORDER['Cq0']+1).widget()
+            CB.setEnabled(True)
+            CB = self.frame3.layout().itemAt(2*self.MULTINAMES_ORDER['eta0']+1).widget()
+            CB.setEnabled(True)
             for i in range(self.FITNUM):
                 self.entries["Cq0"][i].setEnabled(True)
-                self.entries['eta0'][i].setEnabled(True)
+                self.entries["eta0"][i].setEnabled(True)
                 self.ticks["Cq0"][i].setEnabled(True)
-                self.ticks['eta0'][i].setEnabled(True)
+                self.ticks["eta0"][i].setEnabled(True)
 
     def createCzjzekPrefWindow(self, *args):
         CzjzekPrefWindow(self)
@@ -4417,6 +4407,7 @@ class ExternalFitDeconvParamFrame(AbstractParamFrame):
         for name in self.MULTINAMES:
             self.DEFAULTS[name] = [0.0, False]
         self.MULTINAMES.extend(["Integral", "Lorentz", "Gauss"])
+        self.MULTINAMES_ORDER = {self.MULTINAMES[i]:i for i in range(len(self.MULTINAMES))} 
         self.labels = {"Offset": [wc.QLabel("Offset:")], "Multiplier": [wc.QLabel("Multiplier:")]}
         self.ticks = {"Offset": [], "Multiplier": []}
         self.entries = {"Offset": [], "Multiplier": []}
@@ -4432,14 +4423,10 @@ class ExternalFitDeconvParamFrame(AbstractParamFrame):
         self.frame2.addWidget(self.entries["Multiplier"][-1], 4, 1)
         for i in range(len(self.MULTINAMES)):
             name = self.MULTINAMES[i]
-            self.labels[name] = self.addMultiLabel(name, name, 2*i+2)
+            self.labels[name] = self.addMultiLabel(name, name)
             self.ticks[name] = []
             self.entries[name] = []
-            for j in range(self.FITNUM):
-                self.ticks[name].append(QtWidgets.QCheckBox(''))
-                self.frame3.addWidget(self.ticks[name][j], 2+j, 2*i+2)
-                self.entries[name].append(wc.FitQLineEdit(self, name))
-                self.frame3.addWidget(self.entries[name][j], 2+j, 2*i+3)
+        self.populates_MULTINAMES_sites()
         self.reset()
 
     def extraParamToFile(self):
@@ -4566,19 +4553,16 @@ class FunctionFitParamFrame(AbstractParamFrame):
         self.MULTINAMES = [e[1:-1] for e in matches]
         for name in self.MULTINAMES:
             self.DEFAULTS[name] = [0.0, False]
+        self.MULTINAMES_ORDER = {self.MULTINAMES[i]:i for i in range(len(self.MULTINAMES))} 
         self.labels = {}
         self.ticks = {}
         self.entries = {}
         for i in range(len(self.MULTINAMES)):
             name = self.MULTINAMES[i]
-            self.labels[name] = self.addMultiLabel(name, name, 2*i)
+            self.labels[name] = self.addMultiLabel(name, name)
             self.ticks[name] = []
             self.entries[name] = []
-            for j in range(self.FITNUM):
-                self.ticks[name].append(QtWidgets.QCheckBox(''))
-                self.frame3.addWidget(self.ticks[name][j], 2+j, 2*i)
-                self.entries[name].append(wc.FitQLineEdit(self, name))
-                self.frame3.addWidget(self.entries[name][j], 2+j, 2*i+1)
+        self.populates_MULTINAMES_sites()
         self.reset()
 
     def extraParamToFile(self):
@@ -4820,26 +4804,16 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         else:
             axUnit = ['Hz', 'kHz', 'MHz'][self.parent.getAxType()]
         # Labels
-        self.addMultiLabel("Position", u"Position [" + axUnit + "]:", 1, "Isotropic chemical shift")
-        self.addMultiLabel("Gauss", f"σ<sub>CS</sub> [{axUnit}]:", 3, "Gaussian broadening (FWHM of chemical shift distribution)")
-        self.addMultiLabel("Cq", u"C<sub>Q</sub> [MHz]:", 5, "Quadrupolar anisotropy")
-        self.addMultiLabel("eta", u"η:", 7, "Quadrupolar asymmetry")
-        self.addMultiLabel("Integral", "Integral:", 9)
-        self.addMultiLabel("Lorentz", "Lorentz 2 [Hz]:", 11, "Lorentzian broadening (transverse relaxation rate) in direct dimension")
-        self.addMultiLabel("Lorentz1", "Lorentz 1 [Hz]:", 13, "Lorentzian broadening (transverse relaxation rate) in indirect dimension")
-#        self.addMultiLabel("Gauss2", "Gauss 2 [Hz]:", 15)
-#        self.addMultiLabel("Gauss1", "Gauss 1 [Hz]:", 17)
-        for i in range(self.FITNUM):
-            colorbar = QtWidgets.QWidget()
-            colorbar.setMaximumWidth(5)
-            colorbar.setMinimumWidth(5)
-            colorbar.setStyleSheet(f"QWidget {{ background-color : {self.fit_color_list[i%len(self.fit_color_list)]};}}")
-            self.frame3.addWidget(colorbar, i + 2, 0)
-            for j in range(len(self.MULTINAMES)):
-                self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
-                self.frame3.addWidget(self.ticks[self.MULTINAMES[j]][i], i + 2, 2 * j + 1)
-                self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j]))
-                self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2 * j + 2)
+        self.addMultiLabel("Position", u"Position [" + axUnit + "]:", "Isotropic chemical shift")
+        self.addMultiLabel("Gauss", f"σ<sub>CS</sub> [{axUnit}]:", "Gaussian broadening (FWHM of chemical shift distribution)")
+        self.addMultiLabel("Cq", u"C<sub>Q</sub> [MHz]:", "Quadrupolar anisotropy")
+        self.addMultiLabel("eta", u"η:", "Quadrupolar asymmetry")
+        self.addMultiLabel("Integral", "Integral:")
+        self.addMultiLabel("Lorentz", "Lorentz 2 [Hz]:", "Lorentzian broadening (transverse relaxation rate) in direct dimension")
+        self.addMultiLabel("Lorentz1", "Lorentz 1 [Hz]:", "Lorentzian broadening (transverse relaxation rate) in indirect dimension")
+#        self.addMultiLabel("Gauss2", "Gauss 2 [Hz]:")
+#        self.addMultiLabel("Gauss1", "Gauss 1 [Hz]:")
+        self.populates_MULTINAMES_sites()
         self.reset()
 
     def reset(self):
@@ -5077,27 +5051,17 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
             axUnit = 'ppm'
         else:
             axUnit = ['Hz', 'kHz', 'MHz'][self.parent.getAxType()]
-        self.addMultiLabel("Position", "Pos [" + axUnit + "]:", 1, "Isotropic chemical shift")
-        self.addMultiLabel("Gauss", f"σ<sub>CS</sub> [{axUnit}]:", 3, "Gaussian broadening (FWHM of chemical shift distribution)")
-        self.addMultiLabel("Sigma", u"σ<sub>Q<sub> [MHz]:", 5, "Quadrupolar anisotropy variance: most probable (average) Cq is 2*σ")
-        self.addMultiLabel("Cq0", u"C<sub>Q</sub>0 [MHz]:", 7)
-        self.addMultiLabel("eta0", u"η0:", 9)
-        self.addMultiLabel("Integral", "Integral:", 11)
-        self.addMultiLabel("Lorentz", "Lorentz 2 [Hz]:", 13, "Lorentzian broadening (transverse relaxation rate) in direct dimension")
-        self.addMultiLabel("Lorentz1", "Lorentz 1 [Hz]:", 15, "Lorentzian broadening (transverse relaxation rate) in indirect dimension")
-#        self.addMultiLabel("Gauss2", "Gauss 2 [Hz]:", 17)
-#        self.addMultiLabel("Gauss1", "Gauss 1 [Hz]:", 19)
-        for i in range(self.FITNUM):
-            colorbar = QtWidgets.QWidget()
-            colorbar.setMaximumWidth(5)
-            colorbar.setMinimumWidth(5)
-            colorbar.setStyleSheet(f"QWidget {{ background-color : {self.fit_color_list[i%len(self.fit_color_list)]};}}")
-            self.frame3.addWidget(colorbar, i + 2, 0)
-            for j in range(len(self.MULTINAMES)):
-                self.ticks[self.MULTINAMES[j]].append(QtWidgets.QCheckBox(''))
-                self.frame3.addWidget(self.ticks[self.MULTINAMES[j]][i], i + 2, 2 * j + 1)
-                self.entries[self.MULTINAMES[j]].append(wc.FitQLineEdit(self, self.MULTINAMES[j]))
-                self.frame3.addWidget(self.entries[self.MULTINAMES[j]][i], i + 2, 2 * j + 2)
+        self.addMultiLabel("Position", "Pos [" + axUnit + "]:", "Isotropic chemical shift")
+        self.addMultiLabel("Gauss", f"σ<sub>CS</sub> [{axUnit}]:", "Gaussian broadening (FWHM of chemical shift distribution)")
+        self.addMultiLabel("Sigma", u"σ<sub>Q<sub> [MHz]:", "Quadrupolar anisotropy variance: most probable (average) Cq is 2*σ")
+        self.addMultiLabel("Cq0", u"C<sub>Q</sub>0 [MHz]:")
+        self.addMultiLabel("eta0", u"η0:")
+        self.addMultiLabel("Integral", "Integral:")
+        self.addMultiLabel("Lorentz", "Lorentz 2 [Hz]:", "Lorentzian broadening (transverse relaxation rate) in direct dimension")
+        self.addMultiLabel("Lorentz1", "Lorentz 1 [Hz]:", "Lorentzian broadening (transverse relaxation rate) in indirect dimension")
+#        self.addMultiLabel("Gauss2", "Gauss 2 [Hz]:")
+#        self.addMultiLabel("Gauss1", "Gauss 1 [Hz]:")
+        self.populates_MULTINAMES_sites()
         self.reset()
 
     def reset(self):
