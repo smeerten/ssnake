@@ -3884,16 +3884,25 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
             self.czjzek = Czjzek.czjzekIntensities(sigma, d, cq.flatten(), eta.flatten(), cq0, eta0)
 
         self.czjzek = self.czjzek.reshape(etasteps, cqsteps)
-        # Calculate peak CQ values (DMFit Approach) or average SOQE values
-        cgCQs = cq[0, np.argmax(self.czjzek, axis=1)]
-        cgSOQES = cgCQs[1:] * np.sqrt(1 + eta[1:,0]/3)
-
-        indices = np.where(self.czjzek == np.max(self.czjzek))
-        peakCQ = float(cq[indices[0], indices[1]])
-        avgSOQE = np.average(cgSOQES)
+        # Calculate average and peak CQ and PQ values
+        # peak CQ is obtained from DMFit
+        PQs = cq * np.sqrt(1 + eta/3)
+        PQavg = np.average(PQs, None, self.czjzek)
+        CQavg = np.average(cq, None, self.czjzek)
+        indices = np.unravel_index(self.czjzek.argmax(), self.czjzek.shape)
+        peakCQ = float(cq[indices])
+        peakPQ = float(PQs[indices])
+        
         self.ax.contour(cq.transpose(), eta.transpose(), self.czjzek.transpose(), 15)
-        self.ax.text(0, 1.05, '$\overline{P_Q}$ = ' + str(np.round(avgSOQE, decimals=3)) 
-            + ' MHz' + '        $C_{Q,peak}$ = ' + str(np.round(peakCQ, decimals=3)) + ' MHz')
+        self.ax.text(0, 1.075, '$\overline{P_Q}$ = ' + str(np.round(PQavg, decimals=3)) 
+                    + ' MHz' + ' - $P_{Q,peak}$ = ' + str(np.round(peakPQ, decimals=3)) 
+                    + ' MHz', size = 9)
+        self.ax.text(0, 1.025, '$\overline{C_Q}$ = ' + str(np.round(CQavg, decimals=3)) 
+                    + ' MHz' + ' - $C_{Q,peak}$ = ' + str(np.round(peakCQ, decimals=3)) 
+                    + ' MHz', color='b', size = 9)
+        self.ax.scatter(peakCQ, eta[indices], color='w', edgecolor = 'b')
+        self.ax.text(peakCQ * 0.92, eta[indices] * 0.95, '$C_{Q,peak}$', color='b', size = 8)
+        
         self.ax.set_xlabel(u"C$_Q$ [MHz]")
         self.ax.set_ylabel(u"η")
         self.canvas.draw()
