@@ -3895,10 +3895,10 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         
         self.ax.contour(cq.transpose(), eta.transpose(), self.czjzek.transpose(), 15)
         self.ax.text(0, 1.075, '$\overline{P_Q}$ = ' + str(np.round(PQavg, decimals=3)) 
-                    + ' MHz' + ' - $P_{Q,peak}$ = ' + str(np.round(peakPQ, decimals=3)) 
+                    + ' MHz' + '        $P_{Q,peak}$ = ' + str(np.round(peakPQ, decimals=3)) 
                     + ' MHz', size = 9)
         self.ax.text(0, 1.025, '$\overline{C_Q}$ = ' + str(np.round(CQavg, decimals=3)) 
-                    + ' MHz' + ' - $C_{Q,peak}$ = ' + str(np.round(peakCQ, decimals=3)) 
+                    + ' MHz' + '        $C_{Q,peak}$ = ' + str(np.round(peakCQ, decimals=3)) 
                     + ' MHz', color='b', size = 9)
         self.ax.scatter(peakCQ, eta[indices], color='w', edgecolor = 'b')
         self.ax.text(peakCQ * 0.92, eta[indices] * 0.95, '$C_{Q,peak}$', color='b', size = 8)
