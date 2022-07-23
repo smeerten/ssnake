@@ -3778,6 +3778,10 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         self.saveButton = QtWidgets.QPushButton("Save", parent=self)
         self.saveButton.clicked.connect(self.saveDist)
         grid.addWidget(self.saveButton, 14, 5)
+        self.pqCheckBox = QtWidgets.QCheckBox('Plot PQ')
+        self.pqCheckBox.toggled.connect(self.plotDist)
+        grid.addWidget(self.pqCheckBox, 14, 6)
+
         grid.addWidget(wc.QLabel("Site:"), 14, 2)
         self.site = QtWidgets.QSpinBox()
         self.site.setMinimum(1)
@@ -3892,19 +3896,28 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         indices = np.unravel_index(self.czjzek.argmax(), self.czjzek.shape)
         peakCQ = float(cq[indices])
         peakPQ = float(PQs[indices])
-        
-        self.ax.contour(cq.transpose(), eta.transpose(), self.czjzek.transpose(), 15)
+        if self.pqCheckBox.isChecked():
+            self.ax.contour(PQs.transpose(), eta.transpose(), self.czjzek.transpose(), 15)
+            self.ax.set_xlabel(u"P$_Q$ [MHz]")
+            self.ax.scatter(peakPQ, eta[indices], color='w', edgecolor = 'k')
+            self.ax.text(peakPQ * 0.92, eta[indices] * 0.95, '$P_{Q,peak}$', color='k', size = 8)
+            self.ax.axvline(x=PQavg, color='k')
+            self.ax.text(PQavg * 1.025, 0.5, '$\overline{P_Q}$', color='k', size = 8)
+        else:
+            self.ax.contour(cqArray, etaArray, self.czjzek, 15)
+            self.ax.set_xlabel(u"C$_Q$ [MHz]")
+            self.ax.scatter(peakCQ, eta[indices], color='w', edgecolor = 'b')
+            self.ax.text(peakCQ * 0.92, eta[indices] * 0.95, '$C_{Q,peak}$', color='b', size = 8)
+            self.ax.axvline(x=CQavg, color='b')
+            self.ax.text(CQavg * 1.025, 0.5, '$\overline{C_Q}$', color='b', size = 8)
+
         self.ax.text(0, 1.075, '$\overline{P_Q}$ = ' + str(np.round(PQavg, decimals=3)) 
                     + ' MHz' + '        $P_{Q,peak}$ = ' + str(np.round(peakPQ, decimals=3)) 
-                    + ' MHz', size = 9)
+                    + ' MHz', color='k', size = 9)
         self.ax.text(0, 1.025, '$\overline{C_Q}$ = ' + str(np.round(CQavg, decimals=3)) 
                     + ' MHz' + '        $C_{Q,peak}$ = ' + str(np.round(peakCQ, decimals=3)) 
                     + ' MHz', color='b', size = 9)
-        self.ax.scatter(peakCQ, eta[indices], color='w', edgecolor = 'b')
-        self.ax.text(peakCQ * 0.92, eta[indices] * 0.95, '$C_{Q,peak}$', color='b', size = 8)
         
-        self.ax.set_xlabel(u"C$_Q$ [MHz]")
-        self.ax.set_ylabel(u"η")
         self.canvas.draw()
 
     def saveDist(self):
