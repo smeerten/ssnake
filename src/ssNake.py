@@ -7611,7 +7611,7 @@ class dipolarDistanceWindow(wc.ToolWindow):
 
         self.spin1 = QtWidgets.QComboBox()
         self.spin1.addItems(self.Ioptions)
-        self.spin1.currentIndexChanged.connect(self.gamma1Changed)
+        self.spin1.currentIndexChanged.connect(self.spin1Changed)
         self.comFrame.addWidget(self.spin1, 4, 0)
         gamma2label = wc.QLabel(u'γ<sub>2</sub> [10<sup>7</sup> rad/s/T]:')
         self.comFrame.addWidget(gamma2label, 0, 1)
@@ -7623,7 +7623,7 @@ class dipolarDistanceWindow(wc.ToolWindow):
         self.comFrame.addWidget(spin2label, 3, 1)
         self.spin2 = QtWidgets.QComboBox()
         self.spin2.addItems(self.Ioptions)
-        self.spin2.currentIndexChanged.connect(self.gamma2Changed)
+        self.spin2.currentIndexChanged.connect(self.spin2Changed)
         self.comFrame.addWidget(self.spin2, 4, 1)
         self.comGroup.setLayout(self.comFrame)
         #addWidget - fromRow, fromColumn, rowSpan, columnSpan
@@ -7655,36 +7655,38 @@ class dipolarDistanceWindow(wc.ToolWindow):
         self.grid.addWidget(self.dipolarGroup, 7, 0, 2, 2)
         self.dipolarGroup.setLayout(self.dipolarFrame)
         # Second-moment group
-        self.M2Group = QtWidgets.QGroupBox("Second Moments: ")
+        self.M2Group = QtWidgets.QGroupBox(u"Second Moments [10⁶ rad²/s²]:")
         self.M2Frame = QtWidgets.QGridLayout()
         
-        M2hetGO = QtWidgets.QPushButton("Go")
-        self.M2Frame.addWidget(M2hetGO, 1, 0)
-        M2hetGO.clicked.connect(lambda: self.Calc(2))
-        M2label1 = wc.QLabel(u'M<sub>2</sub> [10<sup>6</sup> rad<sup>2</sup>/s<sup>2</sup>]')
-        self.M2Frame.addWidget(M2label1, 0, 1)
-        M2hetlabel = wc.QLabel(u'Heteronuclear')
-        self.M2Frame.addWidget(M2hetlabel, 0, 0)
-        self.M2het = wc.QLineEdit("0")
-        self.M2het.setMinimumWidth(100)
-        self.M2Frame.addWidget(self.M2het, 1, 1)
+        self.M2hetGO = QtWidgets.QPushButton("Go")
+        self.M2Frame.addWidget(self.M2hetGO, 1, 0)
+        self.M2hetGO.clicked.connect(lambda: self.Calc(2))
+        #M2label1 = wc.QLabel(u'M<sub>2</sub>')
+        #self.M2Frame.addWidget(M2label1, 0, 1)
+        self.M2label = wc.QLabel(u'Heteronuclear')
+        self.M2Frame.addWidget(self.M2label, 0, 0)
+        self.M2 = wc.QLineEdit("0")
+        self.M2.setMinimumWidth(100)
+        self.M2Frame.addWidget(self.M2, 1, 1)
+        # self.HetroWidgets = [self.M2hetGO,self.M2hetlabel,self.M2het]
         
-        M2homGO = QtWidgets.QPushButton("Go")
-        self.M2Frame.addWidget(M2homGO, 4, 0)
-        M2homGO.clicked.connect(lambda: self.Calc(3))
-        noqplabel = wc.QLabel(u'No quadrupolar interaction')
-        self.M2Frame.addWidget(noqplabel, 2, 1)
-        M2homlabel = wc.QLabel(u'Homonuclear')
-        self.M2Frame.addWidget(M2homlabel, 2, 0)
-        self.M2hom = wc.QLineEdit("0")
-        self.M2hom.setMinimumWidth(100)
-        self.M2Frame.addWidget(self.M2hom, 4, 1)
+        # self.M2homGO = QtWidgets.QPushButton("Go")
+        # self.M2Frame.addWidget(self.M2homGO, 4, 0)
+        # self.M2homGO.clicked.connect(lambda: self.Calc(3))
+        # self.noqplabel = wc.QLabel(u'No quadrupolar interaction')
+        # self.M2Frame.addWidget(self.noqplabel, 2, 1)
+        # self.M2homlabel = wc.QLabel(u'Homonuclear')
+        # self.M2Frame.addWidget(self.M2homlabel, 2, 0)
+        # self.M2hom = wc.QLineEdit("0")
+        # self.M2hom.setMinimumWidth(100)
+        # self.M2Frame.addWidget(self.M2hom, 4, 1)
+        # self.HomoWidgets = [self.M2homGO,self.noqplabel,self.M2homlabel,self.M2hom]
         
-        M2SEDGO = QtWidgets.QPushButton("Go")
-        self.M2Frame.addWidget(M2SEDGO, 6, 0)
-        M2SEDGO.clicked.connect(lambda: self.Calc(4))
-        M2SEDlabel = wc.QLabel(u'Spin Echo Decay Envelope (C<sub>Q</sub> > 0)')
-        self.M2Frame.addWidget(M2SEDlabel, 5, 1)
+        self.M2SEDGO = QtWidgets.QPushButton("Go")
+        self.M2Frame.addWidget(self.M2SEDGO, 6, 0)
+        self.M2SEDGO.clicked.connect(lambda: self.Calc(3))
+        self.M2SEDlabel = wc.QLeftLabel(u'Spin Echo Decay Envelope (C<sub>Q</sub> > 0)')
+        self.M2Frame.addWidget(self.M2SEDlabel, 5, 0,1,2)
         self.M2SED = wc.QLineEdit("0")
         self.M2SED.setMinimumWidth(100)
         self.M2Frame.addWidget(self.M2SED, 6, 1)
@@ -7700,28 +7702,66 @@ class dipolarDistanceWindow(wc.ToolWindow):
         self.okButton.clicked.disconnect()
         self.okButton.clicked.connect(self.valueReset)
 
+        self.checkHomoHetro()
+
+
+    def checkHomoHetro(self):
+        gamma1 = float(safeEval(self.gamma1.text(), Type='FI')) * 1e7
+        gamma2 = float(safeEval(self.gamma2.text(), Type='FI')) * 1e7
+        I1 = self.Ivalues[self.spin1.currentIndex()]
+        I2 = self.Ivalues[self.spin2.currentIndex()]
+        if gamma1 == gamma2 and I1 == I2:
+            self.M2label.setText(u'M₂ Homonuclear')
+            if I1 > 0.5:
+                self.M2SEDGO.show()
+                self.M2SEDlabel.show()
+                self.M2SED.show()
+            else:
+                self.M2SEDGO.hide()
+                self.M2SEDlabel.hide()
+                self.M2SED.hide()
+        else:
+            self.M2label.setText(u'M₂ Hetronuclear')
+            self.M2SEDGO.hide()
+            self.M2SEDlabel.hide()
+            self.M2SED.hide()
+    
+    def spin1Changed(self):
+        self.gamma1Drop.setCurrentIndex(0)
+        self.checkHomoHetro()
+        
+    def spin2Changed(self):
+        self.gamma2Drop.setCurrentIndex(0)
+        self.checkHomoHetro()
+            
     def gamma1Changed(self):
         self.gamma1Drop.setCurrentIndex(0)
+        self.checkHomoHetro()
 
     def gamma2Changed(self):
         self.gamma2Drop.setCurrentIndex(0)
+        self.checkHomoHetro()
 
     def setGamma1(self, index):
         if index != 0:
             self.spin1.setCurrentIndex(self.Ivalues.index(self.spinValues[index]))
             self.gamma1.setText(str(self.gammaValues[index]))
+            self.gamma1Drop.setCurrentIndex(index) #Needed to avoid resets by other boxes
+            self.checkHomoHetro()
 
     def setGamma2(self, index):
         if index != 0:
             self.spin2.setCurrentIndex(self.Ivalues.index(self.spinValues[index]))
             self.gamma2.setText(str(self.gammaValues[index]))
+            self.gamma2Drop.setCurrentIndex(index) #Needed to avoid resets by other boxes
+            self.checkHomoHetro()
 
     def Calc(self, Type):
         try:
             gamma1 = float(safeEval(self.gamma1.text(), Type='FI')) * 1e7
             gamma2 = float(safeEval(self.gamma2.text(), Type='FI')) * 1e7
             I1 = self.Ivalues[self.spin1.currentIndex()]
-            I2 = self.Ivalues[self.spin1.currentIndex()]
+            I2 = self.Ivalues[self.spin2.currentIndex()]
             #spin1 = float(safeEval(self.spin1.text(), Type='FI'))
             #spin2 = float(safeEval(self.spin2.text(), Type='FI'))
         except Exception:
@@ -7738,15 +7778,11 @@ class dipolarDistanceWindow(wc.ToolWindow):
                 raise SsnakeException("Dipolar Distance: Invalid input in D")
         if Type == 2:  # Heteronuclear second-moment as input
             try:
-                M2het = abs(float(safeEval(self.M2het.text(), Type='FI'))) 
+                M2 = abs(float(safeEval(self.M2.text(), Type='FI'))) 
             except Exception:
                 raise SsnakeException("Dipolar Distance: Invalid input in M2")
-        if Type == 3:  # Homonuclear second-moment as input
-            try:
-                M2hom = abs(float(safeEval(self.M2hom.text(), Type='FI'))) 
-            except Exception:
-                raise SsnakeException("Dipolar Distance: Invalid input in M2")
-        if Type == 4: # Homonuclear second-moment from spin echo decay
+
+        if Type == 3: # Homonuclear second-moment from spin echo decay
             try:
                 M2SED = abs(float(safeEval(self.M2SED.text(), Type='FI'))) 
             except Exception:
@@ -7761,8 +7797,7 @@ class dipolarDistanceWindow(wc.ToolWindow):
         if Type == 0:
             if r == 0.0:
                 D = np.inf
-                M2het = np.inf
-                M2hom = np.inf
+                M2 = np.inf
                 M2SED = np.inf
             else:
                 D = abs(- 1e-7 * gamma1 * gamma2 * hbar / (r * 10**-10) **3 / (2 * np.pi))
@@ -7771,20 +7806,18 @@ class dipolarDistanceWindow(wc.ToolWindow):
                     M2SED = abs(M2_Factor * (4/5) * (9/4) * 1e-14 * gamma1**4 * hbar**2 / ((r * 10**-10) **6))
                     # factor 4/5 results after powder averaging
                     M2SED /= 1e6
-                    M2hom = abs((3/5) * 1e-14 * gamma1**4 * I2 * (I2 + 1)* hbar**2 / ((r * 10**-10) **6))
-                    M2hom /= 1e6
-                    M2het = 0
+                    M2 = abs((3/5) * 1e-14 * gamma1**4 * I2 * (I2 + 1)* hbar**2 / ((r * 10**-10) **6))
+                    M2 /= 1e6
+                    
                 else:
-                    M2het = abs((4/15) * 1e-14 * gamma1**2 * gamma2**2 * I2 * (I2 + 1) * hbar**2 / ((r * 10**-10) **6))
-                    M2het /= 1e6
-                    M2hom = 0
+                    M2 = abs((4/15) * 1e-14 * gamma1**2 * gamma2**2 * I2 * (I2 + 1) * hbar**2 / ((r * 10**-10) **6))
+                    M2 /= 1e6
                     M2SED = 0
                     
         if Type == 1:
             if D == 0.0:
                 r = np.inf
-                M2het = 0.0
-                M2hom = 0.0
+                M2 = 0.0
                 M2SED = 0.0
             else:
                 r = 1 / abs(D * 1000 / gamma1 / gamma2 / hbar / 1e-7 * (2 * np.pi))**(1.0/3)
@@ -7792,59 +7825,42 @@ class dipolarDistanceWindow(wc.ToolWindow):
                 if gamma1 == gamma2:
                     M2SED = abs(M2_Factor * (4/5) * (9/4) * 1e-14 * gamma1**4 * hbar**2 / ((r * 10**-10) **6))
                     M2SED /= 1e6
-                    M2hom = abs((3/5) * 1e-14 * gamma1**4 * I2 * (I2 + 1)* hbar**2 / ((r * 10**-10) **6))
-                    M2hom /= 1e6
-                    M2het = 0
+                    M2 = abs((3/5) * 1e-14 * gamma1**4 * I2 * (I2 + 1)* hbar**2 / ((r * 10**-10) **6))
+                    M2 /= 1e6
                     #factor 4/5 results after powder averaging
+                    
                 else:
-                    M2het = abs((4/15) * 1e-14 * gamma1**2 * gamma2**2 * I2 * (I2 + 1) * hbar**2 / ((r * 10**-10) **6))
-                    M2het /= 1e6
+                    M2 = abs((4/15) * 1e-14 * gamma1**2 * gamma2**2 * I2 * (I2 + 1) * hbar**2 / ((r * 10**-10) **6))
+                    M2 /= 1e6
                     M2SED = 0.0
-                    M2hom = 0.0
+                    
         if Type == 2:
-            if M2het == 0:
+            if M2 == 0:
                 r = np.inf
                 D = 0.0
-                M2hom = 0.0
-                M2SED = 0.0
+                M2 = 0.0
             else:
                 if gamma1 == gamma2:
-                    raise SsnakeException("Choose two different nuclei.")
-                else:
-                    r = abs((4/15) * 1e-14 * gamma1**2 * gamma2**2 * I2 * (I2 + 1) * hbar**2 / (M2het * 10**6))
-                    r = r**(1/6)
-                    r *= 10**10
-                    D = abs(- 1e-7 * gamma1 * gamma2 * hbar / (r * 10**-10) **3 / (2 * np.pi))
-                    D /= 1000
-                    M2SED = 0.0
-                    M2hom = 0.0
-                
-        if Type == 3:
-            if M2hom == 0:
-                r = np.inf
-                D = 0.0
-                M2het = 0.0
-                M2SED = 0.0
-            else:
-                if gamma1 == gamma2:
-                    r = abs((3/5) * 1e-14 * gamma1**4 * I2 * (I2 + 1) * hbar**2 / (M2hom * 10**6))
+                    r = abs((3/5) * 1e-14 * gamma1**4 * I2 * (I2 + 1) * hbar**2 / (M2 * 10**6))
                     r = r**(1/6)
                     r *= 10**10
                     D = abs(- 1e-7 * gamma1 * gamma2 * hbar / (r * 10**-10) **3 / (2 * np.pi))
                     D /= 1000
                     M2SED = abs(M2_Factor * (4/5) * (9/4) * 1e-14 * gamma1**4 * hbar**2 / ((r * 10**-10) **6))
                     M2SED /= 1e6
-
-                    M2het = 0.0
                 else:
-                    raise SsnakeException("Choose two identical nuclei.")
+                    r = abs((4/15) * 1e-14 * gamma1**2 * gamma2**2 * I2 * (I2 + 1) * hbar**2 / (M2 * 10**6))
+                    r = r**(1/6)
+                    r *= 10**10
+                    D = abs(- 1e-7 * gamma1 * gamma2 * hbar / (r * 10**-10) **3 / (2 * np.pi))
+                    D /= 1000
+                    M2SED = 0.0
                 
-        if Type == 4:
+        if Type == 3:
             if M2SED == 0:
                 r = np.inf
                 D = 0.0
-                M2het = 0.0
-                M2hom = 0.0
+                M2 = 0.0
             else:
                 if gamma1 == gamma2:
                     r = abs(M2_Factor * (4/5) * (9/4) * 1e-14 * gamma1**4 * hbar**2 / (M2SED * 10**6))
@@ -7853,18 +7869,15 @@ class dipolarDistanceWindow(wc.ToolWindow):
                     r *= 10**10
                     D = abs(- 1e-7 * gamma1 * gamma2 * hbar / (r * 10**-10) **3 / (2 * np.pi))
                     D /= 1000
-                    M2hom = abs((3/5) * 1e-14 * gamma1**4 * I2 * (I2 + 1)* hbar**2 / ((r * 10**-10) **6))
-                    M2hom /= 1e6
-                    M2het = 0
-                    
+                    M2 = abs((3/5) * 1e-14 * gamma1**4 * I2 * (I2 + 1)* hbar**2 / ((r * 10**-10) **6))
+                    M2 /= 1e6
                 else:
                     raise SsnakeException("Choose two identical nuclei.")
             # else:
                 
         self.dipolar.setText('%#.5g' % D)
         self.distance.setText('%#.5g' % r)
-        self.M2het.setText('%#.5g' % M2het)
-        self.M2hom.setText('%#.5g' % M2hom)
+        self.M2.setText('%#.5g' % M2)
         self.M2SED.setText('%#.5g' % M2SED)
         # Implement FWHM of dipolar line as input
 
@@ -7880,6 +7893,7 @@ class dipolarDistanceWindow(wc.ToolWindow):
         self.spin1.setCurrentIndex(0)
         self.gamma1Drop.setCurrentIndex(0)
         self.gamma2Drop.setCurrentIndex(0)
+        self.checkHomoHetro()
 
     def closeEvent(self, *args):
         self.deleteLater()
