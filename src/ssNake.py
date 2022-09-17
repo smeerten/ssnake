@@ -7579,6 +7579,8 @@ class dipolarDistanceWindow(wc.ToolWindow):
     NAME = "Dipolar Distance Calculation"
     RESIZABLE = True
     MENUDISABLE = False
+    Ioptions = ['1/2','1', '3/2', '2', '5/2', '3', '7/2', '4', '9/2', '5', '6', '7']
+    Ivalues = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 6.0, 7.0]
 
     def __init__(self, parent):
         super(dipolarDistanceWindow, self).__init__(parent)
@@ -7606,9 +7608,10 @@ class dipolarDistanceWindow(wc.ToolWindow):
         self.comFrame.addWidget(self.gamma1, 2, 0)
         spin1label = wc.QLabel(u'<i>I</i><sub>1</sub>:')
         self.comFrame.addWidget(spin1label, 3, 0)
-        self.spin1 = wc.QLineEdit("0")
-        self.spin1.setMinimumWidth(100)
-        self.spin1.textEdited.connect(self.gamma1Changed)
+
+        self.spin1 = QtWidgets.QComboBox()
+        self.spin1.addItems(self.Ioptions)
+        self.spin1.currentIndexChanged.connect(self.gamma1Changed)
         self.comFrame.addWidget(self.spin1, 4, 0)
         gamma2label = wc.QLabel(u'γ<sub>2</sub> [10<sup>7</sup> rad/s/T]:')
         self.comFrame.addWidget(gamma2label, 0, 1)
@@ -7618,9 +7621,9 @@ class dipolarDistanceWindow(wc.ToolWindow):
         self.comFrame.addWidget(self.gamma2, 2, 1)
         spin2label = wc.QLabel(u'<i>I</i><sub>2</sub>:')
         self.comFrame.addWidget(spin2label, 3, 1)
-        self.spin2 = wc.QLineEdit("0")
-        self.spin2.setMinimumWidth(100)
-        self.spin2.textEdited.connect(self.gamma2Changed)
+        self.spin2 = QtWidgets.QComboBox()
+        self.spin2.addItems(self.Ioptions)
+        self.spin2.currentIndexChanged.connect(self.gamma2Changed)
         self.comFrame.addWidget(self.spin2, 4, 1)
         self.comGroup.setLayout(self.comFrame)
         #addWidget - fromRow, fromColumn, rowSpan, columnSpan
@@ -7705,19 +7708,22 @@ class dipolarDistanceWindow(wc.ToolWindow):
 
     def setGamma1(self, index):
         if index != 0:
+            self.spin1.setCurrentIndex(self.Ivalues.index(self.spinValues[index]))
             self.gamma1.setText(str(self.gammaValues[index]))
-            self.spin1.setText(str(self.spinValues[index]))
 
     def setGamma2(self, index):
         if index != 0:
+            self.spin2.setCurrentIndex(self.Ivalues.index(self.spinValues[index]))
             self.gamma2.setText(str(self.gammaValues[index]))
-            self.spin2.setText(str(self.spinValues[index]))
+
     def Calc(self, Type):
         try:
             gamma1 = float(safeEval(self.gamma1.text(), Type='FI')) * 1e7
             gamma2 = float(safeEval(self.gamma2.text(), Type='FI')) * 1e7
-            spin1 = float(safeEval(self.spin1.text(), Type='FI'))
-            spin2 = float(safeEval(self.spin2.text(), Type='FI'))
+            I1 = self.Ivalues[self.spin1.currentIndex()]
+            I2 = self.Ivalues[self.spin1.currentIndex()]
+            #spin1 = float(safeEval(self.spin1.text(), Type='FI'))
+            #spin2 = float(safeEval(self.spin2.text(), Type='FI'))
         except Exception:
             raise SsnakeException("Dipolar Distance: Invalid input in gamma values")
         if Type == 0:  # Distance as input
@@ -7748,9 +7754,9 @@ class dipolarDistanceWindow(wc.ToolWindow):
                 
         hbar = 1.054573e-34
         def wm(m):
-            return (1/2) * np.sqrt(spin2 * (spin2 + 1) - m * (m + 1))
+            return (1/2) * np.sqrt(I2 * (I2 + 1) - m * (m + 1))
         
-        M2_Factor = (2/(9*(2*spin2+1))) * (1 + 4*wm(-1/2)**2 + 4*wm(-1/2)**4 + wm(1/2)**4)
+        M2_Factor = (2/(9*(2*I2+1))) * (1 + 4*wm(-1/2)**2 + 4*wm(-1/2)**4 + wm(1/2)**4)
 
         if Type == 0:
             if r == 0.0:
@@ -7765,11 +7771,11 @@ class dipolarDistanceWindow(wc.ToolWindow):
                     M2SED = abs(M2_Factor * (4/5) * (9/4) * 1e-14 * gamma1**4 * hbar**2 / ((r * 10**-10) **6))
                     # factor 4/5 results after powder averaging
                     M2SED /= 1e6
-                    M2hom = abs((3/5) * 1e-14 * gamma1**4 * spin2 * (spin2 + 1)* hbar**2 / ((r * 10**-10) **6))
+                    M2hom = abs((3/5) * 1e-14 * gamma1**4 * I2 * (I2 + 1)* hbar**2 / ((r * 10**-10) **6))
                     M2hom /= 1e6
                     M2het = 0
                 else:
-                    M2het = abs((4/15) * 1e-14 * gamma1**2 * gamma2**2 * spin2 * (spin2 + 1) * hbar**2 / ((r * 10**-10) **6))
+                    M2het = abs((4/15) * 1e-14 * gamma1**2 * gamma2**2 * I2 * (I2 + 1) * hbar**2 / ((r * 10**-10) **6))
                     M2het /= 1e6
                     M2hom = 0
                     M2SED = 0
@@ -7786,12 +7792,12 @@ class dipolarDistanceWindow(wc.ToolWindow):
                 if gamma1 == gamma2:
                     M2SED = abs(M2_Factor * (4/5) * (9/4) * 1e-14 * gamma1**4 * hbar**2 / ((r * 10**-10) **6))
                     M2SED /= 1e6
-                    M2hom = abs((3/5) * 1e-14 * gamma1**4 * spin2 * (spin2 + 1)* hbar**2 / ((r * 10**-10) **6))
+                    M2hom = abs((3/5) * 1e-14 * gamma1**4 * I2 * (I2 + 1)* hbar**2 / ((r * 10**-10) **6))
                     M2hom /= 1e6
                     M2het = 0
                     #factor 4/5 results after powder averaging
                 else:
-                    M2het = abs((4/15) * 1e-14 * gamma1**2 * gamma2**2 * spin2 * (spin2 + 1) * hbar**2 / ((r * 10**-10) **6))
+                    M2het = abs((4/15) * 1e-14 * gamma1**2 * gamma2**2 * I2 * (I2 + 1) * hbar**2 / ((r * 10**-10) **6))
                     M2het /= 1e6
                     M2SED = 0.0
                     M2hom = 0.0
@@ -7805,7 +7811,7 @@ class dipolarDistanceWindow(wc.ToolWindow):
                 if gamma1 == gamma2:
                     raise SsnakeException("Choose two different nuclei.")
                 else:
-                    r = abs((4/15) * 1e-14 * gamma1**2 * gamma2**2 * spin2 * (spin2 + 1) * hbar**2 / (M2het * 10**6))
+                    r = abs((4/15) * 1e-14 * gamma1**2 * gamma2**2 * I2 * (I2 + 1) * hbar**2 / (M2het * 10**6))
                     r = r**(1/6)
                     r *= 10**10
                     D = abs(- 1e-7 * gamma1 * gamma2 * hbar / (r * 10**-10) **3 / (2 * np.pi))
@@ -7821,7 +7827,7 @@ class dipolarDistanceWindow(wc.ToolWindow):
                 M2SED = 0.0
             else:
                 if gamma1 == gamma2:
-                    r = abs((3/5) * 1e-14 * gamma1**4 * spin2 * (spin2 + 1) * hbar**2 / (M2hom * 10**6))
+                    r = abs((3/5) * 1e-14 * gamma1**4 * I2 * (I2 + 1) * hbar**2 / (M2hom * 10**6))
                     r = r**(1/6)
                     r *= 10**10
                     D = abs(- 1e-7 * gamma1 * gamma2 * hbar / (r * 10**-10) **3 / (2 * np.pi))
@@ -7847,7 +7853,7 @@ class dipolarDistanceWindow(wc.ToolWindow):
                     r *= 10**10
                     D = abs(- 1e-7 * gamma1 * gamma2 * hbar / (r * 10**-10) **3 / (2 * np.pi))
                     D /= 1000
-                    M2hom = abs((3/5) * 1e-14 * gamma1**4 * spin2 * (spin2 + 1)* hbar**2 / ((r * 10**-10) **6))
+                    M2hom = abs((3/5) * 1e-14 * gamma1**4 * I2 * (I2 + 1)* hbar**2 / ((r * 10**-10) **6))
                     M2hom /= 1e6
                     M2het = 0
                     
@@ -7870,8 +7876,8 @@ class dipolarDistanceWindow(wc.ToolWindow):
         self.M2SED.setText('0.0')
         self.gamma1.setText('0.0')
         self.gamma2.setText('0.0')
-        self.spin1.setText('0.0')
-        self.spin2.setText('0.0')
+        self.spin1.setCurrentIndex(0)
+        self.spin1.setCurrentIndex(0)
         self.gamma1Drop.setCurrentIndex(0)
         self.gamma2Drop.setCurrentIndex(0)
 
