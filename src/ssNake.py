@@ -7201,7 +7201,9 @@ class aboutWindow(wc.ToolWindow):
                           '<br>Qt ' + QtCore.QT_VERSION_STR)
         self.thanks = QtWidgets.QTextEdit(self)
         self.thanks.setReadOnly(True)
-        self.thanks.setHtml('<p><b>The ssNake team wishes to thank:</b></p>Prof. Arno Kentgens<br>Koen Tijssen<br>Ole Brauckmann<br>Merijn Blaakmeer<br>Vincent Breukels<br>Ernst van Eck<br>Fleur van Zelst<br>Sander Lambregts<br>Dr. Andreas Brinkmann')
+        self.thanks.setHtml('<p><b>The ssNake team wishes to thank:</b></p>Prof. Arno Kentgens<br>Koen Tijssen<br>' +
+                            'Ole Brauckmann<br>Merijn Blaakmeer<br>Vincent Breukels<br>Ernst van Eck<br>Fleur van Zelst<br>' +
+                            'Sander Lambregts<br>Dr. Andreas Brinkmann<br>Julien Trébosc<br>Henrik Bradtmüller')
         self.tabs.addTab(self.text, 'Version')
         self.tabs.addTab(self.thanks, 'Thanks')
         self.tabs.addTab(self.license, 'License')
