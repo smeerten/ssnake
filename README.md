@@ -83,6 +83,8 @@ Contact
 
 For question and suggestions mail to: ssnake@science.ru.nl
 
+Or use the GitHib [discussion forum](https://github.com/smeerten/ssnake/discussions)
+
 License
 -------
 
