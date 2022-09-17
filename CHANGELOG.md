@@ -4,14 +4,17 @@ Changelog
 All notable changes to this project will be documented in this file.
 
 
-## [1.3] - 
+## [1.4] - 
 ### Added
 - Export to CSV file option.
 - Fitting: color boxes added to interface, indicating color per site
-- Bruker fid load now up to 8 dimensions
+- Bruker fid load now works for up to 8 dimensions
 - Custom x-axis can be restored after an operation cleared this
 - Bruker type data from WSolids can now be loaded
 - Fitting: improved parameter save. 
+- Dipolar tool: Now also calculates second moments (credits: Henrik Bradtmüller)
+- Fitting: Include separate Lorentz value for satellite transitions (credits: Julien Trébosc)
+- Fitting: Adds average Pq and peak Cq values to the Czjzek Distribution Plot (credits: Henrik Bradtmüller)
 ### Removed
 - Python2 support.
 - Qt4 support.
@@ -20,6 +23,7 @@ All notable changes to this project will be documented in this file.
 - MQMAS fitting: Now has chemical shift distribution settings instead of Gauss
 - Colour plat shading set to 'hanning'
 - Diffusion fit: 2 * pi factor added
+- NMR table: update quadrupolar moment to latest values.
 ### Fixed
 - Diagonal projection in 2D plot with a small SW in the indirect dim
 - A bug occurring when switching between 1/2D plots for high dimensional data
