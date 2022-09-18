@@ -28,7 +28,7 @@ All notable changes to this project will be documented in this file.
 - Diagonal projection in 2D plot with a small SW in the indirect dim
 - A bug occurring when switching between 1/2D plots for high dimensional data
 
-## [1.3] - 
+## [1.3] - 2020-10-15
 ### Added
 - Added warning that PyQt4 and python2 support will be dropped soon
 - Extract part function now has step size
