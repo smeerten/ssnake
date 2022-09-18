@@ -21,9 +21,9 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - Bruker spectra load: better intensity scaling using NC_proc setting
 - MQMAS fitting: Now has chemical shift distribution settings instead of Gauss
-- Colour plat shading set to 'hanning'
+- Colour plot shading set to 'hanning'
 - Diffusion fit: 2 * pi factor added
-- NMR table: update quadrupolar moment to latest values.
+- NMR table: update quadrupolar moments to latest values.
 ### Fixed
 - Diagonal projection in 2D plot with a small SW in the indirect dim
 - A bug occurring when switching between 1/2D plots for high dimensional data
