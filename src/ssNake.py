@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# Copyright 2016 - 2021 Bas van Meerten and Wouter Franssen
+# Copyright 2016 - 2022 Bas van Meerten and Wouter Franssen
 
 # This file is part of ssNake.
 #
@@ -96,7 +96,7 @@ matplotlib.rc('font', family='DejaVu Sans')
 np.set_printoptions(threshold=sys.maxsize)
 QtCore.QLocale.setDefault(QtCore.QLocale('en_US'))
 
-VERSION = 'v1.4b'
+VERSION = 'v1.4'
 # Required library version
 NPVERSION = '1.11.0'
 MPLVERSION = '1.5.0'
@@ -411,6 +411,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                    ['File --> Export --> Figure', self.savefigAct],
                                    ['File --> Export --> Simpson', self.saveSimpsonAct],
                                    ['File --> Export --> ASCII (1D/2D)', self.saveASCIIAct],
+                                   ['File --> Export --> CSV (1D/2D)', self.saveCSVAct],
                                    ['File --> Preferences', self.preferencesAct],
                                    ['File --> Quit', self.quitAct],
                                    ['Workspaces --> Duplicate', self.newAct],
@@ -554,14 +555,16 @@ class MainProgram(QtWidgets.QMainWindow):
         self.saveSimpsonAct.setToolTip('Export as Simpson File')
         self.saveASCIIAct = self.exportmenu.addAction(QtGui.QIcon(IconDirectory + 'ASCII.png'), 'ASCII (1D/2D)', self.saveASCIIFile)
         self.saveASCIIAct.setToolTip('Save as ASCII Text File')
+        self.saveCSVAct = self.exportmenu.addAction(QtGui.QIcon(IconDirectory + 'CSV.png'),'CSV (1D/2D)', self.saveCSVFile)
+        self.saveCSVAct.setToolTip('Save as CSV Text File')
         self.preferencesAct = self.filemenu.addAction(QtGui.QIcon(IconDirectory + 'preferences.png'), '&Preferences', lambda: PreferenceWindow(self))
         self.preferencesAct.setToolTip('Open Preferences Window')
         self.quitAct = self.filemenu.addAction(QtGui.QIcon(IconDirectory + 'quit.png'), '&Quit', self.fileQuit, QtGui.QKeySequence.Quit)
         self.quitAct.setToolTip('Close ssNake')
         self.saveActList = [self.saveAct, self.saveMatAct]
-        self.exportActList = [self.savefigAct, self.saveSimpsonAct, self.saveASCIIAct]
+        self.exportActList = [self.savefigAct, self.saveSimpsonAct, self.saveASCIIAct,self.saveCSVAct]
         self.fileActList = [self.openAct, self.saveAct, self.saveMatAct,
-                            self.savefigAct, self.saveSimpsonAct, self.saveASCIIAct,
+                            self.savefigAct, self.saveSimpsonAct, self.saveASCIIAct,self.saveCSVAct,
                             self.combineLoadAct, self.preferencesAct, self.quitAct]
         # Workspaces menu
         self.workspacemenu = QtWidgets.QMenu('&Workspaces', self)
@@ -1556,6 +1559,9 @@ class MainProgram(QtWidgets.QMainWindow):
     def saveASCIIFile(self):
         self.mainWindow.get_mainWindow().saveASCIIFile()
 
+    def saveCSVFile(self):
+        self.mainWindow.get_mainWindow().saveCSVFile()
+
     def saveJSONFile(self):
         self.mainWindow.get_mainWindow().saveJSONFile()
 
@@ -1821,6 +1827,19 @@ class Main1DWindow(QtWidgets.QWidget):
         self.father.lastLocation = os.path.dirname(name)  # Save used path
         axMult = self.current.getCurrentAxMult()
         io.saveASCIIFile(name, self.masterData, axMult)
+
+    def saveCSVFile(self):
+        if self.masterData.ndim() > 2:
+            raise SsnakeException('Saving to CSV format only allowed for 1D and 2D data!')
+        WorkspaceName = self.father.workspaceNames[self.father.workspaceNum]  # Set name of file to be saved to workspace name to start
+        name = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', self.father.lastLocation + os.path.sep + WorkspaceName + '.txt', 'CSV file (*.csv)')
+        if isinstance(name, tuple):
+            name = name[0]
+        if not name:
+            return
+        self.father.lastLocation = os.path.dirname(name)  # Save used path
+        axMult = self.current.getCurrentAxMult()
+        io.saveASCIIFile(name, self.masterData, axMult,delim = ',')
 
     def reloadLast(self):
         self.current.reload()
@@ -7173,7 +7192,7 @@ class aboutWindow(wc.ToolWindow):
         pythonVersion = pythonVersion[:pythonVersion.index(' ')]
         from scipy import __version__ as scipyVersion
         self.text.setText('<p><b>ssNake ' + VERSION + '</b></p>' +
-                          '<p>Copyright (&copy;) 2016&ndash;2021 Bas van Meerten & Wouter Franssen</p>' + '<p>Email: <a href="mailto:ssnake@science.ru.nl" >ssnake@science.ru.nl</a></p>' +
+                          '<p>Copyright (&copy;) 2016&ndash;2022 Bas van Meerten & Wouter Franssen</p>' + '<p>Email: <a href="mailto:ssnake@science.ru.nl" >ssnake@science.ru.nl</a></p>' +
                           '<p>Publication: <a href="https://doi.org/10.1016/j.jmr.2019.02.006" >https://doi.org/10.1016/j.jmr.2019.02.006</a></p>' +
                           '<b>Library versions</b>:<br>Python ' + pythonVersion + '<br>numpy ' + np.__version__ +
                           '<br>SciPy ' + scipyVersion +
@@ -7182,7 +7201,9 @@ class aboutWindow(wc.ToolWindow):
                           '<br>Qt ' + QtCore.QT_VERSION_STR)
         self.thanks = QtWidgets.QTextEdit(self)
         self.thanks.setReadOnly(True)
-        self.thanks.setHtml('<p><b>The ssNake team wishes to thank:</b></p>Prof. Arno Kentgens<br>Koen Tijssen<br>Ole Brauckmann<br>Merijn Blaakmeer<br>Vincent Breukels<br>Ernst van Eck<br>Fleur van Zelst<br>Sander Lambregts<br>Dr. Andreas Brinkmann')
+        self.thanks.setHtml('<p><b>The ssNake team wishes to thank:</b></p>Prof. Arno Kentgens<br>Koen Tijssen<br>' +
+                            'Ole Brauckmann<br>Merijn Blaakmeer<br>Vincent Breukels<br>Ernst van Eck<br>Fleur van Zelst<br>' +
+                            'Sander Lambregts<br>Dr. Andreas Brinkmann<br>Julien Trébosc<br>Henrik Bradtmüller')
         self.tabs.addTab(self.text, 'Version')
         self.tabs.addTab(self.thanks, 'Thanks')
         self.tabs.addTab(self.license, 'License')
@@ -7560,17 +7581,21 @@ class dipolarDistanceWindow(wc.ToolWindow):
     NAME = "Dipolar Distance Calculation"
     RESIZABLE = True
     MENUDISABLE = False
+    Ioptions = ['1/2','1', '3/2', '2', '5/2', '3', '7/2', '4', '9/2', '5', '6', '7']
+    Ivalues = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 6.0, 7.0]
 
     def __init__(self, parent):
         super(dipolarDistanceWindow, self).__init__(parent)
-        self.comGroup = QtWidgets.QGroupBox("Gyromagnetic Ratios:")
+        # Nuclei group
+        self.comGroup = QtWidgets.QGroupBox("Gyromagnetic Ratios and Spin Quantum Numbers:")
         self.comFrame = QtWidgets.QGridLayout()
         gamma1label = wc.QLabel(u'γ<sub>1</sub> [10<sup>7</sup> rad/s/T]:')
         self.comFrame.addWidget(gamma1label, 0, 0)
 
         gammaindex = [x for (x, val) in enumerate(ISOTOPES['gamma']) if val is not None]
         self.gammaValues = [0.0] + [val for (x, val) in enumerate(ISOTOPES['gamma']) if x in gammaindex]
-        self.names = ['User'] +  [val for (x, val) in enumerate(ISOTOPES['formatName']) if x in gammaindex]
+        self.spinValues = [0.0] + [val for (x, val) in enumerate(ISOTOPES['spin']) if x in gammaindex]
+        self.names = ['User'] + [val for (x, val) in enumerate(ISOTOPES['formatName']) if x in gammaindex]
         self.gamma1Drop = QtWidgets.QComboBox()
         self.gamma1Drop.addItems(self.names)
         self.gamma1Drop.currentIndexChanged.connect(self.setGamma1)
@@ -7583,39 +7608,93 @@ class dipolarDistanceWindow(wc.ToolWindow):
         self.gamma1.setMinimumWidth(100)
         self.gamma1.textEdited.connect(self.gamma1Changed)
         self.comFrame.addWidget(self.gamma1, 2, 0)
+        spin1label = wc.QLabel(u'<i>I</i><sub>1</sub>:')
+        self.comFrame.addWidget(spin1label, 3, 0)
+
+        self.spin1 = QtWidgets.QComboBox()
+        self.spin1.addItems(self.Ioptions)
+        self.spin1.currentIndexChanged.connect(self.spin1Changed)
+        self.comFrame.addWidget(self.spin1, 4, 0)
         gamma2label = wc.QLabel(u'γ<sub>2</sub> [10<sup>7</sup> rad/s/T]:')
         self.comFrame.addWidget(gamma2label, 0, 1)
         self.gamma2 = wc.QLineEdit("0.0")
         self.gamma2.setMinimumWidth(100)
         self.gamma2.textEdited.connect(self.gamma2Changed)
         self.comFrame.addWidget(self.gamma2, 2, 1)
+        spin2label = wc.QLabel(u'<i>I</i><sub>2</sub>:')
+        self.comFrame.addWidget(spin2label, 3, 1)
+        self.spin2 = QtWidgets.QComboBox()
+        self.spin2.addItems(self.Ioptions)
+        self.spin2.currentIndexChanged.connect(self.spin2Changed)
+        self.comFrame.addWidget(self.spin2, 4, 1)
         self.comGroup.setLayout(self.comFrame)
-        self.grid.addWidget(self.comGroup, 1, 0, 1, 3)
+        #addWidget - fromRow, fromColumn, rowSpan, columnSpan
+        self.grid.addWidget(self.comGroup, 0, 0, 5, 2)
+        # Distance group
         self.distanceGroup = QtWidgets.QGroupBox("Distance:")
         self.distanceFrame = QtWidgets.QGridLayout()
         distancelabel = wc.QLabel(u'r [Å]')
-        self.distanceFrame.addWidget(distancelabel, 3, 1)
+        self.distanceFrame.addWidget(distancelabel, 0, 1)
         distanceGO = QtWidgets.QPushButton("Go")
-        self.distanceFrame.addWidget(distanceGO, 4, 0)
+        self.distanceFrame.addWidget(distanceGO, 1, 0)
         distanceGO.clicked.connect(lambda: self.Calc(0))
         self.distance = wc.QLineEdit("0")
         self.distance.setMinimumWidth(100)
-        self.distanceFrame.addWidget(self.distance, 4, 1)
+        self.distanceFrame.addWidget(self.distance, 1, 1)
         self.distanceGroup.setLayout(self.distanceFrame)
-        self.grid.addWidget(self.distanceGroup, 3, 0, 1, 2)
-
+        self.grid.addWidget(self.distanceGroup, 5, 0, 2, 2)
+        # Dipolar coupling group
         self.dipolarGroup = QtWidgets.QGroupBox("Dipolar Coupling:")
         self.dipolarFrame = QtWidgets.QGridLayout()
         dipolarlabel = wc.QLabel(u'D [kHz]')
-        self.dipolarFrame.addWidget(dipolarlabel, 3, 1)
+        self.dipolarFrame.addWidget(dipolarlabel, 0, 1)
         dipolarGO = QtWidgets.QPushButton("Go")
-        self.dipolarFrame.addWidget(dipolarGO, 4, 0)
+        self.dipolarFrame.addWidget(dipolarGO, 1, 0)
         dipolarGO.clicked.connect(lambda: self.Calc(1))
         self.dipolar = wc.QLineEdit("0")
         self.dipolar.setMinimumWidth(100)
-        self.dipolarFrame.addWidget(self.dipolar, 4, 1)
+        self.dipolarFrame.addWidget(self.dipolar, 1, 1)
+        self.grid.addWidget(self.dipolarGroup, 7, 0, 2, 2)
         self.dipolarGroup.setLayout(self.dipolarFrame)
-        self.grid.addWidget(self.dipolarGroup, 4, 0, 1, 2)
+        # Second-moment group
+        self.M2Group = QtWidgets.QGroupBox(u"Second Moments [10⁶ rad²/s²]:")
+        self.M2Frame = QtWidgets.QGridLayout()
+        
+        self.M2hetGO = QtWidgets.QPushButton("Go")
+        self.M2Frame.addWidget(self.M2hetGO, 1, 0)
+        self.M2hetGO.clicked.connect(lambda: self.Calc(2))
+        #M2label1 = wc.QLabel(u'M<sub>2</sub>')
+        #self.M2Frame.addWidget(M2label1, 0, 1)
+        self.M2label = wc.QLabel(u'Heteronuclear')
+        self.M2Frame.addWidget(self.M2label, 0, 0)
+        self.M2 = wc.QLineEdit("0")
+        self.M2.setMinimumWidth(100)
+        self.M2Frame.addWidget(self.M2, 1, 1)
+        # self.HetroWidgets = [self.M2hetGO,self.M2hetlabel,self.M2het]
+        
+        # self.M2homGO = QtWidgets.QPushButton("Go")
+        # self.M2Frame.addWidget(self.M2homGO, 4, 0)
+        # self.M2homGO.clicked.connect(lambda: self.Calc(3))
+        # self.noqplabel = wc.QLabel(u'No quadrupolar interaction')
+        # self.M2Frame.addWidget(self.noqplabel, 2, 1)
+        # self.M2homlabel = wc.QLabel(u'Homonuclear')
+        # self.M2Frame.addWidget(self.M2homlabel, 2, 0)
+        # self.M2hom = wc.QLineEdit("0")
+        # self.M2hom.setMinimumWidth(100)
+        # self.M2Frame.addWidget(self.M2hom, 4, 1)
+        # self.HomoWidgets = [self.M2homGO,self.noqplabel,self.M2homlabel,self.M2hom]
+        
+        self.M2SEDGO = QtWidgets.QPushButton("Go")
+        self.M2Frame.addWidget(self.M2SEDGO, 6, 0)
+        self.M2SEDGO.clicked.connect(lambda: self.Calc(3))
+        self.M2SEDlabel = wc.QLeftLabel(u'Spin Echo Decay Envelope (C<sub>Q</sub> > 0)')
+        self.M2Frame.addWidget(self.M2SEDlabel, 5, 0,1,2)
+        self.M2SED = wc.QLineEdit("0")
+        self.M2SED.setMinimumWidth(100)
+        self.M2Frame.addWidget(self.M2SED, 6, 1)
+        
+        self.grid.addWidget(self.M2Group, 9, 0, 2, 2)
+        self.M2Group.setLayout(self.M2Frame)
 
         # Reset
         self.cancelButton.setText("Close")
@@ -7625,24 +7704,68 @@ class dipolarDistanceWindow(wc.ToolWindow):
         self.okButton.clicked.disconnect()
         self.okButton.clicked.connect(self.valueReset)
 
+        self.checkHomoHetro()
+
+
+    def checkHomoHetro(self):
+        gamma1 = float(safeEval(self.gamma1.text(), Type='FI')) * 1e7
+        gamma2 = float(safeEval(self.gamma2.text(), Type='FI')) * 1e7
+        I1 = self.Ivalues[self.spin1.currentIndex()]
+        I2 = self.Ivalues[self.spin2.currentIndex()]
+        if gamma1 == gamma2 and I1 == I2:
+            self.M2label.setText(u'M₂ Homonuclear')
+            if I1 > 0.5:
+                self.M2SEDGO.show()
+                self.M2SEDlabel.show()
+                self.M2SED.show()
+            else:
+                self.M2SEDGO.hide()
+                self.M2SEDlabel.hide()
+                self.M2SED.hide()
+        else:
+            self.M2label.setText(u'M₂ Hetronuclear')
+            self.M2SEDGO.hide()
+            self.M2SEDlabel.hide()
+            self.M2SED.hide()
+    
+    def spin1Changed(self):
+        self.gamma1Drop.setCurrentIndex(0)
+        self.checkHomoHetro()
+        
+    def spin2Changed(self):
+        self.gamma2Drop.setCurrentIndex(0)
+        self.checkHomoHetro()
+            
     def gamma1Changed(self):
         self.gamma1Drop.setCurrentIndex(0)
+        self.checkHomoHetro()
 
     def gamma2Changed(self):
         self.gamma2Drop.setCurrentIndex(0)
+        self.checkHomoHetro()
 
     def setGamma1(self, index):
         if index != 0:
+            self.spin1.setCurrentIndex(self.Ivalues.index(self.spinValues[index]))
             self.gamma1.setText(str(self.gammaValues[index]))
+            self.gamma1Drop.setCurrentIndex(index) #Needed to avoid resets by other boxes
+            self.checkHomoHetro()
 
     def setGamma2(self, index):
         if index != 0:
+            self.spin2.setCurrentIndex(self.Ivalues.index(self.spinValues[index]))
             self.gamma2.setText(str(self.gammaValues[index]))
+            self.gamma2Drop.setCurrentIndex(index) #Needed to avoid resets by other boxes
+            self.checkHomoHetro()
 
     def Calc(self, Type):
         try:
             gamma1 = float(safeEval(self.gamma1.text(), Type='FI')) * 1e7
             gamma2 = float(safeEval(self.gamma2.text(), Type='FI')) * 1e7
+            I1 = self.Ivalues[self.spin1.currentIndex()]
+            I2 = self.Ivalues[self.spin2.currentIndex()]
+            #spin1 = float(safeEval(self.spin1.text(), Type='FI'))
+            #spin2 = float(safeEval(self.spin2.text(), Type='FI'))
         except Exception:
             raise SsnakeException("Dipolar Distance: Invalid input in gamma values")
         if Type == 0:  # Distance as input
@@ -7650,34 +7773,129 @@ class dipolarDistanceWindow(wc.ToolWindow):
                 r = abs(float(safeEval(self.distance.text(), Type='FI')))
             except Exception:
                 raise SsnakeException("Dipolar Distance: Invalid input in r")
-        if Type == 1:
+        if Type == 1:  # Dipolar coupling as input
             try:
                 D = abs(float(safeEval(self.dipolar.text(), Type='FI')))
             except Exception:
                 raise SsnakeException("Dipolar Distance: Invalid input in D")
+        if Type == 2:  # Heteronuclear second-moment as input
+            try:
+                M2 = abs(float(safeEval(self.M2.text(), Type='FI'))) 
+            except Exception:
+                raise SsnakeException("Dipolar Distance: Invalid input in M2")
+
+        if Type == 3: # Homonuclear second-moment from spin echo decay
+            try:
+                M2SED = abs(float(safeEval(self.M2SED.text(), Type='FI'))) 
+            except Exception:
+                raise SsnakeException("Dipolar Distance: Invalid input in M2")
+                
         hbar = 1.054573e-34
+        def wm(m):
+            return (1/2) * np.sqrt(I2 * (I2 + 1) - m * (m + 1))
+        
+        M2_Factor = (2/(9*(2*I2+1))) * (1 + 4*wm(-1/2)**2 + 4*wm(-1/2)**4 + wm(1/2)**4)
+
         if Type == 0:
             if r == 0.0:
                 D = np.inf
+                M2 = np.inf
+                M2SED = np.inf
             else:
                 D = abs(- 1e-7 * gamma1 * gamma2 * hbar / (r * 10**-10) **3 / (2 * np.pi))
                 D /= 1000
+                if gamma1 == gamma2:
+                    M2SED = abs(M2_Factor * (4/5) * (9/4) * 1e-14 * gamma1**4 * hbar**2 / ((r * 10**-10) **6))
+                    # factor 4/5 results after powder averaging
+                    M2SED /= 1e6
+                    M2 = abs((3/5) * 1e-14 * gamma1**4 * I2 * (I2 + 1)* hbar**2 / ((r * 10**-10) **6))
+                    M2 /= 1e6
+                    
+                else:
+                    M2 = abs((4/15) * 1e-14 * gamma1**2 * gamma2**2 * I2 * (I2 + 1) * hbar**2 / ((r * 10**-10) **6))
+                    M2 /= 1e6
+                    M2SED = 0
+                    
         if Type == 1:
             if D == 0.0:
                 r = np.inf
+                M2 = 0.0
+                M2SED = 0.0
             else:
-                r = 1 / abs(D * 1000 /gamma1 / gamma2 / hbar / 1e-7 * (2 * np.pi))**(1.0/3)
+                r = 1 / abs(D * 1000 / gamma1 / gamma2 / hbar / 1e-7 * (2 * np.pi))**(1.0/3)
                 r *= 1e10
+                if gamma1 == gamma2:
+                    M2SED = abs(M2_Factor * (4/5) * (9/4) * 1e-14 * gamma1**4 * hbar**2 / ((r * 10**-10) **6))
+                    M2SED /= 1e6
+                    M2 = abs((3/5) * 1e-14 * gamma1**4 * I2 * (I2 + 1)* hbar**2 / ((r * 10**-10) **6))
+                    M2 /= 1e6
+                    #factor 4/5 results after powder averaging
+                    
+                else:
+                    M2 = abs((4/15) * 1e-14 * gamma1**2 * gamma2**2 * I2 * (I2 + 1) * hbar**2 / ((r * 10**-10) **6))
+                    M2 /= 1e6
+                    M2SED = 0.0
+                    
+        if Type == 2:
+            if M2 == 0:
+                r = np.inf
+                D = 0.0
+                M2 = 0.0
+            else:
+                if gamma1 == gamma2:
+                    r = abs((3/5) * 1e-14 * gamma1**4 * I2 * (I2 + 1) * hbar**2 / (M2 * 10**6))
+                    r = r**(1/6)
+                    r *= 10**10
+                    D = abs(- 1e-7 * gamma1 * gamma2 * hbar / (r * 10**-10) **3 / (2 * np.pi))
+                    D /= 1000
+                    M2SED = abs(M2_Factor * (4/5) * (9/4) * 1e-14 * gamma1**4 * hbar**2 / ((r * 10**-10) **6))
+                    M2SED /= 1e6
+                else:
+                    r = abs((4/15) * 1e-14 * gamma1**2 * gamma2**2 * I2 * (I2 + 1) * hbar**2 / (M2 * 10**6))
+                    r = r**(1/6)
+                    r *= 10**10
+                    D = abs(- 1e-7 * gamma1 * gamma2 * hbar / (r * 10**-10) **3 / (2 * np.pi))
+                    D /= 1000
+                    M2SED = 0.0
+                
+        if Type == 3:
+            if M2SED == 0:
+                r = np.inf
+                D = 0.0
+                M2 = 0.0
+            else:
+                if gamma1 == gamma2:
+                    r = abs(M2_Factor * (4/5) * (9/4) * 1e-14 * gamma1**4 * hbar**2 / (M2SED * 10**6))
+                    # factors 4/5 and 9/4 result from powder averaging
+                    r = r**(1/6)
+                    r *= 10**10
+                    D = abs(- 1e-7 * gamma1 * gamma2 * hbar / (r * 10**-10) **3 / (2 * np.pi))
+                    D /= 1000
+                    M2 = abs((3/5) * 1e-14 * gamma1**4 * I2 * (I2 + 1)* hbar**2 / ((r * 10**-10) **6))
+                    M2 /= 1e6
+                else:
+                    raise SsnakeException("Choose two identical nuclei.")
+            # else:
+                
         self.dipolar.setText('%#.5g' % D)
         self.distance.setText('%#.5g' % r)
+        self.M2.setText('%#.5g' % M2)
+        self.M2SED.setText('%#.5g' % M2SED)
+        # Implement FWHM of dipolar line as input
 
     def valueReset(self):  # Resets all the boxes to 0
         self.dipolar.setText('0.0')
         self.distance.setText('0.0')
+        self.M2het.setText('0.0')
+        self.M2hom.setText('0.0')
+        self.M2SED.setText('0.0')
         self.gamma1.setText('0.0')
         self.gamma2.setText('0.0')
+        self.spin1.setCurrentIndex(0)
+        self.spin1.setCurrentIndex(0)
         self.gamma1Drop.setCurrentIndex(0)
         self.gamma2Drop.setCurrentIndex(0)
+        self.checkHomoHetro()
 
     def closeEvent(self, *args):
         self.deleteLater()

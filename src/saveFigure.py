@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2016 - 2021 Bas van Meerten and Wouter Franssen
+# Copyright 2016 - 2022 Bas van Meerten and Wouter Franssen
 
 # This file is part of ssNake.
 #
@@ -130,8 +130,8 @@ class SaveFigureWindow(QtWidgets.QWidget):
         self.dpiEntry = QtWidgets.QSpinBox()
         self.dpiEntry.setSingleStep(1)
         self.dpiEntry.setMinimum(0)
-        self.dpiEntry.setMaximum(1e6)
-        self.dpiEntry.setValue(self.fig.dpi)
+        self.dpiEntry.setMaximum(int(1e6))
+        self.dpiEntry.setValue(int(self.fig.dpi))
         self.dpiEntry.valueChanged.connect(self.updatePlot)
         self.dimensionsFrame.addWidget(self.dpiEntry, 2, 1)
         self.dimensionsGroup.setLayout(self.dimensionsFrame)

@@ -885,15 +885,6 @@ same as using a first order phase correction with the correct phase (i.e. number
 Bruker and JEOL data, the required phase shift is extracted from the parameters files. Failing to
 use this function for these data leads to a spectrum with a strong first order phasing error.
 
-
-\subsection{Scale SW}
-A function to scale the spectra width (i.e. the sweepwidth) of the current dimension. Essentially,
-this can also be done in the main windows, by filling in $a * b$, with $a$ the current SW and $b$
-the multiplication factor. This tool is included for MQMAS data processing, were a scaling of SW of the
-indirect dimension can be used to get a true isotropic dimension (i.e. 1 ppm chemical shift
-corresponds to a 1 ppm peak shift). This scaling factor for this is $Q$ and $I$ dependent, and can be selected in
-this tool via an easy dropdown menu.
-
 % \subsubsection*{Background}
 % In theory, the recording of an NMR signal starts directly after the excitation point. The signal can then be easily described by a decaying exponential (or another function) and the Fourier transform does not show surprises. NMR data measured on a Bruker device, however, has the peculiar attribute that it starts \textit{before} the physical start of the signal. The origin of this lies in the way Bruker spectrometers use their digital filter, of which the details will not be described here. Direct Fourier transformation of this signal will lead to massive oscillations in the baseline of the resulting spectrum.
 
@@ -903,6 +894,14 @@ this tool via an easy dropdown menu.
 To automate this process, ssNake uses information from a text by W.\ M.\ Westler and F.\ Abildgaard. Every Bruker NMR spectrometer has its own characteristics, and therefore needs a different amount of first order phase correction. For older Bruker hardware, the amount of correction is found by extracting two parameters from the Bruker acqus file, and to use a lookup table supplied by Westler \& Abildgaard. For newer hardware, this value can be read directly from the acqus file.
 
 Using this tool opens a windows, in which you have to open (again) the current Bruker file. ssNake then finds the desired phase correction and applies it to all traces.
+
+\subsection{Scale SW}
+A function to scale the spectra width (i.e. the sweepwidth) of the current dimension. Essentially,
+this can also be done in the main windows, by filling in $a * b$, with $a$ the current SW and $b$
+the multiplication factor. This tool is included for MQMAS data processing, were a scaling of SW of the
+indirect dimension can be used to get a true isotropic dimension (i.e. 1 ppm chemical shift
+corresponds to a 1 ppm peak shift). This scaling factor for this is $Q$ and $I$ dependent, and can be selected in
+this tool via an easy dropdown menu.
 
 \subsection{Reference}
 This is a collection of tools to set the current reference (0 frequency) of the current spectrum.
@@ -1558,7 +1557,8 @@ solution. General values that need to be set are:
 \item The MAS method: static, finite or infinite
 \item The spinning speed in kHz (when MAS is on `finite').
 \item The number of sidebands (when MAS is on `finite'). This value must always be larger then the
-  expected number of spinning sidebands. When too few sidebands are simulated, the sideband intensities will be off. Larger values take more time to simulate. For efficiency powers of two should be used.
+  expected number of spinning sidebands. When too few sidebands are simulated, the sideband intensities will be off. 
+Larger values take more time to simulate. For efficiency powers of two should be used.
 \item The rotor angle in radian (when MAS is not static). Default is the magic angle:
 	 $\text{arctan}(\sqrt{2})$
 \end{itemize}
@@ -1567,7 +1567,8 @@ And for each site:
 \item The three chemical shift values (depend on the definition) in units of the current axis.
 \item Integral: total integral of the lineshape
 \item Lorentz: amount of Lorentzian linebroading in Hz
-\item Gauss: amount of Gaussian linebroading in Hz.
+\item Gauss: amount of Gaussian linebroading in units of the current axis. Note that Gauss in ppm should be used to 
+            describe chemical shift distribution.
 \end{itemize}
 A maximum of 10 sites can be fitted simultaneously.
 
@@ -1626,18 +1627,22 @@ be turned on or of. General values that need to be set are:
 \item The rotor angle in radian (when MAS is not `static'). Default is the magic angle:
 	 $\text{arctan}(\sqrt{2})$
 \item The number of sidebands (when MAS is on `finite'). This value must always be larger then the
-  expected number of spinning sidebands. When too few sidebands are simulated, the sideband intensities will be off. Larger values take more time to simulate. For efficiency powers of two should be used.
+  expected number of spinning sidebands. When too few sidebands are simulated, the sideband intensities 
+will be off. Larger values take more time to simulate. For efficiency powers of two should be used.
 \item The spinning speed in kHz (when MAS is on `finite').
 \item The background (constant value added to all data points)
 \end{itemize}
 And for each site:
 \begin{itemize}
-\item Position: centre of the lineshape. This value is added to all $x$-values from the simulation. Scale is in Hz.
+\item Position: centre of the lineshape in units of the current axis. This value is added to all 
+          $x$-values from the simulation. 
 \item $C_\text{Q}$: quadrupolar coupling constant in MHz.
 \item $\eta$: the asymmetry parameter
 \item Integral: total integral of the lineshape
-\item Lorentz: amount of Lorentzian linebroading in Hz
-\item Gauss: amount of Gaussian linebroading in Hz.
+\item Lorentz: amount of Lorentzian linebroading of the central transition in Hz
+\item LorentzST: amount of Lorentzian linebroading of satellite transitions in Hz
+\item Gauss: amount of Gaussian linebroading in units of the current axis. In ppm unit Gauss can 
+describe chemical shift distribution
 \end{itemize}
 A maximum of 10 sites can be fitted simultaneously.
 
@@ -1734,12 +1739,16 @@ the Larmor frequency of the nucleus.
 
 
 \subsection{Quadrupole+CSA}
-Quadrupole + CSA fitting combines first and second order quadrupolar effects and chemical shift anisotropy. Both spinning and static spectra can be simulated. For the effects of the individual quadrupole or CSA settings, see above at their respective sections.
+Quadrupole + CSA fitting combines first and second order quadrupolar effects and chemical shift anisotropy. 
+Both spinning and static spectra can be simulated. For the effects of the individual quadrupole or CSA 
+settings, see above at their respective sections.
 
-Three additional parameters that need to be given are the three angles defining the rotation of the CSA tensor with respect to the EFG tensor ($\alpha$, $\beta$, $\gamma$).
+Three additional parameters that need to be given are the three angles defining the rotation of the CSA 
+tensor with respect to the EFG tensor ($\alpha$, $\beta$, $\gamma$).
 We order the EFG tensor values in the following way: $|V_{zz}|>|V_{xx}|>|V_{yy}|$.
 We define the CSA and quadrupole angles in the same way as SIMPSON does, but we rotate via
-an Z-X-Z euler rotation, while SIMPSON uses Z-Y-Z. This leads to the following conversion table, showing the ssNake angles when using $\alpha$, $\beta$, $\gamma$ in another software package:
+an Z-X-Z euler rotation, while SIMPSON uses Z-Y-Z. This leads to the following conversion table, showing 
+the ssNake angles when using $\alpha$, $\beta$, $\gamma$ in another software package:
 
 \begin{center}
 \begin{tabular}{cc}
@@ -1812,7 +1821,8 @@ For the extended Czjzek:
   \int \int \int \sin(\beta) \text{d}\alpha \text{d}\beta \text{d}\gamma \nonumber \\
   & \exp \left\{ -\frac{1}{2\sigma^2} \left[ C_\text{Q,0}^2 \left(1 + \frac{\eta_0^2}{3}\right) +
   C_\text{Q}^2 \left(1+ \frac{\eta^2}{3}\right) \right.\right. \\
-  & \left.\vphantom{\frac{a^1}{1}} \left.\vphantom{\frac{a^1}{1}} - \frac{2}{\sqrt{3}} C_\text{Q} C_\text{Q,0} \left( \sqrt{3} a_{11} + \eta_0 a_{15} + \eta \left(
+  & \left.\vphantom{\frac{a^1}{1}} \left.\vphantom{\frac{a^1}{1}} - \frac{2}{\sqrt{3}} C_\text{Q} C_\text{Q,0} 
+  \left( \sqrt{3} a_{11} + \eta_0 a_{15} + \eta \left(
  a_{51} + \frac{\eta_0 a_{55}}{\sqrt{3}} \right) \right) \right] \right\} \nonumber
 \end{align}
 with
@@ -1841,19 +1851,33 @@ the extended Czjzek distribution, around a twofold speed increase can be gained 
 tests for the \texttt{numba} package itself, so regular installation of this package should be sufficient.
 
 \subsection{MQMAS}
-This fitting routine can be used to fit an MQMAS spectrum. It is a 2D fitting routine, showing a contour plot of the data. The fit result is plot on top of this using a different contour colour. As there are now two plotting dimensions, there are two Lorentz and Gauss broadening settings.
+This fitting routine can be used to fit an MQMAS spectrum. It is a 2D fitting routine, showing a contour plot 
+of the data. The fit result is plot on top of this using a different contour colour. Related to the additional dimension
+a Lorentz1 parameter is added to describe relaxation in D1. Regardin Gaussian broadening, Gauss parameter is used in 
+both dimensions to describe chemical shift distribution.
 
-For simulation of MQMAS data, we need to define the quadrupolar parameters as before (see the section on fitting of quadrupole lines). In this case, no satellite signals are included. Only infinite MAS spinning speeds are supported (no spinning sidebands are calculated). Moreover, it is an ideal simulation, so no excitation profiles are taken into account.
+For simulation of MQMAS data, we need to define the quadrupolar parameters as before (see the section on fitting 
+of quadrupole lines). In this case, no satellite signals are included. Only infinite MAS spinning speeds are
+ supported (no spinning sidebands are calculated). Moreover, it is an ideal simulation, so no excitation profiles 
+are taken into account.
 
-Apart from the spin quantum number I, MQMAS simulation also requires selected the multiple quantum transition to be supplied. This is labelled `MQ' in the interface. 
+Apart from the spin quantum number I, MQMAS simulation also requires selected the multiple quantum transition 
+evolving in D1 to be supplied. This is labelled `MQ' in the interface. 
 
-Two additional parameters that need to be supplied are the shearing and spectral width scale factors. These are required for the processing of MQMAS data, as is also described in our advanced tutorial on MQMAS processing. By default, the shearing is set at 0, and the sw scaling at 1. This results in unsheared data, and can be used to fit experimental data that has also not been sheared.
+Two additional parameters that need to be supplied are the shearing and spectral width scale factors. These allow 
+to model 2D MQMAS spectra processed using diferent shearing schemes. Check our advanced tutorial on MQMAS processing. 
+By default, the shearing is set at 0, and the sw scaling at 1. This results in unsheared data with D1 corresponding 
+to 3Q coherence evolution, and can be used to fit experimental data that has not been sheared.
 
-The required sharing and sw scaling factors depend on both I and MQ. Using the 'Auto' push button in the interface, the correct values are filled in in the boxes, depending on the current I and MQ setting.
+The required sharing and sw scaling factors depend on both I and MQ. Using the 'Auto' push button in the interface, 
+the correct values are filled in in the boxes, depending on the current I and MQ setting.
 
 
 \subsection{Czjzek MQMAS}
-This routine can be used to fit an MQMAS spectrum of a species that is influenced by a Czjzek distribution. The required inputs are describe in the section on 1D Czjzek fitting, and regular MQMAS fitting respectively. Note that this again means that firstly a library needs to be generated of a $C_\text{Q}$ and $\eta$ grid. The spectrum sharing and sw scaling are as described in the MQMAS section.
+This routine can be used to fit an MQMAS spectrum of a species that is influenced by a Czjzek distribution. The 
+required inputs are describe in the section on 1D Czjzek fitting, and regular MQMAS fitting respectively. Note 
+that this again means that firstly a library needs to be generated of a $C_\text{Q}$ and $\eta$ grid. The spectrum 
+sharing and sw scaling are as described in the MQMAS section.
 
 
 \subsection{External}
@@ -2119,7 +2143,7 @@ A multi plot is on overlay of multiple workspaces. It shows the 1D Plot of the a
 to add additional data (from other, or the same workspace). Things that can be changed are:
 \begin{itemize}
   \item Scale: linear multiplier of the signal ($y$ value)
-  \item Offset: gives an offset to the current data. The step size depends on the data, and is shown between
+  \item Offset: gives a vertical offset to the current data. The step size depends on the data, and is shown between
 	 brackets.
   \item Shift: horizontal shift in units of the current axis.
   \item Dimension selector: selects the dimension and trace to be shown (as with a regular 1D plot).
