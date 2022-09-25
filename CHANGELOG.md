@@ -4,7 +4,7 @@ Changelog
 All notable changes to this project will be documented in this file.
 
 
-## [1.4] - 
+## [1.4] - 2022-09-25
 ### Added
 - Export to CSV file option.
 - Fitting: color boxes added to interface, indicating color per site
