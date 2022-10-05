@@ -1568,7 +1568,7 @@ def loadChemFile(filePath):
     spec = [False]
     if sizeTD1 == 1:
         data = data[0][:]
-        masterData = sc.Spectrum(data, (filePath, None), [freq*1e6], [sw], specspec)
+        masterData = sc.Spectrum(data, (filePath, None), [freq*1e6], [sw], spec)
     else:
         masterData = sc.Spectrum(data, (filePath, None), [freq*1e6]*2, [sw1, sw], spec=spec*2)
     masterData.addHistory("Chemagnetics data loaded from " + filePath)
