@@ -1985,7 +1985,11 @@ def saveASCIIFile(filePath, spectrum, axMult=1, delim = '\t'):
         splitdata[:, line * 2] = np.real(data[:, line])
         splitdata[:, line * 2 + 1] = np.imag(data[:, line])
     data = np.concatenate((axis, splitdata), axis=1)
-    np.savetxt(filePath, data, delimiter=delim)
+    if tmpData.ndim == 1:
+        np.savetxt(filePath, data, delimiter=delim)
+    else:
+        header = np.array2string(spectrum.xaxArray[0] * axMult, separator=",",threshold=np.inf, max_line_width=np.inf).strip('[]')
+        np.savetxt(filePath, data, delimiter=delim, header=header)
 
 def loadAscii(filePath, asciiInfo=None):
     """

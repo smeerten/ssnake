@@ -3281,6 +3281,8 @@ class AsciiLoadWindow(QtWidgets.QDialog):
         try:
             with open(file, 'r') as f:
                 line = f.readline()
+                while len(line)>0 and (line[0]=='#' or line[0]=='\n'):
+                    line = f.readline()
             if line.count(',') > 0:
                 sep = 'Comma'
             elif line.count('\t') > 0:
