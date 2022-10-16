@@ -125,6 +125,9 @@ class Spectrum(object):
                 self.customXax = customXax
             else:
                 self.customXax = [False] * len(self.xaxArray)
+            for i, xax in enumerate(self.xaxArray):
+                if xax is None:
+                    self.resetXax(i)
         if history is None:
             self.history = []  # list of strings describing all performed operations
         else:
