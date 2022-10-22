@@ -1873,10 +1873,16 @@ class Spectrum(object):
             copyData = copy.deepcopy(self)
         if self.spec[axis]:
             self.__invFourier(axis, tmp=True)
+            
+        oldsize = self.shape()[axis]
         self.data = self.data.resize(size, pos, axis=axis)
         if self.spec[axis]:
             self.__fourier(axis, tmp=True)
-        self.resetXax(axis)
+        
+        if size <= oldsize:
+            self.xaxArray[axis] = self.xaxArray[axis][:size]
+        else:
+            self.resetXax(axis)
         self.addHistory("Resized dimension " + str(axis + 1) + " to " + str(size) + " points at position " + str(pos))
         self.redoList = []
         if not self.noUndo:
