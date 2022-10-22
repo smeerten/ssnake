@@ -1879,7 +1879,7 @@ class Spectrum(object):
         if self.spec[axis]:
             self.__fourier(axis, tmp=True)
         
-        if size <= oldsize:
+        if size <= oldsize and not self.spec[axis]:
             self.xaxArray[axis] = self.xaxArray[axis][:size]
         else:
             self.resetXax(axis)
