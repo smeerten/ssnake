@@ -844,7 +844,7 @@ def saveMatlabFile(filePath, spectrum, name='spectrum'):
     if spectrum.dFilter is not None:
         struct['dFilter'] = spectrum.dFilter
     if not re.match(r'^[a-z]\w+$', name, re.IGNORECASE):
-        # Matlab name must start with a letter, then any of letters, digits or underscores
+        # Matlab variable name must start with a letter, then any of letters, digits or underscores
         name = 'nmr_' + re.sub('\W', '_', name)
     matlabStruct = {name: struct}
     scipy.io.savemat(filePath, matlabStruct)
