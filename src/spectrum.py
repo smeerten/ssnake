@@ -1240,7 +1240,7 @@ class Spectrum(object):
 
     def extract(self, pos1=None, pos2=None, axis=-1, step=None):
         """
-        Extract the data between two given indices along a dimension and make it the new data.
+        Extract the data between two given indices (both indexes included) along a dimension and make it the new data.
 
         Parameters
         ----------
@@ -1248,8 +1248,8 @@ class Spectrum(object):
             First index to extract.
             0 by default.
         pos2 : int, optional
-            Second index to extract.
-            Length of the data along axis by default.
+            Last index to extract.
+            Last index of the data (length-1) along axis by default.
         axis : int, optional
             The dimension.
             By default the last dimension is used.
@@ -1261,17 +1261,17 @@ class Spectrum(object):
         if pos1 is None:
             pos1 = 0
         if pos2 is None:
-            pos2 = self.shape()[axis]
+            pos2 = self.shape()[axis] - 1
         if step is None:
             step = 1
         if not self.noUndo:
             copyData = copy.deepcopy(self)
         minPos = min(pos1, pos2)
         maxPos = max(pos1, pos2)
-        slicing = (slice(None), ) * axis + (slice(minPos, maxPos, step), )
+        slicing = (slice(None), ) * axis + (slice(minPos, maxPos+1, step), )
         if self.spec[axis] == 1:
             oldFxax = self.xaxArray[axis][minPos]
-            self.sw[axis] *= (step * np.ceil((maxPos - minPos)/step)) / (1.0 * self.shape()[axis])
+            self.sw[axis] *= (step * np.ceil((maxPos - minPos + 1 )/step)) / (1.0 * self.shape()[axis])
         else:
             self.sw[axis] /= step
         self.data = self.data[slicing]
@@ -1281,7 +1281,7 @@ class Spectrum(object):
                 self.ref[axis] = self.freq[axis]
             self.freq[axis] = self.ref[axis] - newFxax + oldFxax
         self.resetXax(axis)
-        self.addHistory("Extracted part between " + str(minPos) + " and " + str(maxPos) + " with steps of " + str(step) + " of dimension " + str(axis + 1))
+        self.addHistory("Extracted part from " + str(minPos) + " to " + str(maxPos) + " with steps of " + str(step) + " of dimension " + str(axis + 1))
         self.redoList = []
         if not self.noUndo:
             self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.extract(pos1, pos2, axis, step)))
