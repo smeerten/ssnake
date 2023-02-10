@@ -1932,9 +1932,9 @@ class Spectrum(object):
             raise SpectrumException('LPSVD: Could not determine any acceptable values')
         self.resetXax(axis)
         if forward:
-            self.addHistory("Forward LPSVD along axis "+ str(axis) + " with " + str(nPredict) + " points")
+            self.addHistory("Forward LPSVD along axis " + str(axis) + " with " + str(nPredict) + " points, max " + str(maxFreq) + " frequencies")
         else:
-            self.addHistory("Backward LPSVD along axis "+ str(axis) + " with " + str(nPredict) + " points")
+            self.addHistory("Backward LPSVD along axis " + str(axis) + " with " + str(nPredict) + " points, max " + str(maxFreq) + " frequencies")
         self.redoList = []
         if not self.noUndo:
             self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.lpsvd(nPredict, maxFreq, forward, numPoints, axis)))
