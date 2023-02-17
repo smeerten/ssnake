@@ -2454,8 +2454,11 @@ class SideFrame(QtWidgets.QScrollArea):
                 frameWidget.setLayout(frame)
                 name = current.viewSettings["extraName"][i]
                 if len(name) > 20:
-                    name = name[:20]
-                self.nameLabels.append(wc.QLabel(name, self))
+                    nameLabel = wc.QLabel(name[:20] + '…', self)
+                    nameLabel.setToolTip(name)
+                else:
+                    nameLabel = wc.QLabel(name, self)
+                self.nameLabels.append(nameLabel)
                 frame.addWidget(self.nameLabels[i], 0, 0, 1, 3)
                 self.nameLabels[i].setStyleSheet("QLabel { color: rgb" + str(current.getExtraColor(i)) + ";}")
                 colorbutton = QtWidgets.QPushButton("Colour", self)
