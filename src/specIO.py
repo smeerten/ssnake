@@ -1223,7 +1223,7 @@ def loadBrukerTopspin(filePath):
         REF = [sf*1e6 for sf in SF_sets.pop(0)]
     DtypeA = [np.dtype(np.int32), np.dtype(np.float32), np.dtype(np.float64)][parsA[-1]['DTYPA']] #The byte orders that is used
     DtypeA = DtypeA.newbyteorder(['L', 'B'][parsA[-1]['BYTORDA']]) #The byte orders that is used 'L' =little endian, 'B' = big endian
-    if (DtypeA is np.dtype(np.int32)) and ('NC' in parsA[-1]):
+    if (parsA[-1]['DTYPA'] == 0) and ('NC' in parsA[-1]): # scale with NC only if data stored as int32
         NC = parsA[-1]['NC']
     else : 
         NC = 0
@@ -1610,12 +1610,13 @@ def loadBrukerSpectrum(filePath):
         DtypeP = [np.dtype(np.int32), np.dtype(np.float32), np.dtype(np.float64)][pars[-1]['DTYPP']] #The byte orders that is used
         DtypeP = DtypeP.newbyteorder(['L', 'B'][pars[-1]['BYTORDP']])
     except KeyError:
+        print('Warning: using default byteorder 32bit Little endian')
         DtypeP = np.dtype(np.int32)         # When these parameters are not available the defaults are used
         DtypeP = DtypeP.newbyteorder('L')
     # The byte orders that is used as stored in BYTORDP proc parameter:
     #  '< or L' =little endian, '>' or 'B' = big endian
     SCALE = 1
-    if (DtypeP is np.dtype(np.int32)) and ('NC_proc' in pars[-1]): # Set intensity scaling parameter
+    if (pars[-1]['DTYPP'] == 0) and ('NC_proc' in pars[-1]): # Set intensity scaling parameter if data stored as int32
         SCALE = 2**pars[-1]['NC_proc']
     totsize = np.prod(SIZE)
     #dim = len(SIZE)
