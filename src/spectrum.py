@@ -579,10 +579,13 @@ class Spectrum(object):
                 copyData = copy.deepcopy(self)
                 returnValue = lambda self: self.restoreData(copyData, lambda self: self.multiply(data, axis, select))
         self.data[select] *= data
+        
         if isinstance(data, (float, int)):
-            self.addHistory("Multiplied data[" + str(select) + "] with " + str(data))
+            self.addHistory("Multiplied data[" + str(select) + "] with " + str(data) + " on axis " + str(axis))
+        elif isinstance(data, np.ndarray):
+            self.addHistory("Multiplied data[" + str(select) + "] with " + str(list(data.flatten())) + " on axis " + str(axis))
         else:
-            self.addHistory("Multiplied data[" + str(select) + "]")
+            self.addHistory("Multiplied data[" + str(select) + " on axis " + str(axis))
         self.redoList = []
         if not self.noUndo:
             self.undoList.append(returnValue)
