@@ -367,6 +367,11 @@ class Spectrum(object):
         axis : int, optional
             The dimension along which to add the data.
             By default the last dimension is used.
+
+        Raises
+        ------
+        SpectrumException
+            When the inserted spectrum has insufficient dimensions
         """
         if not isinstance(data, hc.HComplexData):
             data = hc.HComplexData(data)
@@ -380,6 +385,8 @@ class Spectrum(object):
                 returnValue = lambda self: self.restoreData(copyData, lambda self: self.insert(data, pos, axis))
         axis = self.checkAxis(axis)
         # Check for a change in dimensions
+        if len(data.shape()) <= axis:
+            raise SpectrumException("Data does not have the correct number of dimensions")
         self.data = self.data.insert(pos, data, axis)
         self.resetXax(axis)
         self.addHistory("Inserted " + str(data.shape()[axis]) + " datapoints in dimension " + str(axis + 1) + " at position " + str(pos))
