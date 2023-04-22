@@ -1441,7 +1441,7 @@ class Current1D(PlotFrame):
         y = self.baselineFunctionFit(self.xax(), tmpData, bArray, degree, type)
         y = np.real(self.getDataType(y))
         self.root.addMacro(['baselineCorrection', (y, self.axes[-1] - self.data.ndim(), selectSlice)])
-        self.data.baselineCorrection(y, self.axes[-1], select=selectSlice)
+        self.data.baselineCorrection(y, self.axes[-1], select=selectSlice, degree=degree, type=type)
 
     def previewBaselineCorrection(self, degree, removeList, type, invert=False):
         """
