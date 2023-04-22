@@ -691,7 +691,7 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.normalize(1.0 / mult, scale, type, axis, select=select))
 
-    def baselineCorrection(self, baseline, axis=-1, select=slice(None)):
+    def baselineCorrection(self, baseline, axis=-1, select=slice(None), degree=None, type=None):
         """
         Applies a baseline correction.
 
@@ -706,6 +706,10 @@ class Spectrum(object):
         select : Slice, optional
             An optional selection of the spectrum data on which the baseline correction is performed.
             By default the entire data is used.
+        degree : int, optional
+            The degree used for the fitting of the baseline, used for history output only.
+        type : str, optional
+            The type (poly or sin/cos) used for the fitting, used for history output only.
         """
         axis = self.checkAxis(axis)
         baselinetmp = baseline.reshape((self.shape()[axis], ) + (1, ) * (self.ndim() - axis - 1))
@@ -715,6 +719,8 @@ class Spectrum(object):
             Message = Message + " with slice " + str(select)
         elif select != slice(None, None, None):
             Message = Message + " with slice " + str(select)
+        if degree and type:
+            Message = Message + " ({type}, deg={deg})".format(type=type, deg=str(degree))
         self.addHistory(Message)
         self.redoList = []
         if not self.noUndo:
