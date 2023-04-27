@@ -1533,10 +1533,11 @@ class Spectrum(object):
             return phases['x']
         self.redoList = []
         if not self.noUndo:
-            self.undoList.append(lambda self: self.phase(-phase0, -phase1, axis))
+            self.undoList.append(lambda self: self.phase(-phase0, -phase1, 0, axis))
 
-    def __phase(self, phase0, phase1, offset, axis, select=slice(None)):
-        vector = np.exp(np.fft.fftshift(np.fft.fftfreq(self.shape()[axis], 1.0 / self.sw[axis]) + offset) / self.sw[axis] * phase1 * 1j)
+    def __phase(self, phase0, phase1, phase2, offset, axis, select=slice(None)):
+        points = np.fft.fftshift(np.fft.fftfreq(self.shape()[axis], 1.0 / self.sw[axis]) + offset) / self.sw[axis]
+        vector = np.exp(points * phase1 * 1j + np.power(points, 2) * phase2 * 1j)
         if self.spec[axis] == 0:
             self.__fourier(axis, tmp=True)
         vector = vector.reshape(vector.shape + (1, )*(self.ndim()-axis-1))
@@ -1546,7 +1547,7 @@ class Spectrum(object):
         if self.spec[axis] == 0:
             self.__invFourier(axis, tmp=True)
 
-    def phase(self, phase0=0.0, phase1=0.0, axis=-1, select=slice(None), offset=None):
+    def phase(self, phase0=0.0, phase1=0.0, phase2=0.0, axis=-1, select=slice(None), offset=None):
         """
         Phases a spectrum along a given dimension.
 
@@ -1575,8 +1576,9 @@ class Spectrum(object):
                 offset = 0
             else:
                 offset = self.freq[axis] - self.ref[axis]
-        self.__phase(phase0, phase1, offset, axis, select=select)
-        Message = "Phasing: phase0 = " + str(phase0 * 180 / np.pi) + " and phase1 = " + str(phase1 * 180 / np.pi) + " for dimension " + str(axis + 1)
+        self.__phase(phase0, phase1, phase2, offset, axis, select=select)
+        Message = "Phasing: phase0 = " + str(phase0 * 180 / np.pi) + " and phase1 = " + str(phase1 * 180 / np.pi) + \
+                  " and phase2 = " + str(phase2 * 180 / np.pi) + " for dimension " + str(axis + 1)
         if not isinstance(select, slice):
             Message = Message + " with slice " + str(select)
         elif select != slice(None, None, None):
@@ -1584,7 +1586,7 @@ class Spectrum(object):
         self.addHistory(Message)
         self.redoList = []
         if not self.noUndo:
-            self.undoList.append(lambda self: self.phase(-phase0, -phase1, axis, select=select))
+            self.undoList.append(lambda self: self.phase(-phase0, -phase1, -phase2, axis, select=select))
 
     def correctDFilter(self, axis=-1):
         """
@@ -1601,12 +1603,12 @@ class Spectrum(object):
             offset = 0
         else:
             offset = self.freq[axis] - self.ref[axis]
-        self.__phase(0, self.dFilter, offset, axis)
+        self.__phase(0, self.dFilter, 0, offset, axis)
         Message = "Corrected digital filter"
         self.addHistory(Message)
         self.redoList = []
         if not self.noUndo:
-            self.undoList.append(lambda self: self.phase(0, -self.dFilter, axis, slice(None), offset))
+            self.undoList.append(lambda self: self.phase(0, -self.dFilter, 0, axis, slice(None), offset))
 
     def apodize(self, lor=None, gauss=None, cos2=[None, None], hamming=None, shift=0.0, shifting=0.0, shiftingAxis=None, axis=-1, select=slice(None), preview=False):
         """
@@ -2065,7 +2067,7 @@ class Spectrum(object):
         """
         axis = self.checkAxis(axis)
         if self.spec[axis] == 0:
-            self.__phase(0, -2 * np.pi * shift, 0, axis, select=select)
+            self.__phase(0, -2 * np.pi * shift, 0, 0, axis, select=select)
         else:
             t = np.arange(self.shape()[axis]) / (self.sw[axis])
             freq = self.sw[axis] / self.shape()[axis]
