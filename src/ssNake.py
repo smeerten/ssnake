@@ -248,6 +248,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.defaultContourConst = True
         self.defaultPosColor = '#1F77B4'
         self.defaultNegColor = '#FF7F0E'
+        self.defaultSecondOrderPhaseDialog = False
         self.defaultStartupBool = False
         self.defaultStartupDir = '~'
         self.defaultTooltips = True
@@ -352,6 +353,7 @@ class MainProgram(QtWidgets.QMainWindow):
             self.defaultHeightRatio = settings.value("contour/height_ratio", self.defaultHeightRatio, float)
         except TypeError:
             self.dispMsg("Incorrect value in the config file for the contour/height_ratio")
+        self.defaultSecondOrderPhaseDialog = settings.value("phasing/second_order_phase_dialog", self.defaultSecondOrderPhaseDialog, bool)
 
     def saveDefaults(self):
         QtCore.QSettings.setDefaultFormat(QtCore.QSettings.IniFormat)
@@ -389,6 +391,7 @@ class MainProgram(QtWidgets.QMainWindow):
         settings.setValue("contour/diagonalbool", self.defaultDiagonalBool)
         settings.setValue("contour/diagonalmult", self.defaultDiagonalMult)
         settings.setValue("2Dcolor/colourmap", self.defaultPColorMap)
+        settings.setValue("phasing/second_order_phase_dialog", self.defaultSecondOrderPhaseDialog)
 
     def dispMsg(self, msg, color='black'):
         if color == 'red':
@@ -3477,6 +3480,7 @@ class PhaseWindow(wc.ToolWindow):
         self.secondOrderFrame.addWidget(self.secondScale, 3, 0, 1, 3)
         self.secondOrderGroup.setLayout(self.secondOrderFrame)
         self.grid.addWidget(self.secondOrderGroup, 2, 0, 1, 3)
+        self.secondOrderGroup.setVisible(self.father.father.defaultSecondOrderPhaseDialog)
 
     def setModifierTexts(self, event):
         sign = u"\u00D7"
@@ -6939,18 +6943,22 @@ class PreferenceWindow(QtWidgets.QWidget):
         tab2 = QtWidgets.QWidget()
         tab3 = QtWidgets.QWidget()
         tab4 = QtWidgets.QWidget()
+        tab5 = QtWidgets.QWidget()
         tabWidget.addTab(tab1, "Window")
         tabWidget.addTab(tab2, "Plot")
         tabWidget.addTab(tab3, "Contour")
         tabWidget.addTab(tab4, "2D Colour")
+        tabWidget.addTab(tab5, "Phasing")
         grid1 = QtWidgets.QGridLayout()
         grid2 = QtWidgets.QGridLayout()
         grid3 = QtWidgets.QGridLayout()
         grid4 = QtWidgets.QGridLayout()
+        grid5 = QtWidgets.QGridLayout()
         tab1.setLayout(grid1)
         tab2.setLayout(grid2)
         tab3.setLayout(grid3)
         tab4.setLayout(grid4)
+        tab5.setLayout(grid5)
         grid1.setColumnStretch(10, 1)
         grid1.setRowStretch(10, 1)
         grid2.setColumnStretch(10, 1)
@@ -6959,6 +6967,8 @@ class PreferenceWindow(QtWidgets.QWidget):
         grid3.setRowStretch(10, 1)
         grid4.setColumnStretch(10, 1)
         grid4.setRowStretch(10, 1)
+        grid5.setColumnStretch(10, 1)
+        grid5.setRowStretch(10, 1)
         # grid1.addWidget(wc.QLabel("Window size:"), 0, 0, 1, 2)
         grid1.addWidget(wc.QLabel("Width:"), 1, 0)
         self.widthSpinBox = wc.SsnakeSpinBox()
@@ -7092,6 +7102,10 @@ class PreferenceWindow(QtWidgets.QWidget):
         self.cmEntry2D.addItems(views.COLORMAPLIST)
         self.cmEntry2D.setCurrentIndex(views.COLORMAPLIST.index(self.father.defaultPColorMap))
         grid4.addWidget(self.cmEntry2D, 0, 1)
+        # Phasing Options (if 2nd order should be available)
+        self.secondOrderPhaseCheckBox = QtWidgets.QCheckBox("Show 2nd order phase correction")
+        self.secondOrderPhaseCheckBox.setChecked(self.father.defaultSecondOrderPhaseDialog)
+        grid5.addWidget(self.secondOrderPhaseCheckBox, 0, 1)
         # Others
         layout = QtWidgets.QGridLayout(self)
         layout.addWidget(tabWidget, 0, 0, 1, 4)
@@ -7159,6 +7173,7 @@ class PreferenceWindow(QtWidgets.QWidget):
         self.father.defaultWidthRatio = self.WRSpinBox.value()
         self.father.defaultHeightRatio = self.HRSpinBox.value()
         self.father.defaultPColorMap = self.cmEntry2D.currentText()
+        self.father.defaultSecondOrderPhaseDialog = self.secondOrderPhaseCheckBox.isChecked()
         self.father.saveDefaults()
         self.closeEvent()
 
