@@ -493,7 +493,7 @@ Change the default settings of a contour plot.
 \end{itemize}
 
 \subsubsection{Phasing}
-Decide if the second order phase correction should be displayed in the phasing dialog. This is only necessary if spectra with frequency swept pulses are to be phased and should generally be disabled unless necessary.
+Decide if the second order phase correction should be displayed by default in the phasing dialog. This is only necessary if spectra with frequency swept pulses are to be phased and should generally be disabled unless necessary.
 
 \subsection{Quit}
 Closes the ssNake application. Quiting ssNake always asks for confirmation, to prevent data loss.
@@ -716,10 +716,11 @@ For most apodization types, negative line broadening parameters are allowed, but
 
 
 \subsection{Phasing}
-Opens a tool that can be use to change the phasing in the current spectrum or fid. Supports zero order, first order and second order phasing. The option for second order phasing is hidden by default, but can be activated in the general preferences. It also provides buttons for autophasing.
+Opens a tool that can be use to change the phasing in the current spectrum or fid. Supports zero order, first order and second order phasing. The option for second order phasing is hidden by default, but can be activated by checking the check box at the bottom of the window. This option can also be set permanently in the general preferences. It also provides buttons for autophasing.
 
-Selecting phasing in the tools menu opens the phasing window. In this windows, the zero, first and second order phasing can be set, as well as the pivot point (centre point) for the first and second order phasing. The
-values can be either filled in the boxes, changed by pushing the left and right buttons (click for
+Selecting phasing in the tools menu opens the phasing window. In this windows, the zero, first and second order phasing can be set, as well as the pivot points (centre points) for the first and second order phasing.
+While the pivot point for the second order correction only influences the second order phasing, the pivot point of the first order correction influences both the first and second order correction.
+The values can be either filled in the boxes, changed by pushing the left and right buttons (click for
 $\pm1$, ctrl+click for $\pm10$, shift+click for $\pm100$, and shift+ctrl+click for $\pm1000$) , or set
 by dragging the slider to the left or the right. For zero order phase correction, the limits are -180
 and 180 degrees. For first order correction, these are -540 and 540 degrees. For second order
