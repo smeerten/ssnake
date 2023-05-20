@@ -3408,8 +3408,10 @@ class PhaseWindow(wc.ToolWindow):
         self.zeroVal = 0.0
         self.firstVal = 0.0
         self.secondVal = 0.0
-        self.pivotVal = 0.0
+        self.pivotFirstVal = 0.0
+        self.pivotSecondVal = 0.0
         self.available = True
+
         # Zero order
         self.zeroOrderGroup = QtWidgets.QGroupBox('Zero order:')
         self.zeroOrderFrame = QtWidgets.QGridLayout()
@@ -3432,35 +3434,38 @@ class PhaseWindow(wc.ToolWindow):
         self.zeroOrderFrame.addWidget(self.zeroScale, 3, 0, 1, 3)
         self.zeroOrderGroup.setLayout(self.zeroOrderFrame)
         self.grid.addWidget(self.zeroOrderGroup, 0, 0, 1, 3)
+
         # First order
         self.firstOrderGroup = QtWidgets.QGroupBox('First order:')
         self.firstOrderFrame = QtWidgets.QGridLayout()
         autoFirst = QtWidgets.QPushButton("Autophase 0th+1st")
         autoFirst.clicked.connect(lambda: self.autophase(1))
-        self.firstOrderFrame.addWidget(autoFirst, 5, 1)
+        self.firstOrderFrame.addWidget(autoFirst, 0, 1)
         self.firstEntry = wc.QLineEdit("0.000", self.inputFirstOrder)
-        self.firstOrderFrame.addWidget(self.firstEntry, 6, 1)
+        self.firstOrderFrame.addWidget(self.firstEntry, 1, 1)
         self.leftFirst = QtWidgets.QPushButton("<")
         self.leftFirst.clicked.connect(lambda: self.stepPhase(0, -1, 0))
         self.leftFirst.setAutoRepeat(True)
-        self.firstOrderFrame.addWidget(self.leftFirst, 6, 0)
+        self.firstOrderFrame.addWidget(self.leftFirst, 1, 0)
         self.rightFirst = QtWidgets.QPushButton(">")
         self.rightFirst.clicked.connect(lambda: self.stepPhase(0, 1, 0))
         self.rightFirst.setAutoRepeat(True)
-        self.firstOrderFrame.addWidget(self.rightFirst, 6, 2)
+        self.firstOrderFrame.addWidget(self.rightFirst, 1, 2)
         self.firstScale = wc.SsnakeSlider(QtCore.Qt.Horizontal)
         self.firstScale.setRange(-self.RESOLUTION, self.RESOLUTION)
         self.firstScale.valueChanged.connect(self.setFirstOrder)
-        self.firstOrderFrame.addWidget(self.firstScale, 7, 0, 1, 3)
+        self.firstOrderFrame.addWidget(self.firstScale, 2, 0, 1, 3)
+
         if self.father.current.spec() > 0:
-            self.firstOrderFrame.addWidget(wc.QLabel("Pivot point [Hz]:"), 8, 0, 1, 3)
-            pickRef = QtWidgets.QPushButton("Pick pivot")
-            pickRef.clicked.connect(self.pickRef)
-            self.firstOrderFrame.addWidget(pickRef, 9, 1)
-            self.refEntry = wc.QLineEdit(('%.3f' % self.pivotVal), self.inputRef)
-            self.firstOrderFrame.addWidget(self.refEntry, 10, 1)
+            self.firstOrderFrame.addWidget(wc.QLabel("Pivot point [Hz]:"), 3, 0, 1, 3)
+            pickFirstRef = QtWidgets.QPushButton("Pick pivot")
+            pickFirstRef.clicked.connect(lambda: self.pickRef(1))
+            self.firstOrderFrame.addWidget(pickFirstRef, 4, 1)
+            self.refFirstEntry = wc.QLineEdit(('%.3f' % self.pivotFirstVal), lambda: self.inputRef(1))
+            self.firstOrderFrame.addWidget(self.refFirstEntry, 5, 1)
         self.firstOrderGroup.setLayout(self.firstOrderFrame)
         self.grid.addWidget(self.firstOrderGroup, 1, 0, 1, 3)
+
         # Second order
         self.secondOrderGroup = QtWidgets.QGroupBox('Second order:')
         self.secondOrderFrame = QtWidgets.QGridLayout()
@@ -3469,18 +3474,34 @@ class PhaseWindow(wc.ToolWindow):
         self.leftSecond = QtWidgets.QPushButton("<")
         self.leftSecond.clicked.connect(lambda: self.stepPhase(0, 0, -1))
         self.leftSecond.setAutoRepeat(True)
-        self.secondOrderFrame.addWidget(self.leftSecond, 2, 0)
+        self.secondOrderFrame.addWidget(self.leftSecond, 0, 0)
         self.rightSecond = QtWidgets.QPushButton(">")
         self.rightSecond.clicked.connect(lambda: self.stepPhase(0, 0, 1))
         self.rightSecond.setAutoRepeat(True)
-        self.secondOrderFrame.addWidget(self.rightSecond, 2, 2)
+        self.secondOrderFrame.addWidget(self.rightSecond, 0, 2)
         self.secondScale = wc.SsnakeSlider(QtCore.Qt.Horizontal)
         self.secondScale.setRange(-self.RESOLUTION, self.RESOLUTION)
         self.secondScale.valueChanged.connect(self.setSecondOrder)
-        self.secondOrderFrame.addWidget(self.secondScale, 3, 0, 1, 3)
+        self.secondOrderFrame.addWidget(self.secondScale, 1, 0, 1, 3)
+
+        if self.father.current.spec() > 0:
+            self.secondOrderFrame.addWidget(wc.QLabel("Pivot point [Hz]:"), 2, 0, 1, 3)
+            pickSecondRef = QtWidgets.QPushButton("Pick pivot")
+            pickSecondRef.clicked.connect(lambda: self.pickRef(2))
+            self.secondOrderFrame.addWidget(pickSecondRef, 3, 1)
+            self.refSecondEntry = wc.QLineEdit(('%.3f' % self.pivotSecondVal), lambda: self.inputRef(2))
+            self.secondOrderFrame.addWidget(self.refSecondEntry, 4, 1)
         self.secondOrderGroup.setLayout(self.secondOrderFrame)
         self.grid.addWidget(self.secondOrderGroup, 2, 0, 1, 3)
         self.secondOrderGroup.setVisible(self.father.father.defaultSecondOrderPhaseDialog)
+
+        self.secondOrderCheckBox = QtWidgets.QCheckBox("2nd order phasing")
+        self.secondOrderCheckBox.setChecked(self.father.father.defaultSecondOrderPhaseDialog)
+        self.layout.addWidget(self.secondOrderCheckBox, 2, 0, 1, 3)
+        self.secondOrderCheckBox.stateChanged.connect(self.setSecondOrderVisible)
+
+    def setSecondOrderVisible(self):
+        self.secondOrderGroup.setVisible(self.secondOrderCheckBox.isChecked())
 
     def setModifierTexts(self, event):
         sign = u"\u00D7"
@@ -3527,7 +3548,7 @@ class PhaseWindow(wc.ToolWindow):
     def setFirstOrder(self, value, *args):
         if self.available:
             value = float(value) / self.RESOLUTION * self.P1LIMIT
-            newZero = (self.zeroVal - (value - self.firstVal) * self.pivotVal / self.father.current.sw())
+            newZero = (self.zeroVal - (value - self.firstVal) * self.pivotFirstVal / self.father.current.sw())
             self.zeroVal = np.mod(newZero + 180, 360) - 180
             self.zeroEntry.setText('%.3f' % self.zeroVal)
             self.firstVal = value
@@ -3541,7 +3562,7 @@ class PhaseWindow(wc.ToolWindow):
         value = safeEval(self.firstEntry.text(), length=self.father.current.len(), Type='FI')
         if value is None:
             raise SsnakeException('Phasing: first order value input is not valid!')
-        newZero = (self.zeroVal - (value - self.firstVal) * self.pivotVal / self.father.current.sw())
+        newZero = (self.zeroVal - (value - self.firstVal) * self.pivotFirstVal / self.father.current.sw())
         self.zeroVal = np.mod(newZero + 180, 360) - 180
         self.zeroEntry.setText('%.3f' % self.zeroVal)
         self.firstVal = value
@@ -3555,9 +3576,13 @@ class PhaseWindow(wc.ToolWindow):
     def setSecondOrder(self, value, *args):
         if self.available:
             value = float(value) / self.RESOLUTION * self.P2LIMIT
-            pivot = self.pivotVal / self.father.current.sw()
-            newFirst = (self.firstVal - 2 * (value - self.secondVal) * pivot)
-            newZero = (self.zeroVal - (newFirst - self.firstVal) * pivot - (value - self.secondVal) * np.power(pivot, 2))
+            pivot1 = self.pivotFirstVal / self.father.current.sw()
+            pivot2 = self.pivotSecondVal / self.father.current.sw()
+            if pivot1 == pivot2:
+                newFirst = (self.firstVal - 2 * (value - self.secondVal) * pivot1)
+            else:
+                newFirst = (self.firstVal + (value - self.secondVal) * (np.power(pivot2, 2) - np.power(pivot1, 2)) / (pivot1 -pivot2))
+            newZero = (self.zeroVal - (newFirst - self.firstVal) * pivot1 - (value - self.secondVal) * np.power(pivot1, 2))
             self.zeroVal = np.mod(newZero + 180, 360) - 180
             self.zeroEntry.setText('%.3f' % self.zeroVal)
             self.firstVal = newFirst
@@ -3574,9 +3599,13 @@ class PhaseWindow(wc.ToolWindow):
         value = safeEval(self.secondEntry.text(), length=self.father.current.len(), Type='FI')
         if value is None:
             raise SsnakeException('Phasing: second order value input is not valid!')
-        pivot = self.pivotVal / self.father.current.sw()
-        newFirst = (self.firstVal - 2 * (value - self.secondVal) * pivot)
-        newZero = (self.zeroVal - (newFirst - self.firstVal) * pivot - (value - self.secondVal) * np.power(pivot, 2))
+        pivot1 = self.pivotFirstVal / self.father.current.sw()
+        pivot2 = self.pivotSecondVal / self.father.current.sw()
+        if pivot1 == pivot2:
+            newFirst = (self.firstVal - 2 * (value - self.secondVal) * pivot1)
+        else:
+            newFirst = (self.firstVal + (value - self.secondVal) * (np.power(pivot2, 2) - np.power(pivot1, 2)) / (pivot1 - pivot2))
+        newZero = (self.zeroVal - (newFirst - self.firstVal) * pivot1 - (value - self.secondVal) * np.power(pivot1, 2))
         self.zeroVal = np.mod(newZero + 180, 360) - 180
         self.zeroEntry.setText('%.3f' % self.zeroVal)
         self.firstVal = newFirst
@@ -3635,9 +3664,13 @@ class PhaseWindow(wc.ToolWindow):
         if second is None:
             raise SsnakeException('Phasing: second order value input is not valid!')
         second += phase2 * self.PHASE2STEP
-        pivot = self.pivotVal / self.father.current.sw()
-        newFirst = (value - 2 * (second - self.secondVal) * pivot)
-        newZero = (self.zeroVal - (newFirst - self.firstVal) * pivot - (second - self.secondVal) * np.power(pivot, 2))
+        pivot1 = self.pivotFirstVal / self.father.current.sw()
+        pivot2 = self.pivotSecondVal / self.father.current.sw()
+        if pivot1 == pivot2:
+            newFirst = (self.firstVal - 2 * (value - self.secondVal) * pivot1)
+        else:
+            newFirst = (self.firstVal + (value - self.secondVal) * (np.power(pivot2, 2) - np.power(pivot1, 2)) / (pivot1 - pivot2))
+        newZero = (self.zeroVal - (newFirst - self.firstVal) * pivot1 - (second - self.secondVal) * np.power(pivot1, 2))
         self.zeroVal = np.mod(newZero + 180, 360) - 180
         self.zeroEntry.setText('%.3f' % self.zeroVal)
         self.firstVal = newFirst
@@ -3651,27 +3684,44 @@ class PhaseWindow(wc.ToolWindow):
         self.available = True
         self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0, np.pi * self.secondVal / 180.0)
 
-    def inputRef(self, *args):
-        Val = safeEval(self.refEntry.text(), length=self.father.current.len(), Type='FI')
-        if Val is None:
-            raise SsnakeException('Phasing: pivot input is not valid!')
-        self.pivotVal = Val
-        self.refEntry.setText('%.3f' % self.pivotVal)
+    def inputRef(self, order, *args):
+        if order == 1:
+            Val = safeEval(self.refFirstEntry.text(), length=self.father.current.len(), Type='FI')
+            if Val is None:
+                raise SsnakeException('Phasing: pivot input is not valid!')
+            self.pivotFirstVal = Val
+            self.refFirstEntry.setText('%.3f' % self.pivotFirstVal)
+        elif order == 2:
+            Val = safeEval(self.refSecondEntry.text(), length=self.father.current.len(), Type='FI')
+            if Val is None:
+                raise SsnakeException('Phasing: pivot input is not valid!')
+            self.pivotSecondVal = Val
+            self.refSecondEntry.setText('%.3f' % self.pivotSecondVal)
 
-    def setRef(self, value, *args):
-        self.pivotVal = float(value)
-        self.refEntry.setText('%.3f' % self.pivotVal)
+    def setRef(self, value, order, *args):
+        if order == 1:
+            self.pivotFirstVal = float(value)
+            self.refFirstEntry.setText('%.3f' % self.pivotFirstVal)
+        elif order == 2:
+            self.pivotSecondVal = float(value)
+            self.refSecondEntry.setText('%.3f' % self.pivotSecondVal)
 
-    def pickRef(self, *args):
-        self.father.current.peakPickFunc = lambda pos, self=self: self.setRef(self.father.current.xax()[pos[0]])
+    def pickRef(self, order, *args):
+        if order == 1:
+            self.father.current.peakPickFunc = lambda pos, self=self: self.setRef(self.father.current.xax()[pos[0]], 1)
+        elif order == 2:
+            self.father.current.peakPickFunc = lambda pos, self=self: self.setRef(self.father.current.xax()[pos[0]], 2)
         self.father.current.peakPick = True
 
     def applyFunc(self):
         if self.father.current.spec() > 0:
-            self.inputRef()
+            self.inputRef(1)
+            if self.secondOrderCheckBox.isChecked():
+                self.inputRef(2)
         self.inputZeroOrder()
         self.inputFirstOrder()
-        self.inputSecondOrder()
+        if self.secondOrderCheckBox.isChecked():
+            self.inputSecondOrder()
         self.father.current.applyPhase(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0, np.pi * self.secondVal / 180.0, (self.singleSlice.isChecked() == 1))
 
 ################################################################
@@ -7103,7 +7153,7 @@ class PreferenceWindow(QtWidgets.QWidget):
         self.cmEntry2D.setCurrentIndex(views.COLORMAPLIST.index(self.father.defaultPColorMap))
         grid4.addWidget(self.cmEntry2D, 0, 1)
         # Phasing Options (if 2nd order should be available)
-        self.secondOrderPhaseCheckBox = QtWidgets.QCheckBox("Show 2nd order phase correction")
+        self.secondOrderPhaseCheckBox = QtWidgets.QCheckBox("Always show 2nd order phase correction")
         self.secondOrderPhaseCheckBox.setChecked(self.father.defaultSecondOrderPhaseDialog)
         grid5.addWidget(self.secondOrderPhaseCheckBox, 0, 1)
         # Others
