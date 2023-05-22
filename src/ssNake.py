@@ -3659,17 +3659,19 @@ class PhaseWindow(wc.ToolWindow):
             raise SsnakeException('Phasing: first order value input is not valid!')
         value += phase1 * self.PHASE1STEP
         if self.father.current.spec() > 0:
-            self.inputRef()
+            self.inputRef(1)
         second = safeEval(self.secondEntry.text(), length=self.father.current.len(), Type='FI')
         if second is None:
             raise SsnakeException('Phasing: second order value input is not valid!')
         second += phase2 * self.PHASE2STEP
+        if self.father.current.spec() > 0:
+            self.inputRef(2)
         pivot1 = self.pivotFirstVal / self.father.current.sw()
         pivot2 = self.pivotSecondVal / self.father.current.sw()
         if pivot1 == pivot2:
-            newFirst = (self.firstVal - 2 * (value - self.secondVal) * pivot1)
+            newFirst = (value - 2 * (second - self.secondVal) * pivot1)
         else:
-            newFirst = (self.firstVal + (value - self.secondVal) * (np.power(pivot2, 2) - np.power(pivot1, 2)) / (pivot1 - pivot2))
+            newFirst = (value + (second - self.secondVal) * (np.power(pivot2, 2) - np.power(pivot1, 2)) / (pivot1 - pivot2))
         newZero = (self.zeroVal - (newFirst - self.firstVal) * pivot1 - (second - self.secondVal) * np.power(pivot1, 2))
         self.zeroVal = np.mod(newZero + 180, 360) - 180
         self.zeroEntry.setText('%.3f' % self.zeroVal)
