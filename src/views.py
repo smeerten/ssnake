@@ -609,7 +609,7 @@ class Current1D(PlotFrame):
         self.upd()
         self.showFid()
 
-    def setPhaseInter(self, phase0in, phase1in):
+    def setPhaseInter(self, phase0in, phase1in, phase2in):
         """
         Interactive changing the phase without editing the actual data.
 
@@ -622,11 +622,12 @@ class Current1D(PlotFrame):
         """
         phase0 = float(phase0in)
         phase1 = float(phase1in)
-        self.data1D.phase(phase0, phase1, -1)
+        phase2 = float(phase2in)
+        self.data1D.phase(phase0, phase1, phase2, -1)
         self.showFid()
         self.upd()
 
-    def applyPhase(self, phase0, phase1, select=False):
+    def applyPhase(self, phase0, phase1, phase2=0, select=False):
         """
         Phase the data.
 
@@ -641,12 +642,13 @@ class Current1D(PlotFrame):
         """
         phase0 = float(phase0)
         phase1 = float(phase1)
+        phase2 = float(phase2)
         if select:
             selectSlice = self.getSelect()
         else:
             selectSlice = slice(None)
-        self.root.addMacro(['phase', (phase0, phase1, self.axes[-1] - self.data.ndim(), selectSlice)])
-        self.data.phase(phase0, phase1, self.axes[-1], selectSlice)
+        self.root.addMacro(['phase', (phase0, phase1, phase2, self.axes[-1] - self.data.ndim(), selectSlice)])
+        self.data.phase(phase0, phase1, phase2, self.axes[-1], selectSlice)
         self.upd()
         self.showFid()
 

@@ -492,6 +492,9 @@ Change the default settings of a contour plot.
   \item Ratio: sets the default ratio of the contour plot.
 \end{itemize}
 
+\subsubsection{Phasing}
+Decide if the second order phase correction should be displayed by default in the phasing dialog. This is only necessary if spectra with frequency swept pulses are to be phased and should generally be disabled unless necessary.
+
 \subsection{Quit}
 Closes the ssNake application. Quiting ssNake always asks for confirmation, to prevent data loss.
 
@@ -713,21 +716,22 @@ For most apodization types, negative line broadening parameters are allowed, but
 
 
 \subsection{Phasing}
-Opens a tool that can be use to change the phasing in the current spectrum or fid. Supports zero order and first order phasing. It also provides buttons for autophasing.
+Opens a tool that can be use to change the phasing in the current spectrum or fid. Supports zero order, first order and second order phasing. The option for second order phasing is hidden by default, but can be activated by checking the check box at the bottom of the window. This option can also be set permanently in the general preferences. It also provides buttons for autophasing.
 
-Selecting phasing in the tools menu opens the phasing window. In this windows, the zero and first
-order phasing can be set, as well as the pivot point (centre point) for the first order phasing. The
-values can be either filled in the boxes,  changed by pushing the left and right buttons (click for
-$\pm1$, ctrl+click for $\pm10$, shift+click for $\pm100$, and shift+ctrl+click for $\pm1000$) , or set by dragging the slider to the
-left or the right. For zero order phase correction, the limits are -180 and 180 degrees. For first
-order correction, these are -540 and 540 degrees. Higher values for the first order correction
-sometimes make sense, and can be filled in the box directly, or via clicking on the arrows. Note
-that the values for the zero order correction are circular, so that -180 and 180 degrees lead to the
-same effect.
+Selecting phasing in the tools menu opens the phasing window. In this windows, the zero, first and second order phasing can be set, as well as the pivot points (centre points) for the first and second order phasing.
+While the pivot point for the second order correction only influences the second order phasing, the pivot point of the first order correction influences both the first and second order correction.
+The values can be either filled in the boxes, changed by pushing the left and right buttons (click for
+$\pm1$, ctrl+click for $\pm10$, shift+click for $\pm100$, and shift+ctrl+click for $\pm1000$) , or set
+by dragging the slider to the left or the right. For zero order phase correction, the limits are -180
+and 180 degrees. For first order correction, these are -540 and 540 degrees. For second order
+correction, the limits are -1440 and 1440 degrees. Higher values for the first and second order
+corrections sometimes make sense, and can be filled in the box directly, or via clicking on the
+arrows. Note that the values for the zero order correction are circular, so that -180 and 180 degrees
+lead to the same effect.
 
 While in this menu, the effect of a certain phasing can be immediately viewed in the ssNake window.
 When a good setting is reached, `Ok' can be pushed to apply the phasing. Note that for
-multidimensional data, the preview only shows the current trace. Pushing `Ok' the applies the same
+multidimensional data, the preview only shows the current trace. Pushing `Ok' then applies the same
 phasing correction on all the traces (might take some time for large data). If the phasing should
 only be applied on the current spectrum or fid, the box `Single slice' can be ticked. Note that you
 still have to push `Ok' to apply the phasing.
