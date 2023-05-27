@@ -115,6 +115,15 @@ class TabFittingWindow(QtWidgets.QWidget):
         grid3.addWidget(self.tabs, 0, 0)
         grid3.setColumnStretch(0, 1)
         grid3.setRowStretch(0, 1)
+        
+    # Property and setter to enable macro manipulation also from fitting windows
+    @property
+    def currentMacro(self):
+        return self.oldMainWindow.currentMacro
+
+    @currentMacro.setter
+    def currentMacro(self, value):
+        self.oldMainWindow.currentMacro = value
 
     def rename(self, name):
         """

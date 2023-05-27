@@ -1134,8 +1134,11 @@ class MainProgram(QtWidgets.QMainWindow):
             self.dispMsg("Macro name '" + givenName + "' already exists")
             givenName, ok = QtWidgets.QInputDialog.getText(self, 'Macro name', 'Name:', text=name)
         self.macros[givenName] = self.macros.pop(oldName)
+
         if self.mainWindow.currentMacro == oldName:
             self.mainWindow.currentMacro = givenName
+                    
+
         oldActions = self.macroActions.pop(oldName)
         self.macrolistmenu.removeAction(oldActions[0])
         self.macrosavemenu.removeAction(oldActions[1])
