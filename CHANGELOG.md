@@ -20,6 +20,7 @@ All notable changes to this project will be documented in this file.
 - Decreasing size of data now keeps the custom x-axis if set.
 - Chemagnetics data: fixed loading function.
 - Fixed some numpy code that was deprecated.
+- Macro menu operations now work from fitting windows
 
 ## [1.4] - 2022-09-25
 ### Added
