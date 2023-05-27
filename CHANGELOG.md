@@ -3,6 +3,23 @@ Changelog
 
 All notable changes to this project will be documented in this file.
 
+## [1.5] - up to 2023-05-27
+### Added
+- Phasing: support for 2nd order phasing (credits: Florian Schreiner)
+- Save to ascii: 2D data now is saved with the 2nd axis described in the header.
+### Changed
+- Better import of Bruker data (credits: Julien Trébosc):
+   + Improved reference frequency loading.
+   + Added better loading of nD and hypercomplex datasets.
+### Fixed
+- Better text output for history of several functions (credits: Famlam)
+- More error checking when inserting workspaces (credits: Famlam)
+- Bruker spectral data: better use of NC and NC_proc scaling factors (credits: Julien Trébosc)
+- Windows build: fixed save figure output in PDF/SVG/EPS format
+- Saving to Matlab: made sure naming is valid, so data can be loaded in Matlab (credits: Famlam)
+- Decreasing size of data now keeps the custom x-axis if set.
+- Chemagnetics data: fixed loading function.
+- Fixed some numpy code that was deprecated.
 
 ## [1.4] - 2022-09-25
 ### Added
