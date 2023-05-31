@@ -1492,7 +1492,12 @@ def loadBrukerSpectrum(filePath):
 
     MC2 = [ x['MC2'] for x in pars[0:-1]] # useful to know if data is hypercomplex and how it should be or was processed
     hyper_MC_modes = [1, 2, 3, 4, 5] # list of values of MC2 that correspond to hyper-complex dimension
-    axis_is_hyper = [True if mc in hyper_MC_modes else False for mc in MC2] 
+    axis_is_hyper_mc = [True if mc in hyper_MC_modes else False for mc in MC2] 
+    # if magnitude processed a dimension lose its hyper property
+    PH_mod =  [x['PH_mod'] for x in pars[0:-1]]
+    axis_is_hyper_ph = [True if ph in [0, 1] else False for ph in PH_mod] 
+    axis_is_hyper = [mc and ph for mc, ph in zip(axis_is_hyper_mc, axis_is_hyper_ph)]
+    
     # MC2_meaning = ['QF', 'QSEQ', 'TPPI', 'STATES', 'STATES-TPPI', 'ECHO-ANTIECHO', 'QF(no-frequency)']
     # MC2 = [ x['MC2'] if x['FT_mod'] > 0 else -1 for x in pars ] # useful to know if data is hypercomplex and how it should be or was processed
     # personal convention : MC2=-1 if FT/iFT not performed (FnMODE/MC2 never interpretated within Topspin)
