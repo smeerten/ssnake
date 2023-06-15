@@ -846,7 +846,7 @@ def saveMatlabFile(filePath, spectrum, name='spectrum'):
     struct['wholeEcho'] = spectrum.wholeEcho
     struct['ref'] = np.array(spectrum.ref, dtype=float)
     struct['history'] = spectrum.history
-    struct['xaxArray'] = spectrum.xaxArray
+    struct['xaxArray'] = np.array(spectrum.xaxArray,dtype=object)
     struct['metaData'] = spectrum.metaData
     if spectrum.dFilter is not None:
         struct['dFilter'] = spectrum.dFilter
