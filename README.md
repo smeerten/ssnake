@@ -44,7 +44,7 @@ This can be done either by modifying the PATH environment variable or by startin
 
 On Windows systems, ssNake can be installed using the 'Windows installer' that we supply. This holds
 a compiled version of both ssNake, and the relevant python libraries, and can be run without any
-other requirements. For the installer, please visit our [website](https://www.ru.nl/science/solidstatenmr/software/ssnake/).
+other requirements. The installer can be found on GitHub under 'Releases'.
 
 Users that have installed python via the Anaconda progrom descibed above can do the following:
 To install ssNake, copy the ssNake directory to your favourite location (C:\Program Files\, for example).
