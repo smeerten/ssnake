@@ -7808,26 +7808,12 @@ class dipolarDistanceWindow(wc.ToolWindow):
         self.M2hetGO = QtWidgets.QPushButton("Go")
         self.M2Frame.addWidget(self.M2hetGO, 1, 0)
         self.M2hetGO.clicked.connect(lambda: self.Calc(2))
-        #M2label1 = wc.QLabel(u'M<sub>2</sub>')
-        #self.M2Frame.addWidget(M2label1, 0, 1)
         self.M2label = wc.QLabel(u'Heteronuclear')
         self.M2Frame.addWidget(self.M2label, 0, 0)
         self.M2 = wc.QLineEdit("0")
         self.M2.setMinimumWidth(100)
         self.M2Frame.addWidget(self.M2, 1, 1)
-        # self.HetroWidgets = [self.M2hetGO,self.M2hetlabel,self.M2het]
         
-        # self.M2homGO = QtWidgets.QPushButton("Go")
-        # self.M2Frame.addWidget(self.M2homGO, 4, 0)
-        # self.M2homGO.clicked.connect(lambda: self.Calc(3))
-        # self.noqplabel = wc.QLabel(u'No quadrupolar interaction')
-        # self.M2Frame.addWidget(self.noqplabel, 2, 1)
-        # self.M2homlabel = wc.QLabel(u'Homonuclear')
-        # self.M2Frame.addWidget(self.M2homlabel, 2, 0)
-        # self.M2hom = wc.QLineEdit("0")
-        # self.M2hom.setMinimumWidth(100)
-        # self.M2Frame.addWidget(self.M2hom, 4, 1)
-        # self.HomoWidgets = [self.M2homGO,self.noqplabel,self.M2homlabel,self.M2hom]
         
         self.M2SEDGO = QtWidgets.QPushButton("Go")
         self.M2Frame.addWidget(self.M2SEDGO, 6, 0)
@@ -7849,10 +7835,10 @@ class dipolarDistanceWindow(wc.ToolWindow):
         self.okButton.clicked.disconnect()
         self.okButton.clicked.connect(self.valueReset)
 
-        self.checkHomoHetro()
+        self.checkHomoHetero()
 
 
-    def checkHomoHetro(self):
+    def checkHomoHetero(self):
         gamma1 = float(safeEval(self.gamma1.text(), Type='FI')) * 1e7
         gamma2 = float(safeEval(self.gamma2.text(), Type='FI')) * 1e7
         I1 = self.Ivalues[self.spin1.currentIndex()]
@@ -7868,40 +7854,40 @@ class dipolarDistanceWindow(wc.ToolWindow):
                 self.M2SEDlabel.hide()
                 self.M2SED.hide()
         else:
-            self.M2label.setText(u'M₂ Hetronuclear')
+            self.M2label.setText(u'M₂ Heteronuclear')
             self.M2SEDGO.hide()
             self.M2SEDlabel.hide()
             self.M2SED.hide()
     
     def spin1Changed(self):
         self.gamma1Drop.setCurrentIndex(0)
-        self.checkHomoHetro()
+        self.checkHomoHetero()
         
     def spin2Changed(self):
         self.gamma2Drop.setCurrentIndex(0)
-        self.checkHomoHetro()
+        self.checkHomoHetero()
             
     def gamma1Changed(self):
         self.gamma1Drop.setCurrentIndex(0)
-        self.checkHomoHetro()
+        self.checkHomoHetero()
 
     def gamma2Changed(self):
         self.gamma2Drop.setCurrentIndex(0)
-        self.checkHomoHetro()
+        self.checkHomoHetero()
 
     def setGamma1(self, index):
         if index != 0:
             self.spin1.setCurrentIndex(self.Ivalues.index(self.spinValues[index]))
             self.gamma1.setText(str(self.gammaValues[index]))
             self.gamma1Drop.setCurrentIndex(index) #Needed to avoid resets by other boxes
-            self.checkHomoHetro()
+            self.checkHomoHetero()
 
     def setGamma2(self, index):
         if index != 0:
             self.spin2.setCurrentIndex(self.Ivalues.index(self.spinValues[index]))
             self.gamma2.setText(str(self.gammaValues[index]))
             self.gamma2Drop.setCurrentIndex(index) #Needed to avoid resets by other boxes
-            self.checkHomoHetro()
+            self.checkHomoHetero()
 
     def Calc(self, Type):
         try:
@@ -8040,7 +8026,7 @@ class dipolarDistanceWindow(wc.ToolWindow):
         self.spin1.setCurrentIndex(0)
         self.gamma1Drop.setCurrentIndex(0)
         self.gamma2Drop.setCurrentIndex(0)
-        self.checkHomoHetro()
+        self.checkHomoHetero()
 
     def closeEvent(self, *args):
         self.deleteLater()
