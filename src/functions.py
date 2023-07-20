@@ -80,6 +80,8 @@ def lpsvd(fullFid, nPredict, maxFreq, forward=False, L=None):
     """
     Performs a LPSVD (Linear Predictive Singular Value Decomposition) on a given FID.
     Both forward and backward prediction are available.
+    The method follows: R. Kumaresan, D. W. Tufts IEEE Trans. Acoust. Speech Signal Processing 
+    vol. ASSP-30, 837-840, 1982.  
 
     Parameters
     ----------
