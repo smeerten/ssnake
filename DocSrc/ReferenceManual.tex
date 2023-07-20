@@ -899,6 +899,28 @@ To automate this process, ssNake uses information from a text by W.\ M.\ Westler
 
 Using this tool opens a windows, in which you have to open (again) the current Bruker file. ssNake then finds the desired phase correction and applies it to all traces.
 
+\subsection{LPSVD}
+LPSVD (or `Linear predication by singular value decomposition') is method to predict data points in an FID that have not been measured. Think of the data points that fall in the dead time of the probe at the start of the FID, or of data points at the end of the FID, which could not be acquired as the decoupling time would be to long for the used NMR probe.
+
+LPSVD estimates the signal by a series of exponential decays, with different frequency, phase, intensity, and decay. As input to the algorithm, the estimate maximum number of different decays (e.g.\ signals) is given. Note that LPSVD can only be accurately used if the data follows a Lorentzian profile in the spectral domain. Complicated powder spectra (consisting of an infinite amount of different lorentzians) cannot be accurately predicted.
+
+LPSVD can be used both in the time and frequency domain, but the underlying data model is always a complex exponential. So it only really makes sense in the time domain.
+
+In the LPSVD window the following settings need to be set:
+\begin{itemize}
+\item \textit{Backward/forward toggle}: Whether to predict new points before the start of the signal, or after the end of the signal.
+\item \textit{Number of point for analysis}: The LPSVD model is based on this many data points at the \textit{start} of the signal. (Independent on whether forwards or backwards prediction is asked for.)
+\item \textit{Number of points to predict}: The amount of new, predicted points to add to the data.
+\end{itemize}
+
+In ssNake LPSVD is always performed on each data slice individually. No information is shared between the different slices, meaning each gets its own set of predicted exponential decay parameters.
+
+\subsubsection*{Algorithm}
+\textit{TODO}
+
+
+
+
 \subsection{Scale SW}
 A function to scale the spectra width (i.e. the sweepwidth) of the current dimension. Essentially,
 this can also be done in the main windows, by filling in $a * b$, with $a$ the current SW and $b$
