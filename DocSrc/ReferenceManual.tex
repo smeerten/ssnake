@@ -1807,6 +1807,30 @@ Note that, if the parameters change much during a fit, the $C_\text{Q}$ and $\et
 Library might not be appropriate anymore. If this is the case, we advice to generate a new library
 with better settings, and then rerun the fit, to get the final convergence.
 
+\subsubsection*{Custom library}\label{sec:CzjzekCustom}
+The ssNake interface also allows for the loading of a custom library for fitting Czjzek spectra. In this way, sub-spectra with more involved interactions can be used that are simulated outside ssNake. Think, for example, of spectra where an excitation profile is taken into account. Such a custom library can be loaded by using the `Load' button at the bottom of the library window. Using this, a file can be selected which should follow the following convention:
+
+\begin{itemize}
+\item \texttt{<libname>-<eta>-<Cq>.<ext>}
+\end{itemize}
+ssNake loads all the files which have the save libname as the file pointed to (and are in the same directory). The <eta> and <Cq> values can have decimal notation (e.g. 2.3). Negative values are not supported, and are not needed in general. The Cq values are in MHz.
+
+A valid filename might be: \texttt{mylib-0.1-2.3.spe}
+
+All the files together should span a rectangular grid in eta and Cq.
+
+ssNake uses its general `Load' backend to load the separate files. So any file format ssNake supports can be used, as long as they are in a single file format (not raw TopSpin data for example). Examples of useful file formats are:
+
+\begin{itemize}
+\item ssNake .mat and .json
+\item Simpson .spe or .fid
+\end{itemize}
+
+Note that both FID and spectrum data can be used as input.
+
+After the library has loaded, fitting can be done using the normal procedures. Make sure not to push 'Generate' from the library window: this causes ssNake to simulate its own library, and overwrite the one you just imported.
+
+
 
 \subsubsection*{Equations}
 
@@ -1853,6 +1877,9 @@ with $I_0(z)$ a modified Bessel function, and
 To speed-up the calculations of these distributions, ssNake can use the \texttt{numba} python library. With
 the extended Czjzek distribution, around a twofold speed increase can be gained in this way. ssNake
 tests for the \texttt{numba} package itself, so regular installation of this package should be sufficient.
+
+
+
 
 \subsection{MQMAS}
 This fitting routine can be used to fit an MQMAS spectrum. It is a 2D fitting routine, showing a contour plot 
