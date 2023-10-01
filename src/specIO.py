@@ -1719,18 +1719,21 @@ def loadBrukerSpectrum(filePath):
             with open(os.path.join(Dir, file), "rb") as f:
                 raw = np.fromfile(f, DtypeP, totsize).astype(float)  # there could be overflow when working on int32
 
-            # unroll XDIMs
-            raw = raw.reshape(REST + XDIM)
-            source = [i for i in range(raw.ndim)]
-            destination = []
-            for i in range(raw.ndim):
-                if i < dimP: #moving XDIM axis number i to 2*i 
-                    destination.append(2*i)
-                else: #moving REST axis number i to 2*(i%dimP)+1
-                    destination.append(2*(i%dimP)+1)
-            raw = np.moveaxis(raw, source, destination)
+            # Note that XDIM may have inconsistent value for 1D in old topspin 
+            # versions. Therefore XDIM processing should not be used for 1D spectra
+            if dimP > 1:
+                # unroll XDIMs for nD dataset with n>1
+                raw = raw.reshape(REST + XDIM)
+                source = [i for i in range(raw.ndim)]
+                destination = []
+                for i in range(raw.ndim):
+                    if i < dimP: #moving XDIM axis number i to 2*i 
+                        destination.append(2*i)
+                    else: #moving REST axis number i to 2*(i%dimP)+1
+                        destination.append(2*(i%dimP)+1)
+                raw = np.moveaxis(raw, source, destination)
+                raw = raw.reshape(SIZE)
 
-            raw = raw.reshape(SIZE)
             #One should reverse the axes that are in frequency domain only
             axis_to_flip_list = []
             for i, f in enumerate(axis_is_freq):
@@ -1738,9 +1741,9 @@ def loadBrukerSpectrum(filePath):
                     axis_to_flip_list.append(i) 
             raw = np.flip(raw, axis=axis_to_flip_list) # reverse freq axes
 
-            if counter % 2 == 0: # If even, data is real part
+            if counter % 2 == 0: # If counter is even then data is real part
                 DATA.append(raw)
-            else: # If odd, data is imag, and needs to be added to the previous
+            else: # If counter is odd, data is imag, and needs to be added to the previous
                 DATA[-1] = DATA[-1] + 1j * raw
         counter += 1 
     del raw
