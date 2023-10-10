@@ -1472,18 +1472,16 @@ the number of significant digit displayed in the model parameter part, or the ma
 
 \subsubsection{Fit all option}
 `Fit all' button applies to multi dimensional data fitted as series of lower dimensionality spectra. Typically, T1 measurement recorded as pseudo 2D 
-will be fitted as a series of 1Ds sub spectra to extract integral parameters. Note that each sub-spectrum possess its own set of parameters.
+will be fitted as a series of 1D sub spectra to extract integral parameters. Note that each sub-spectrum possess its own set of parameters.
 See \hyperref[sec:sideframe] {Side Frame section} for selecting rows.
 
-`Fit all' buton behavior depends on choice among 3 radio buttons:
-\begin{itemize}
-\item `no cpy' radio button: Fit each sub-spectrum using its own set of parameters.
-\item `cpy all' radio button: Copy current spectrum set of parameters to all other sub-spectra before fitting each sub-spectrum.
-\item `inc cpy' radio button: Does incremental copy/fit of parameters. First copy current to first sub-spectrum and fit it. 
-Continue with copying the just fitted parameters to next sub-spectrum before fitting it and repeat for each sub-spectrum. 
+`Fit all' button behavior depends on a check box called `Incr copy' for incremental copy:\\
+If the check box ins't checked, `Fit all' will fit sub-spectra each with their own parameter sets.\\
+If the check box is checked, `Fit all' does incremental copy/fit of parameters. First it fits the first sub-spectrum then copyies the new parameter set to next 
+sub-spectrum parameters. This operation (fit/copy to next) continues for all subsequent sub-spectra. \\
 This is useful for series of spectra where the fitted parameters evolve slowly from one sub-spectrum to the next one.
-\end{itemize}
-If convergence is not reached after `inc cpy', then switching to `no cpy' will refine the fit of each individual spectrum.
+One should use `Incr copy' only once. If convergence is not reached the first time, then one can `Fit all' again with the check box unchecked. It will refine the fit
+for all sub-spectra from the state each parameter was after first fit.
 
 \subsection{Exluding regions}\label{sec:ExcludeRegions}
 For each fitting routine, specific regions can be excluded from the fit. This means that the deviation between the data and the simulation in this region is not taken into account during fitting. Regions can be excluded by pushing the `Exclude' button in the fitting window. When this window is open, regions can be selected by left clicking in the plot. Pushing `Ok' saves the changes.

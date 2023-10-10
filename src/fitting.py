@@ -278,6 +278,7 @@ class TabFittingWindow(QtWidgets.QWidget):
         self.runningAll = False
         self.stopMP()
         self.mainFitWindow.paramframe.stopAllButton.hide()
+        self.mainFitWindow.paramframe.fitAllIncrCpy.show()
 
     def fitAll(self, *args):
         """
@@ -285,14 +286,13 @@ class TabFittingWindow(QtWidgets.QWidget):
         """
         self.runningAll = True
         self.mainFitWindow.paramframe.stopAllButton.show()
+        self.mainFitWindow.paramframe.fitAllIncrCpy.hide()
         tmp = np.array(self.mainFitWindow.current.data.shape())
         tmp[self.mainFitWindow.current.axes] = 1
         tmp2 = ()
         for i in tmp:
             tmp2 += (np.arange(i),)
         grid = np.array([i.flatten() for i in np.meshgrid(*tmp2)]).T
-        if args[0] == "allCopy":
-            self.mainFitWindow.paramframe.copyParams()
         for i in grid:
             QtWidgets.qApp.processEvents()
             if self.runningAll is False:
@@ -300,7 +300,7 @@ class TabFittingWindow(QtWidgets.QWidget):
             self.mainFitWindow.current.setSlice(self.mainFitWindow.current.axes, i)
             self.fit()
             self.mainFitWindow.sideframe.upd()
-            if args[0] == "incrCopy":
+            if args[0] == True: # Incremental copy check button is True
                 self.mainFitWindow.paramframe.copyParams2NextSlice()
         self.mainFitWindow.paramframe.stopAllButton.hide()
 
@@ -1055,18 +1055,13 @@ class AbstractParamFrame(QtWidgets.QWidget):
             fitAllLayout = QtWidgets.QGridLayout()
             self.frame1.addLayout(fitAllLayout, 1, 0)
             fitAllButton = QtWidgets.QPushButton("Fit all")
-            fitAllButton.clicked.connect(lambda x: self.rootwindow.tabWindow.fitAll(self.fitAllMode))
-            self.fitAllRBnoCopy = QtWidgets.QRadioButton('no cpy')
-            self.fitAllRBnoCopy.setChecked(True)
-            self.fitAllRBnoCopy.toggled.connect(self.setfitAllRBState)
-            self.fitAllRBallCopy = QtWidgets.QRadioButton('cpy all')
-            self.fitAllRBallCopy.toggled.connect(self.setfitAllRBState)
-            self.fitAllRBincrCopy = QtWidgets.QRadioButton('inc cpy')
-            self.fitAllRBincrCopy.toggled.connect(self.setfitAllRBState)
-            fitAllLayout.addWidget(fitAllButton, 0, 0, 3, 1)
-            fitAllLayout.addWidget(self.fitAllRBnoCopy, 0, 1)
-            fitAllLayout.addWidget(self.fitAllRBallCopy, 1, 1)
-            fitAllLayout.addWidget(self.fitAllRBincrCopy, 2, 1)
+            fitAllButton.clicked.connect(lambda x: self.rootwindow.tabWindow.fitAll(self.fitIncrCpy))
+            self.fitAllIncrCpy = QtWidgets.QCheckBox('Incr.\ncopy')
+            self.fitAllIncrCpy.setChecked(False)
+            self.fitAllIncrCpy.toggled.connect(self.setfitIncrCpy)
+            
+            fitAllLayout.addWidget(fitAllButton, 0, 0)
+            fitAllLayout.addWidget(self.fitAllIncrCpy, 0, 1)
 
             self.stopAllButton = QtWidgets.QPushButton("Stop all")
             self.stopAllButton.clicked.connect(self.rootwindow.tabWindow.stopAll)
@@ -1107,14 +1102,11 @@ class AbstractParamFrame(QtWidgets.QWidget):
         colorList = mpl.rcParams['axes.prop_cycle'].by_key()['color']
         self.fit_color_list = colorList[2:] + colorList[0:2]
 
-    def setfitAllRBState(self):
-        if self.fitAllRBnoCopy.isChecked():
-            self.fitAllMode = "noCopy"
-        elif self.fitAllRBallCopy.isChecked():
-            self.fitAllMode = "allCopy"
-        if self.fitAllRBincrCopy.isChecked():
-            self.fitAllMode = "incrCopy"
-        
+    def setfitIncrCpy(self):
+        if self.fitAllIncrCpy.isChecked():
+            self.fitIncrCpy = True
+        else:
+            self.fitIncrCpy = False
 
     def togglePick(self):
         # Dummy function for fitting routines which require peak picking
@@ -1235,7 +1227,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
 
     def copyParams2NextSlice(self):
         """
-        Copies the parameters of the current slice to all other slices of the data.
+        Copies the parameters of the current slice to next slice of the data.
         """
         self.checkInputs()
         locList = self.getRedLocList()
