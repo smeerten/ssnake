@@ -278,7 +278,7 @@ class TabFittingWindow(QtWidgets.QWidget):
         self.runningAll = False
         self.stopMP()
         self.mainFitWindow.paramframe.stopAllButton.hide()
-        self.mainFitWindow.paramframe.fitAllIncrCpy.show()
+        self.mainFitWindow.paramframe.fitAllIncrCpyCB.show()
 
     def fitAll(self, *args):
         """
@@ -286,7 +286,7 @@ class TabFittingWindow(QtWidgets.QWidget):
         """
         self.runningAll = True
         self.mainFitWindow.paramframe.stopAllButton.show()
-        self.mainFitWindow.paramframe.fitAllIncrCpy.hide()
+        self.mainFitWindow.paramframe.fitAllIncrCpyCB.hide()
         tmp = np.array(self.mainFitWindow.current.data.shape())
         tmp[self.mainFitWindow.current.axes] = 1
         tmp2 = ()
@@ -303,6 +303,7 @@ class TabFittingWindow(QtWidgets.QWidget):
             if args[0] == True: # Incremental copy check button is True
                 self.mainFitWindow.paramframe.copyParams2NextSlice()
         self.mainFitWindow.paramframe.stopAllButton.hide()
+        self.mainFitWindow.paramframe.fitAllIncrCpyCB.show()
 
     def fit(self):
         """
@@ -1056,12 +1057,13 @@ class AbstractParamFrame(QtWidgets.QWidget):
             self.frame1.addLayout(fitAllLayout, 1, 0)
             fitAllButton = QtWidgets.QPushButton("Fit all")
             fitAllButton.clicked.connect(lambda x: self.rootwindow.tabWindow.fitAll(self.fitIncrCpy))
-            self.fitAllIncrCpy = QtWidgets.QCheckBox('Incr.\ncopy')
-            self.fitAllIncrCpy.setChecked(False)
-            self.fitAllIncrCpy.toggled.connect(self.setfitIncrCpy)
+            self.fitAllIncrCpyCB = QtWidgets.QCheckBox('Incr.\ncopy')
+            self.fitAllIncrCpyCB.toggled.connect(self.setfitIncrCpy)
+            self.fitAllIncrCpyCB.setChecked(False)
+            self.fitIncrCpy = False
             
             fitAllLayout.addWidget(fitAllButton, 0, 0)
-            fitAllLayout.addWidget(self.fitAllIncrCpy, 0, 1)
+            fitAllLayout.addWidget(self.fitAllIncrCpyCB, 0, 1)
 
             self.stopAllButton = QtWidgets.QPushButton("Stop all")
             self.stopAllButton.clicked.connect(self.rootwindow.tabWindow.stopAll)
@@ -1103,7 +1105,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.fit_color_list = colorList[2:] + colorList[0:2]
 
     def setfitIncrCpy(self):
-        if self.fitAllIncrCpy.isChecked():
+        if self.fitAllIncrCpyCB.isChecked():
             self.fitIncrCpy = True
         else:
             self.fitIncrCpy = False
