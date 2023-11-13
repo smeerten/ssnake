@@ -2974,28 +2974,35 @@ class CsaDeconvParamFrame(AbstractParamFrame):
             self.labelskew.show()
             self.pickTick.setChecked(False)
             self.pickTick.hide()
-        val = self.numExp.currentIndex() + 1
-        tensorList = []
-        for i in range(10):  # Convert input
-            if i < val:
-                def1 = safeEval(self.entries["Definition1"][i].text())
-                def2 = safeEval(self.entries["Definition2"][i].text())
-                def3 = safeEval(self.entries["Definition3"][i].text())
-                startTensor = [def1, def2, def3]
-                if None in startTensor:
-                    self.entries['shiftdef'][-1].setCurrentIndex(OldType)  # error, reset to old view
-                    raise FittingException("Fitting: One of the inputs is not valid")
-                Tensors = func.shiftConversion(startTensor, OldType)
-                for element in range(3):  # Check for `ND' s
-                    if isinstance(Tensors[NewType][element], str):
-                        Tensors[NewType][element] = 0
-                tensorList.append(Tensors)
-        printStr = '%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g'
-        for i in range(10):  # Print output if not stopped before
-            if i < val:
-                self.entries["Definition1"][i].setText(printStr % tensorList[i][NewType][0])
-                self.entries["Definition2"][i].setText(printStr % tensorList[i][NewType][1])
-                self.entries["Definition3"][i].setText(printStr % tensorList[i][NewType][2])
+        # copy current entries to fitParamList
+        self.checkInputs()
+        # convert for each slice each fitParamList 
+        with np.nditer(self.fitParamList, flags=["refs_ok", "multi_index"], op_flags=['readwrite']) as it:
+            for slice_params in it:
+                # one need to check fitParamList is valid/exists for each slice! 
+                # This is not necessarily the case for slices that have not been displayed...
+                self.checkFitParamList(it.multi_index)
+                # note that slice_params is a zero-dimensional ndarray which content is accessed with slice_params[()]
+                val = self.fitNumList[it.multi_index] + 1
+    #            tensorList = []
+                for i in range(self.FITNUM):  # Convert input
+#                    if i < val:  # not sure this is required, one could imagine to enable disable sites but keeping their updated value in cache. 
+                        def1 = slice_params[()]['Definition1'][i][0]
+                        def2 = slice_params[()]['Definition2'][i][0]
+                        def3 = slice_params[()]['Definition3'][i][0]
+                        startTensor = [def1, def2, def3]
+                        if None in startTensor:
+                            self.entries['shiftdef'][-1].setCurrentIndex(OldType)  # error, reset to old definition
+                            raise FittingException("Fitting: One of the inputs is not valid")
+                        Tensors = func.shiftConversion(startTensor, OldType)
+                        for element in range(3):  # Check for `ND' s
+                            if isinstance(Tensors[NewType][element], str):
+                                Tensors[NewType][element] = 0
+                        slice_params[()]['Definition1'][i][0] = Tensors[NewType][0]
+                        slice_params[()]['Definition2'][i][0] = Tensors[NewType][1]
+                        slice_params[()]['Definition3'][i][0] = Tensors[NewType][2]
+        # copy current fitParamList to entries and update the new definition 
+        self.dispParams()
         self.shiftDefType = NewType
 
     def extraParamToFile(self):
@@ -3554,28 +3561,34 @@ class QuadCSADeconvParamFrame(AbstractParamFrame):
             self.labeliso2.show()
             self.labelspan.show()
             self.labelskew.show()
-        val = self.numExp.currentIndex() + 1
-        tensorList = []
-        for i in range(10):  # Convert input
-            if i < val:
-                def1 = safeEval(self.entries["Definition1"][i].text())
-                def2 = safeEval(self.entries["Definition2"][i].text())
-                def3 = safeEval(self.entries["Definition3"][i].text())
-                startTensor = [def1, def2, def3]
-                if None in startTensor:
-                    self.entries['shiftdef'][-1].setCurrentIndex(OldType)  # error, reset to old view
-                    raise FittingException("Fitting: One of the inputs is not valid")
-                Tensors = func.shiftConversion(startTensor, OldType)
-                for element in range(3):  # Check for `ND' s
-                    if isinstance(Tensors[NewType][element], str):
-                        Tensors[NewType][element] = 0
-                tensorList.append(Tensors)
-        printStr = '%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g'
-        for i in range(10):  # Print output if not stopped before
-            if i < val:
-                self.entries["Definition1"][i].setText(printStr % tensorList[i][NewType][0])
-                self.entries["Definition2"][i].setText(printStr % tensorList[i][NewType][1])
-                self.entries["Definition3"][i].setText(printStr % tensorList[i][NewType][2])
+        # copy current entries to fitParamList
+        self.checkInputs()
+        # convert for each slice each fitParamList 
+        with np.nditer(self.fitParamList, flags=["refs_ok", "multi_index"], op_flags=['readwrite']) as it:
+            for slice_params in it:
+                # one need to check fitParamList is valid/exists for each slice! 
+                # This is not necessarily the case for slices that have not been displayed...
+                self.checkFitParamList(it.multi_index)
+                # note that slice_params is a zero-dimensional ndarray which content is accessed with slice_params[()]
+                val = self.fitNumList[it.multi_index] + 1
+                for i in range(self.FITNUM):  # Convert input
+#                    if i < val:  # not sure this is required, one could imagine to enable disable sites but keeping their value in cache. 
+                        def1 = slice_params[()]['Definition1'][i][0]
+                        def2 = slice_params[()]['Definition2'][i][0]
+                        def3 = slice_params[()]['Definition3'][i][0]
+                        startTensor = [def1, def2, def3]
+                        if None in startTensor:
+                            self.entries['shiftdef'][-1].setCurrentIndex(OldType)  # error, reset to old definition
+                            raise FittingException("Fitting: One of the inputs is not valid")
+                        Tensors = func.shiftConversion(startTensor, OldType)
+                        for element in range(3):  # Check for `ND' s
+                            if isinstance(Tensors[NewType][element], str):
+                                Tensors[NewType][element] = 0
+                        slice_params[()]['Definition1'][i][0] = Tensors[NewType][0]
+                        slice_params[()]['Definition2'][i][0] = Tensors[NewType][1]
+                        slice_params[()]['Definition3'][i][0] = Tensors[NewType][2]
+        # copy current fitParamList to entries and update the new definition 
+        self.dispParams()
         self.shiftDefType = NewType
 
     def extraParamToFile(self):
