@@ -1421,6 +1421,8 @@ class Spectrum(object):
             The dimension.
             By default the last dimension is used.
         """
+        if self.spec[axis] == 0:
+            raise SpectrumException(f"Axis {axis+1} must be in frequency domain")
         axis = self.checkAxis(axis)
         if not self.noUndo:
             copyData = copy.deepcopy(self)
