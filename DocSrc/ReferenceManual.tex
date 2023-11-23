@@ -926,7 +926,7 @@ indirect dimension can be used to get a true isotropic dimension (i.e. 1 ppm che
 corresponds to a 1 ppm peak shift). This scaling factor for this is $Q$ and $I$ dependent, and can be selected in
 this tool via an easy dropdown menu.
 
-\subsection{Scale Car/Ref freq}
+\subsection{Scale Car/Ref freq} \label{subsec:ScaleFreqRef}
 A function to scale the spectra carrier frequency (frequency of the spectrum center)  
 and the reference frequency of the current dimension. 
 Essentially, this can also be done in the main windows, by filling in $a * b$, 
@@ -1931,8 +1931,10 @@ tests for the \texttt{numba} package itself, so regular installation of this pac
 \subsection{MQMAS}
 This fitting routine can be used to fit an MQMAS spectrum. It is a 2D fitting routine, showing a contour plot 
 of the data. The fit result is plot on top of this using a different contour colour. Related to the additional dimension
-a Lorentz1 parameter is added to describe relaxation in D1. Regardin Gaussian broadening, Gauss parameter is used in 
-both dimensions to describe chemical shift distribution.
+a Lorentz1 parameter is added to describe relaxation in D1. Regarding Gaussian broadening, a single $\sigma_{CS}$ parameter is used in 
+both dimensions to describe chemical shift distribution. It is important to note that internally the parameter is called Gauss such that one 
+can import from 1D parameter file and have the chemical shift distribution correctly imported. Moreover for connecting parameters 
+between 1D spectrum and MQMAS spectrum the parameter is named Gauss for MQMAS and quadrupole models.
 
 For simulation of MQMAS data, we need to define the quadrupolar parameters as before (see the section on fitting 
 of quadrupole lines). In this case, no satellite signals are included. Only infinite MAS spinning speeds are
@@ -1943,20 +1945,29 @@ Apart from the spin quantum number I, MQMAS simulation also requires selected th
 evolving in D1 to be supplied. This is labelled `MQ' in the interface. 
 
 Two additional parameters that need to be supplied are the shearing and spectral width scale factors. These allow 
-to model 2D MQMAS spectra processed using diferent shearing schemes. Check our advanced tutorial on MQMAS processing. 
+to model 2D MQMAS spectra processed using different shearing schemes. Check our advanced tutorial on MQMAS processing. 
 By default, the shearing is set at 0, and the sw scaling at 1. This results in unsheared data with D1 corresponding 
-to 3Q coherence evolution, and can be used to fit experimental data that has not been sheared.
+to 3Q coherence evolution, and can be used to fit experimental data that has not been sheared. In that case, you will probably need 
+to adjust the reference frequency to have proper triple quantum dimension by setting a new reference as 
+$\mathrm{Ref(D1)}= 3*\mathrm{Ref(D2)}-2*\mathrm{Freq(D2)}$. 
+(also see tutorial on processing DQ-SQ for analog explanation).
 
-The required sharing and sw scaling factors depend on both I and MQ. Using the 'Auto' push button in the interface, 
-the correct values are filled in in the boxes, depending on the current I and MQ setting.
+The required shearing and sw scaling factors depend on both I and MQ. Using the 'Auto' push button in the interface, 
+the correct values are filled in in the boxes, depending on the current I and MQ setting for a standard MQMAS experiment.
+If universal scale is achieved by scaling carrier and reference frequencies (see section \ref{subsec:ScaleFreqRef}), instead of scaling sw, such 
+as done using xfshear program for Bruker Topspin processed spectra, sw scaling is not be required (keep default value of 1).
 
+Finally, a check button named "Fold D1" will allow simulating a folded spectrum. If unchecked any signal that would fall outside
+the defined sw region will not be simulated. Folded spectra are slightly longer to simulate.
 
 \subsection{Czjzek MQMAS}
 This routine can be used to fit an MQMAS spectrum of a species that is influenced by a Czjzek distribution. The 
 required inputs are describe in the section on 1D Czjzek fitting, and regular MQMAS fitting respectively. Note 
 that this again means that firstly a library needs to be generated of a $C_\text{Q}$ and $\eta$ grid. The spectrum 
-sharing and sw scaling are as described in the MQMAS section.
-
+shearing and sw scaling are as described in the MQMAS section.
+In Czjzek MQMAS fitting, sites will be folded if folding is due to Chemical Shift. If $\sigma$ is so large that 
+a spectrum would be folded due to quadupolar interaction, the resulting simulated spectrum will probably be wrong.
+But such spectrum would probably be impossible to record experimentally.
 
 \subsection{External}
 Simulating NMR data for fitting can be straightforward, if idealized line shapes are requires. These

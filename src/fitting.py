@@ -4761,7 +4761,7 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
     MQvalues = [3, 5, 7, 9]
     SINGLENAMES = ["Offset", "Multiplier", "Spinspeed"]
     MULTINAMES = ["Position", "Gauss", "Cq", 'eta', "Integral", "Lorentz", "Lorentz1"] # , "Gauss2", "Gauss1"
-    EXTRANAMES = ['spinType', 'angle', 'numssb', 'cheng', 'I', 'MQ', 'shear', 'scale']
+    EXTRANAMES = ['spinType', 'angle', 'numssb', 'cheng', 'I', 'MQ', 'shear', 'scale', 'foldF1']
     MASTYPES = ["Static", "Finite MAS", "Infinite MAS"]
 
     def __init__(self, parent, rootwindow, isMain=True):
@@ -4783,7 +4783,8 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
                          "Position": [0.0, False], "Gauss": [0.0, False], "Cq": [1.0, False], 'eta': [0.0, False],
                          "Integral": [self.fullInt, False], "Lorentz": [10.0, False],   # "Gauss2": [0.0, True],
                          "Lorentz1": [10.0, False] } # ,"Gauss1": [0.0, True] }
-        self.extraDefaults = {'spinType': 2, 'angle': "arctan(sqrt(2))", 'numssb': 32, 'cheng': 15, 'I': 0, 'MQ': 0, 'shear': '0.0', 'scale': '1.0'}
+        self.extraDefaults = {'spinType': 2, 'angle': "arctan(sqrt(2))", 'numssb': 32, 'cheng': 15, 'I': 0, 'MQ': 0, 
+                                'shear': '0.0', 'scale': '1.0', 'foldF1': False}
         super(MqmasDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
         self.optframe.addWidget(wc.QLabel("MAS:"), 2, 0)
         self.entries['spinType'].append(QtWidgets.QComboBox(self))
@@ -4823,22 +4824,28 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         autoButton = QtWidgets.QPushButton("&Auto")
         autoButton.clicked.connect(self.autoShearScale)
         self.optframe.addWidget(autoButton, 8, 1)
+        self.entries['foldF1'].append(QtWidgets.QCheckBox('D1 fold'))
+        self.optframe.addWidget(self.entries['foldF1'][-1], 8, 0)
+
         self.spinLabel = wc.QLabel("Spin. speed [kHz]:")
         self.frame2.addWidget(self.spinLabel, 0, 0, 1, 2)
         self.ticks["Spinspeed"].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks["Spinspeed"][-1], 1, 0)
         self.entries["Spinspeed"].append(wc.QLineEdit())
         self.frame2.addWidget(self.entries["Spinspeed"][-1], 1, 1)
+
         self.frame2.addWidget(wc.QLabel("Offset:"), 2, 0, 1, 2)
         self.ticks["Offset"].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks["Offset"][-1], 3, 0)
         self.entries["Offset"].append(wc.QLineEdit())
         self.frame2.addWidget(self.entries["Offset"][-1], 3, 1)
+
         self.frame2.addWidget(wc.QLabel("Multiplier:"), 4, 0, 1, 2)
         self.ticks["Multiplier"].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks["Multiplier"][-1], 5, 0)
         self.entries["Multiplier"].append(wc.QLineEdit())
         self.frame2.addWidget(self.entries["Multiplier"][-1], 5, 1)
+
         self.numExp = QtWidgets.QComboBox()
         self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
         self.numExp.currentIndexChanged.connect(self.changeNum)
@@ -4872,6 +4879,7 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         self.entries['MQ'][-1].setCurrentIndex(self.extraDefaults['MQ'])
         self.entries['shear'][-1].setText(self.extraDefaults['shear'])
         self.entries['scale'][-1].setText(self.extraDefaults['scale'])
+        self.entries['foldF1'][-1].setChecked(self.extraDefaults['foldF1'])
         self.MASChange(self.extraDefaults['spinType'])
         super(MqmasDeconvParamFrame, self).reset()
 
@@ -4931,7 +4939,9 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
                      "Cheng": self.entries['cheng'][-1].text(),
                      "MAS": self.MASTYPES[self.entries['spinType'][-1].currentIndex()],
                      "Angle": self.entries['angle'][-1].text(),
-                     "Sidebands": self.entries['numssb'][-1].text()}
+                     "Sidebands": self.entries['numssb'][-1].text(),
+                     "FoldF1" :  self.entries['foldF1'][-1].isChecked(),
+                    }
         return (extraDict, {})
 
     def extraFileToParam(self, preParams, postParams):
@@ -4955,6 +4965,8 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
             self.entries['angle'][0].setText(preParams["Angle"])
         if "Sidebands" in keys:
             self.entries['numssb'][0].setValue(int(preParams["Sidebands"]))
+        if "FoldF1" in keys:
+            self.entries['foldF1'][0].setChecked(bool(preParams["FoldF1"]))
 
     def getExtraParams(self, out):
         """
@@ -4975,7 +4987,8 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         MAStype = self.entries['spinType'][-1].currentIndex()
         shear = safeEval(self.entries['shear'][-1].text())
         scale = safeEval(self.entries['scale'][-1].text())
-        out['extra'] = [I, MQ, numssb, angle, D2, D4, weight, shear, scale, MAStype]
+        foldF1 = self.entries['foldF1'][-1].isChecked()
+        out['extra'] = [I, MQ, numssb, angle, D2, D4, weight, shear, scale, MAStype, foldF1]
         return (out, out['extra'])
 
     def checkResults(self, numExp, struc):
