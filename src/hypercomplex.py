@@ -980,7 +980,11 @@ class HComplexData(object):
         import scipy.signal
         if axis >= 0:
             axis += 1
-        tmpData = scipy.signal.hilbert(np.real(self.data), axis=axis)
+        # note: scipy.signal.hilbert designed  for use in time domain, 
+        # with fft, zeros negative freq, ifft instead of
+        # ifft, zeros in time domain and fft required for nmr spectra
+        # this results in conjugated spectrum
+        tmpData = np.conjugate(scipy.signal.hilbert(np.real(self.data), axis=axis))
         return HComplexData(tmpData, np.copy(self.hyper))
 
     def regrid(self, newX, oldX, axis=-1):

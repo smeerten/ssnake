@@ -397,7 +397,7 @@ class MainProgram(QtWidgets.QMainWindow):
         if color == 'red':
             self.statusBar.setStyleSheet("QStatusBar{padding-left:8px;color:red;}")
         else:
-            self.statusBar.setStyleSheet("QStatusBar{padding-left:8px;}")
+            self.statusBar.setStyleSheet("QStatusBar{padding-left:8px;color:blue;}")
         self.statusBar.showMessage(msg, 10000)
 
     def initToolbar(self):
@@ -4370,6 +4370,8 @@ class RollDataWindow(wc.ToolWindow):
         rightShift.clicked.connect(self.stepUpShift)
         rightShift.setAutoRepeat(True)
         self.grid.addWidget(rightShift, 1, 2)
+        self.shift_axisCB = QtWidgets.QCheckBox("Shift axis")
+        self.layout.addWidget(self.shift_axisCB, 2, 0)
 
     def stepUpShift(self, *args):
         inp = safeEval(self.shiftEntry.text(), length=self.father.current.len(), Type='FI')
@@ -4409,14 +4411,16 @@ class RollDataWindow(wc.ToolWindow):
             raise SsnakeException("Roll data: roll value not valid")
         self.shiftVal = inp
         self.shiftEntry.setText(str(self.shiftVal))
-        self.father.current.rollPreview(self.shiftVal)
+        self.father.current.rollPreview(self.shiftVal, shift_axis=self.shift_axisCB.isChecked())
 
     def applyFunc(self):
         inp = safeEval(self.shiftEntry.text(), length=self.father.current.len(), Type='FI')
         if inp is None:
             raise SsnakeException("Roll data: roll value not valid")
+        if self.singleSlice.isChecked() and self.shift_axisCB.isChecked():
+            raise SsnakeException("Shifting axis is not allowed when single slice is checked!")
         shift = inp
-        self.father.current.roll(shift, (self.singleSlice.isChecked()))
+        self.father.current.roll(shift, (self.singleSlice.isChecked()), shift_axis=self.shift_axisCB.isChecked())
 
 #############################################################
 

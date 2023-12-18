@@ -1042,6 +1042,12 @@ input box can be used to roll the data in the direction of the arrow.  The effec
 on the current 1D can be seen in the main window.  When pushing `Apply' the roll is performed on
 all traces of the nD data.
 
+Rolling data can be very useful for folded nD spectra. In that case a check button called `Shift axis' 
+can be activated to shift the X axis accordingly, so that the position of the peak doesn't change (only 
+the position relative to spectrum edges). Note that if the shift value is larger than the dimension size 
+then the X axis is shifted without rolling allowing to unfold the spectrum several times.
+The `Shift axis' button has no effect in time domain.
+
 \subsection{Integrate}
 Integrates a specific part of the active dimension on all traces.
 

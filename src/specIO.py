@@ -1271,8 +1271,12 @@ def loadBrukerTopspin(filePath):
 
     # makes list of proc file names
     procDirs = []
+    if int(dimA) > 1:
+        procfile = f"proc{int(dimA)}s"
+    else:
+        procfile = "procs"
     for root, dirs, files in os.walk(os.path.join(Dir, 'pdata')):
-        if f'proc{int(dimA)}s' in files:
+        if procfile in files:
             procDirs.append(root)
     # sort found processed data by increasing procno
     procDirs.sort(key=lambda x : int(os.path.split(x)[-1]))

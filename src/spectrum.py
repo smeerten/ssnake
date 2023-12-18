@@ -1421,6 +1421,8 @@ class Spectrum(object):
             The dimension.
             By default the last dimension is used.
         """
+        if self.spec[axis] == 0:
+            raise SpectrumException(f"Axis {axis+1} must be in frequency domain")
         axis = self.checkAxis(axis)
         if not self.noUndo:
             copyData = copy.deepcopy(self)
@@ -2049,43 +2051,60 @@ class Spectrum(object):
         if not self.noUndo:
             self.undoList.append(lambda self: self.restoreData(copyData, lambda self: self.shift(shift, axis, select=select)))
 
-    def roll(self, shift, axis=-1, select=slice(None)):
+    def roll(self, shift, axis=-1, select=slice(None), shift_axis=True):
         """
-        Rolls the data by using a first order phase change.
+        Rolls the data by applying a first order phase change in reciprocal space.
         This allows rolling also using non-integer values.
 
         Parameters
         ----------
-        roll : float
-            The distance to roll the data along axis.
+        shift : float
+            The distance to roll the data along axis. shift is in spectrum point unit but can be float.
         axis : int, optional
             The dimension.
             By default the last dimension is used.
         select : Slice, optional
             An optional selection of the spectrum data on which the shift is performed.
             By default the entire data is used.
+        shift_axis : bool, if True, on frequency domain, data and axis are shifted. 
+                    If customXax is True, shift xaxArray, else change freq and resetXax
+                    If select is not default value, shift_axis is not applied (set to False) 
+                    shift_axis has no effect in time domain.
         """
         axis = self.checkAxis(axis)
+        if select != slice(None, None, None):
+            shift_axis = False
+        x_shift = shift * self.sw[axis] / (self.shape()[axis])
         if self.spec[axis] == 0:
             self.__phase(0, -2 * np.pi * shift, 0, 0, axis, select=select)
         else:
             t = np.arange(self.shape()[axis]) / (self.sw[axis])
-            freq = self.sw[axis] / self.shape()[axis]
+            freq_step = self.sw[axis] / self.shape()[axis]
             self.__invFourier(axis, tmp=True)
             t = t.reshape(t.shape + (1, )*(self.ndim()-axis-1))
             self.data.icomplexReorder(axis)
-            self.data[select] *= np.exp(-1j * t * freq * shift * 2 * np.pi)
+            self.data[select] *= np.exp(-1j * t * freq_step * shift * 2 * np.pi)
             self.data.icomplexReorder(axis)
             self.__fourier(axis, tmp=True)
+            if self.customXax[axis] == True:
+                self.xaxArray[axis] -= x_shift
+            else:
+                if shift_axis:
+                    self.freq[axis] += x_shift
+                    self.resetXax()
         Message = "Rolled " + str(shift) + " points in dimension " + str(axis + 1)
         if not isinstance(select, slice):
             Message = Message + " with slice " + str(select)
         elif select != slice(None, None, None):
             Message = Message + " with slice " + str(select)
+        if shift_axis:
+            Message = Message + f", axis also shifted by {x_shift}"
+        else:
+            Message = Message + ", axis not shifted"
         self.addHistory(Message)
         self.redoList = []
         if not self.noUndo:
-            self.undoList.append(lambda self: self.roll(-shift, axis))
+            self.undoList.append(lambda self: self.roll(-shift, axis, select, shift_axis))
 
     def align(self, pos1=None, pos2=None, axis=-1):
         """

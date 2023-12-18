@@ -1259,7 +1259,7 @@ class Current1D(PlotFrame):
         self.showFid()
         self.upd()
 
-    def roll(self, shift, select=False):
+    def roll(self, shift, select=False, shift_axis=True):
         """
         Circularly rolls the data along the current dimension. Non-integer shift values are allowed.
 
@@ -1269,17 +1269,19 @@ class Current1D(PlotFrame):
             The amount of data points to roll (negative is left roll, positive right roll)
         select (optional = False): boolean
             If True, apply only to the current slice.
+        shift_axis: boolean 
+            If True then shifts the axis when rolling data. Applies on frequency domain only and if select is False only.
         """
         if select:
             selectSlice = self.getSelect()
         else:
             selectSlice = slice(None)
-        self.root.addMacro(['roll', (shift, self.axes[-1] - self.data.ndim(), selectSlice)])
-        self.data.roll(shift, self.axes[-1], selectSlice)
+        self.root.addMacro(['roll', (shift, self.axes[-1] - self.data.ndim(), selectSlice, shift_axis)])
+        self.data.roll(shift, self.axes[-1], selectSlice, shift_axis)
         self.upd()
         self.showFid()
 
-    def rollPreview(self, shift):
+    def rollPreview(self, shift, shift_axis=False):
         """
         Shows a preview of the roll data operation.
 
@@ -1287,8 +1289,10 @@ class Current1D(PlotFrame):
         ----------
         shift: float
             The amount of data points to roll (negative is left roll, positive right roll)
+        shift_axis: boolean 
+            If True then shifts the axis when rolling data. Applies on frequency domain only and if select is False only.
         """
-        self.data1D.roll(shift, -1)
+        self.data1D.roll(shift, -1, shift_axis=shift_axis)
         self.showFid()
         self.upd()
 
