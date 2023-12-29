@@ -448,6 +448,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                    ['Tools --> Reference Deconvolution', self.refDeconvAct],
                                    ['Tools --> Correct Digital Filter', self.digitalFilterAct],
                                    ['Tools --> Scale SW', self.scaleSWAct],
+                                   ['Tools --> Scale freq and ref', self.scaleFreqRefAct],
                                    ['Tools --> LPSVD', self.lpsvdAct],
                                    ['Matrix --> Sizing', self.sizingAct],
                                    ['Matrix --> Shift Data', self.shiftAct],
@@ -669,6 +670,9 @@ class MainProgram(QtWidgets.QMainWindow):
         self.lpsvdAct.setToolTip('LPSVD linear prediction')
         self.scaleSWAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'ScaleSW.png'), "Scale SW", lambda: self.mainWindowCheck(lambda mainWindow: ScaleSWWindow(mainWindow)))
         self.scaleSWAct.setToolTip('Scale the Current Spectral Width')
+        self.scaleFreqRefAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'ScaleFreqRef.png'), "Scale Car/Ref freq", 
+                                    lambda: self.mainWindowCheck(lambda mainWindow: ScaleFreqRefWindow(mainWindow)))
+        self.scaleFreqRefAct.setToolTip('Scale the current Carrier and Reference frequencies')
         self.referencelistmenu = QtWidgets.QMenu('&Reference', self)
         self.toolMenu.addMenu(self.referencelistmenu)
         self.setrefAct = self.referencelistmenu.addAction(QtGui.QIcon(IconDirectory + 'setreference.png'), "&Set Reference", lambda: self.mainWindowCheck(lambda mainWindow: RefWindow(mainWindow)))
@@ -690,7 +694,7 @@ class MainProgram(QtWidgets.QMainWindow):
                              self.autoPhaseAct1, self.autoPhaseAllAct0, self.phasingmenu,
                              self.autoPhaseAllAct1, self.swapEchoAct, self.corOffsetAct,
                              self.baselineAct, self.subAvgAct, self.refDeconvAct, self.lpsvdAct,
-                             self.digitalFilterAct, self.scaleSWAct]
+                             self.digitalFilterAct, self.scaleSWAct, self.scaleFreqRefAct]
         # the matrix drop down menu
         self.matrixMenu = QtWidgets.QMenu("M&atrix", self)
         self.menubar.addMenu(self.matrixMenu)
@@ -4276,6 +4280,42 @@ class ScaleSWWindow(wc.ToolWindow):
         if scale is None:
             raise SsnakeException("Scale SW: Factor not a valid value")
         self.father.current.scaleSw(scale)
+
+
+class ScaleFreqRefWindow(wc.ToolWindow):
+
+    NAME = "Scale Freq and Ref for MQMAS"
+
+    def __init__(self, parent):
+        super(ScaleFreqRefWindow, self).__init__(parent)
+        self.grid.addWidget(wc.QLabel("MQMAS Scale Factor:"), 0, 0)
+        self.scaleDropdown = QtWidgets.QComboBox()
+        # f_ratio = abs(ratio - mq) with mq negative if mq=S+1/2
+        self.scaleDropdown.addItems(['User Defined', 'Spin 3/2, -3Q', 'Spin 5/2, 3Q', 'Spin 5/2, -5Q',
+                                     'Spin 7/2, 3Q', 'Spin 7/2, 5Q', 'Spin 7/2, -7Q', 
+                                     'Spin 9/2, 3Q', 'Spin 9/2, 5Q', 'Spin 9/2, 7Q', 'Spin 9/2, -9Q'])
+        self.scaleDropdown.activated.connect(self.dropdownChanged)
+        self.scaleList = [1, 7/9 + 3, -19.0/12.0 + 3, 25/12 + 5, 
+                          -101/45 + 3, -11/9 + 5, 161/45 + 7, 
+                          -91/36 + 3, -95/36 + 5, -7/18 + 7, 31/6 + 9]
+        self.grid.addWidget(self.scaleDropdown, 1, 0)
+        self.scaleEntry = wc.QLineEdit("0.0")
+        self.grid.addWidget(self.scaleEntry, 3, 0)
+
+    def dropdownChanged(self):
+        index = self.scaleDropdown.currentIndex()
+        self.scaleEntry.setText("%.9f" % self.scaleList[index])
+
+    def applyFunc(self):
+        scale = safeEval(self.scaleEntry.text(), length=self.father.current.len(), Type='FI')
+        if scale is None:
+            raise SsnakeException("Scale: Factor not a valid value")
+        freq = self.father.current.freq()
+        ref = self.father.current.ref()
+        sw = self.father.current.sw()
+        self.father.current.setFreq(freq*scale, sw)
+        self.father.current.setRef(ref*scale)
+#        self.father.current.scaleSw(scale)
 
 
 ###########################################################################
