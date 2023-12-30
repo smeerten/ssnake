@@ -1828,8 +1828,11 @@ depend on the Czjzek distribution that is to be calculated (i.e. the $\sigma$ va
 distribution with a higher $\sigma$ value is used, the largest $C_\text{Q}$ value of the distribution
 should be higher, the properly sample the whole intensity distribution. To aid with this, the
 current distribution of each site can be viewed in this window (press `Show' on the righthand side
-of the window to draw the contour plot). Press `Generate' to generate the library, and then close
-the window.
+of the window to draw the contour plot). The distribution can viewed as a 2D map  $C_\text{Q}$ vs $\eta$.
+A check box allows to plot the $P_Q$ vs $\eta$ ($P_Q = C_Q * \sqrt {1 + \eta^2/3}$ represent the shift of 
+the gravity center of a quadrupolar lineshape with respect to chemical shift due to the quadrupolar 
+interaction). The average and most probable $C_\text{Q}$ and $P_Q$ are indicated on the map.
+Press `Generate' to generate the library, and then close the window.
 
 The created library can now be used to simulate Czjzek spectra. For this, the following values need
 to be set:

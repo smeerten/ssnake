@@ -3912,7 +3912,7 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         self.czjzek = self.czjzek.reshape(etasteps, cqsteps)
         # Calculate average and peak CQ and PQ values
         # peak CQ is obtained from DMFit
-        PQs = cq * np.sqrt(1 + eta/3)
+        PQs = cq * np.sqrt(1 + eta**2/3)
         PQavg = np.average(PQs, None, self.czjzek)
         CQavg = np.average(cq, None, self.czjzek)
         indices = np.unravel_index(self.czjzek.argmax(), self.czjzek.shape)
