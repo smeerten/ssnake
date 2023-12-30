@@ -926,6 +926,25 @@ indirect dimension can be used to get a true isotropic dimension (i.e. 1 ppm che
 corresponds to a 1 ppm peak shift). This scaling factor for this is $Q$ and $I$ dependent, and can be selected in
 this tool via an easy dropdown menu.
 
+\subsection{Scale Car/Ref freq}
+A function to scale the spectra carrier frequency (frequency of the spectrum center)  
+and the reference frequency of the current dimension. 
+Essentially, this can also be done in the main windows, by filling in $a * b$, 
+with $a$ the current Carrier frequency or Reference frequency and $b$ the multiplication factor. This tool is 
+included for MQMAS data processing, were a pseudo larmor frequency can be used to create a universal
+ppm scale in the indirect dimension where the position of peaks in the isotropic dimension is 
+the same whatever quantum is used for MQMAS or STMAS experiment (3QMAS, 5QMAS, STMAS etc.) \cite{amoureux_triple_1998}. 
+This scaling factor for this is $Q$ and $I$ dependent, and can be selected in
+this tool via an easy dropdown menu.
+
+This approach is an alternative to scaling SW as described above. Scaling SW allows to have 
+a universal scale in ppm and in Hz while Scaling Car/Ref universal scale is only in ppm. On the other side,
+scaling SW alters the scale in Hz and sidebands will appear at scaled spinning speed while Scaling Car/Ref
+preserves the kHz scale and potential spinning sidebands will appear at integer number of spinning speed. 
+Scaling Car/Ref is the method used by Bruker xfshear AU processing program.
+
+The method used for processing will influence the method for fitting MQMAS spectra (scaling factor).
+
 \subsection{Reference}
 This is a collection of tools to set the current reference (0 frequency) of the current spectrum.
 
@@ -1844,8 +1863,11 @@ depend on the Czjzek distribution that is to be calculated (i.e. the $\sigma$ va
 distribution with a higher $\sigma$ value is used, the largest $C_\text{Q}$ value of the distribution
 should be higher, the properly sample the whole intensity distribution. To aid with this, the
 current distribution of each site can be viewed in this window (press `Show' on the righthand side
-of the window to draw the contour plot). Press `Generate' to generate the library, and then close
-the window.
+of the window to draw the contour plot). The distribution can viewed as a 2D map  $C_\text{Q}$ vs $\eta$.
+A check box allows to plot the $P_Q$ vs $\eta$ ($P_Q = C_Q * \sqrt {1 + \eta^2/3}$ represent the shift of 
+the gravity center of a quadrupolar lineshape with respect to chemical shift due to the quadrupolar 
+interaction). The average and most probable $C_\text{Q}$ and $P_Q$ are indicated on the map.
+Press `Generate' to generate the library, and then close the window.
 
 The created library can now be used to simulate Czjzek spectra. For this, the following values need
 to be set:

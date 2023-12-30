@@ -3945,9 +3945,8 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
             self.czjzek = Czjzek.czjzekIntensities(sigma, d, cq.flatten(), eta.flatten(), cq0, eta0)
 
         self.czjzek = self.czjzek.reshape(etasteps, cqsteps)
-
-        # Calculate peak CQ values (DMFit Approach) or average SOQE (PQ) values
-        PQs = cq*np.sqrt(1 + eta/3)
+        # Calculate average and peak CQ and PQ values
+        PQs = cq * np.sqrt(1 + eta**2/3)
         PQavg = np.average(PQs, None, self.czjzek)
         CQavg = np.average(cq, None, self.czjzek)
         indices = np.unravel_index(self.czjzek.argmax(), self.czjzek.shape)
