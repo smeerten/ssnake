@@ -278,6 +278,7 @@ class TabFittingWindow(QtWidgets.QWidget):
         self.runningAll = False
         self.stopMP()
         self.mainFitWindow.paramframe.stopAllButton.hide()
+        self.mainFitWindow.paramframe.fitAllIncrCpyCB.show()
 
     def fitAll(self, *args):
         """
@@ -285,20 +286,38 @@ class TabFittingWindow(QtWidgets.QWidget):
         """
         self.runningAll = True
         self.mainFitWindow.paramframe.stopAllButton.show()
-        tmp = np.array(self.mainFitWindow.current.data.shape())
-        tmp[self.mainFitWindow.current.axes] = 1
-        tmp2 = ()
-        for i in tmp:
-            tmp2 += (np.arange(i),)
-        grid = np.array([i.flatten() for i in np.meshgrid(*tmp2)]).T
-        for i in grid:
+        self.mainFitWindow.paramframe.fitAllIncrCpyCB.hide()
+        # validate current entries and transfer entries values to fitParamList
+        self.mainFitWindow.paramframe.checkInputs()
+        if self.mainFitWindow.paramframe.fitIncrCpy : # Incremental copy check button is True
+            # save current slice parameters
+            locList = self.mainFitWindow.paramframe.getRedLocList()
+            buffer_param = copy.deepcopy(self.mainFitWindow.paramframe.fitParamList[locList])
+            buffer_Num = self.mainFitWindow.paramframe.fitNumList[locList]
+            buffer_limits = self.mainFitWindow.paramframe.removeLimits[locList]
+        shape_to_iter = np.array(self.mainFitWindow.current.data.shape())
+        shape_to_iter[self.mainFitWindow.current.axes] = 1
+        for i in np.ndindex(tuple(shape_to_iter)):
             QtWidgets.qApp.processEvents()
             if self.runningAll is False:
                 break
             self.mainFitWindow.current.setSlice(self.mainFitWindow.current.axes, i)
+            if self.mainFitWindow.paramframe.fitIncrCpy : # Incremental copy check button is True
+                locList = self.mainFitWindow.paramframe.getRedLocList()
+                # set current slice fitParamList to buffer saved  slice parameters
+                self.mainFitWindow.paramframe.fitParamList[locList] = buffer_param
+                self.mainFitWindow.paramframe.fitNumList[locList] = buffer_Num
+                self.mainFitWindow.paramframe.removeLimits[locList] = buffer_limits
+                self.mainFitWindow.paramframe.dispParams() # copy new values to entries
+            # run the fit (fit function reads param values from entries)
             self.fit()
             self.mainFitWindow.sideframe.upd()
+            if self.mainFitWindow.paramframe.fitIncrCpy : # Incremental copy check button is True
+                buffer_param = copy.deepcopy(self.mainFitWindow.paramframe.fitParamList[locList])
+                buffer_Num = self.mainFitWindow.paramframe.fitNumList[locList]
+                buffer_limits = self.mainFitWindow.paramframe.removeLimits[locList]
         self.mainFitWindow.paramframe.stopAllButton.hide()
+        self.mainFitWindow.paramframe.fitAllIncrCpyCB.show()
 
     def fit(self):
         """
@@ -1047,9 +1066,19 @@ class AbstractParamFrame(QtWidgets.QWidget):
             self.stopButton.setStyleSheet('background-color: green')
             self.frame1.addWidget(self.stopButton, 0, 1)
             self.stopButton.hide()
+
+            fitAllLayout = QtWidgets.QGridLayout()
+            self.frame1.addLayout(fitAllLayout, 1, 0)
             fitAllButton = QtWidgets.QPushButton("Fit all")
             fitAllButton.clicked.connect(self.rootwindow.tabWindow.fitAll)
-            self.frame1.addWidget(fitAllButton, 1, 0)
+            self.fitAllIncrCpyCB = QtWidgets.QCheckBox('Incr.\ncopy')
+            self.fitAllIncrCpyCB.toggled.connect(self.set_fitIncrCpy)
+            self.fitAllIncrCpyCB.setChecked(False)
+            self.fitIncrCpy = False
+            
+            fitAllLayout.addWidget(fitAllButton, 0, 0)
+            fitAllLayout.addWidget(self.fitAllIncrCpyCB, 0, 1)
+
             self.stopAllButton = QtWidgets.QPushButton("Stop all")
             self.stopAllButton.clicked.connect(self.rootwindow.tabWindow.stopAll)
             self.stopAllButton.setStyleSheet('background-color: green')
@@ -1088,6 +1117,12 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.checkFitParamList(self.getRedLocList())
         colorList = mpl.rcParams['axes.prop_cycle'].by_key()['color']
         self.fit_color_list = colorList[2:] + colorList[0:2]
+
+    def set_fitIncrCpy(self):
+        if self.fitAllIncrCpyCB.isChecked():
+            self.fitIncrCpy = True
+        else:
+            self.fitIncrCpy = False
 
     def togglePick(self):
         # Dummy function for fitting routines which require peak picking
@@ -1271,7 +1306,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
 
     def checkInputs(self):
         """
-        Checks the values set in the parameter boxes for validity.
+        Checks the values set in the parameter entry boxes for validity and save the values to fitParamList current index.
 
         Returns
         -------
@@ -3911,7 +3946,6 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
 
         self.czjzek = self.czjzek.reshape(etasteps, cqsteps)
         # Calculate average and peak CQ and PQ values
-        # peak CQ is obtained from DMFit
         PQs = cq * np.sqrt(1 + eta**2/3)
         PQavg = np.average(PQs, None, self.czjzek)
         CQavg = np.average(cq, None, self.czjzek)
