@@ -7,8 +7,8 @@
    viewBox="0 0 64 64"
    version="1.1"
    id="svg1"
-   inkscape:version="1.3.2 (1:1.3.2+202311252150+091e20ef0f)"
-   sodipodi:docname="ScaleFreqRef2.svg"
+   inkscape:version="1.2.2 (b0a8486541, 2022-12-01)"
+   sodipodi:docname="ScaleFreqRef.svg"
    inkscape:export-filename="../ScaleFreqRef.png"
    inkscape:export-xdpi="25.4"
    inkscape:export-ydpi="25.4"
@@ -27,14 +27,15 @@
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="mm"
      inkscape:zoom="1.4058316"
-     inkscape:cx="150.44476"
-     inkscape:cy="225.84497"
+     inkscape:cx="-3.9122751"
+     inkscape:cy="85.714391"
      inkscape:window-width="1920"
-     inkscape:window-height="1009"
+     inkscape:window-height="1012"
      inkscape:window-x="0"
      inkscape:window-y="0"
      inkscape:window-maximized="1"
-     inkscape:current-layer="g5" />
+     inkscape:current-layer="g5"
+     showgrid="false" />
   <defs
      id="defs1" />
   <g
@@ -48,6 +49,13 @@
        inkscape:export-filename="../ScaleFreqRef.png"
        inkscape:export-xdpi="25.4"
        inkscape:export-ydpi="25.4">
+      <rect
+         style="fill:#ffffff;stroke-width:0.215363"
+         id="rect174"
+         width="50.538483"
+         height="43.571358"
+         x="79.730759"
+         y="37.93391" />
       <g
          id="g6"
          transform="translate(-2.0893189,1.0807739)">
