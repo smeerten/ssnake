@@ -228,7 +228,7 @@ the index of the point along the y dimension. In most plot types, a dashed verti
 the position of the cursor to aid in the selection of a point. In the Contour plot, a horizontal
 line is also shown.
 
-\subsection{Side Frame}
+\subsection{Side Frame} \label{sec:sideframe}
 On the right side of the spectrum, there is an additional frame in some cases called the Side Frame. In this, special settings for the current plot type can be set, as well as the dimension along which the data should be plot. For a regular 1D spectrum of 1D data there are no additional options, and the Side Frame is not shown. The description of the elements that are shown in the Side Frame are explained in the section on the different plot types. However, the common feature for multidimensional data (i.e. the dimension selector) shall be explained here.
 
 \subsubsection*{The dimension selector}
@@ -1473,7 +1473,42 @@ affected by rotations: they are scalars.
 The Hamiltonian of a rotated interaction is therefore just calculated using the rotated spin part
 $\Lambda^\prime_n$ for each rank $n$, following \autoref{eq:HamSphere}.
 
-\subsection{Exluding regions}
+\subsection{Simulating, fitting}
+The fitting tab in composed of 3 sections:
+\begin{itemize}
+  \item In the top part is the plot canvas where are displayed the experimental data and simulations curves.
+  \item In the bottom left part are the generic simulation/fitting buttons.
+  \item In the bottom right part are the model specific parameters.
+\end{itemize}
+\subsubsection{Generic buttons}
+The buttons are: 
+\begin{itemize}
+  \item `Sim' button to launch a simulation with current parameters.
+  \item `Fit' button to launch a fit of the currently plotted data varying the parameters that are {\em not} checked.
+  \item `Reset' button to default model parameter values.
+  \item `Fit all' button: In case of a multi dimensionnal spectrum displayed as multiple 1Ds, this button will fit each row separately. (see sub section below for details)
+  \item `Copy par.' button copies the current row model parameters to all other rows.
+  \item `Preferences' button opens a new window with fitting preferences like the minimization method used for fitting, 
+the number of significant digit displayed in the model parameter part, or the maximum number of iterations for the fit procedure.
+  \item `Exclude' button to define excluded region during cost function evaluation (see \hyperref[sec:ExcludeRegions] {Excluding regions section})
+  \item `Export/Import' button opens a new window with various import/export actions.
+  \item `Cancel' button do quit the fitting module.
+\end{itemize}
+
+\subsubsection{Fit all option}
+`Fit all' button applies to multi dimensional data fitted as series of lower dimensionality spectra. Typically, T1 measurement recorded as pseudo 2D 
+will be fitted as a series of 1D sub spectra to extract integral parameters. Note that each sub-spectrum possess its own set of parameters.
+See \hyperref[sec:sideframe] {Side Frame section} for selecting rows.
+
+`Fit all' button behavior depends on a check box called `Incr copy' for incremental copy:\\
+If the check box ins't checked, `Fit all' will fit sub-spectra each with their own parameter sets.\\
+If the check box is checked, `Fit all' does incremental copy/fit of parameters. First it fits the first sub-spectrum then copyies the new parameter set to next 
+sub-spectrum parameters. This operation (fit/copy to next) continues for all subsequent sub-spectra. \\
+This is useful for series of spectra where the fitted parameters evolve slowly from one sub-spectrum to the next one.
+One should use `Incr copy' only once. If convergence is not reached the first time, then one can `Fit all' again with the check box unchecked. It will refine the fit
+for all sub-spectra from the state each parameter was after first fit.
+
+\subsection{Exluding regions}\label{sec:ExcludeRegions}
 For each fitting routine, specific regions can be excluded from the fit. This means that the deviation between the data and the simulation in this region is not taken into account during fitting. Regions can be excluded by pushing the `Exclude' button in the fitting window. When this window is open, regions can be selected by left clicking in the plot. Pushing `Ok' saves the changes.
 
 \subsection{Connecting parameters}
