@@ -22,6 +22,7 @@ import numpy as np
 from scipy.special import wofz
 import scipy.constants as SC
 import scipy.linalg
+from fractions import Fraction
 
 def apodize(t, shift=0.0, lor=None, gauss=None, cos2=[None, None], hamming=None, wholeEcho=False):
     """
@@ -394,3 +395,58 @@ def ACMEentropy(phaseIn, data, x, firstOrder=True):
     if np.real(sumas) < 0:
         Pfun = Pfun + sum(as1**2) / 4 / L**2
     return H1 + 1000 * Pfun
+
+# functions for calculating quadrupolar constants and factors
+
+def C0(I, m):
+    """Returns the C0 term for second order quadrupolar interaction for energy level m of spin I as a Fraction"""
+    mf = Fraction(m).limit_denominator(2)
+    If = Fraction(I).limit_denominator(2)
+    return mf*(If*(If + 1) - 3*mf**2)
+
+def C2(I, m):
+    """Returns the C2 term for second order quadrupolar interaction for energy level m of spin I as a Fraction"""
+    mf = Fraction(m).limit_denominator(2)
+    If = Fraction(I).limit_denominator(2)
+    return mf*(8*If*(If + 1) - 12*mf**2 - 3)
+
+def C4(I, m):
+    """Returns the C4 term for second order quadrupolar interaction for energy level m of spin I as a Fraction"""
+    mf = Fraction(m).limit_denominator(2)
+    If = Fraction(I).limit_denominator(2)
+    return mf*(18*If*(If + 1) - 34*mf**2 - 5)
+
+def D0(I, m, n):
+    """Returns the D0 term for second order quadrupolar interaction for coherence m->n of spin I as a Fraction
+       Sign may not be the conventional one but ratios are not affected as long as order is consistent"""
+    return C0(I, m) - C0(I, n)
+
+def D2(I, m, n):
+    """Returns the D2 term for second order quadrupolar interaction for coherence m->n of spin I as a Fraction"""
+    return C2(I, m) - C2(I, n)
+
+def D4(I, m, n):
+    """Returns the D4 term for second order quadrupolar interaction for coherence m->n of spin I as a Fraction"""
+    return C4(I, m) - C4(I, n)
+
+def m_n_order(m, n):
+    """Returns the coherence order m->n transition for spin I"""
+    mf = Fraction(m).limit_denominator(2)
+    nf = Fraction(n).limit_denominator(2)
+    return (mf - nf)
+
+def R(I, m, n):
+    """Returns the slope for MQMAS/STMAS correlation of <m|n> coherence with CT(-1Q) (-1/2|1/2) of spin I as a Fraction
+    The shearing ratio will then be -R to align the correlation parallel to D2 axis"""
+    return D4(I, m, n)/D4(I, -1/2, 1/2)
+
+def scale_CarRef_ratio(I, m, n):
+    """Returns the scaling ratio for MQMAS/STMAS of Em-En transition with CT(-1Q) (-1/2->1/2) of spin I as a Fraction"""
+    return - R(I, m, n) - m_n_order(m, n) 
+    
+def scale_SW_ratio(I, m, n):
+    """Returns the shearing ratio for MQMAS/STMAS correlation of m->n transition with CT(-1Q) (-1/2->1/2) of spin I as a Fraction"""
+    return 1 / scale_CarRef_ratio(I, m, n) 
+
+
+

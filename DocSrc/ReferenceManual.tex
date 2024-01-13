@@ -1337,7 +1337,7 @@ In the case that the active dimension is not hypercomplex the complex pair of th
 
 \subsubsection{States}
 States conversion takes the alternating data set and makes new hypercomplex values.
-For 2D data this means that when preforming states along D1, the two complex numbers are converted to a real part along that dimension:
+For 2D data this means that when performing states along D1, the two complex numbers are converted to a real part along that dimension:
 \begin{equation*}
   \text{RR}_n + i \cdot \text{RI}_n = \text{R}_{2n} + i \cdot \text{I}_{2n} \quad .
 \end{equation*}
@@ -1542,6 +1542,15 @@ Note that chain-linking parameters will lead to errors. That is, do not link \te
 \texttt{par1}, and \texttt{par3}
 to \texttt{par2}. Always refer to the original parameter (link \texttt{par2} to \texttt{par1}, and
 \texttt{par3} to \texttt{par1}).
+
+One can link parameters with different names. It is the user responsability to check it is consistent.
+For example when simultaneaouly fitting (see next section below), the chemical shift may have 
+different name depending on the model. If it's a model without CSA, the name will be `position'. 
+If the model accounts for Chemical Shift Anisotropy, it will depend on the definition used
+for the Chemical Shift tensor. Some definitions do not define the isotropic chemical shift but
+rather the tensor eigen values. If the definition used defines the chemical shift it will be called
+`definition1' which could be connected to the `position' parameter of another data set fitting with 
+a model without CSA for example.
 
 A tutorial on fitting using connected parameters can be found in the `MultiFitQuadrupole' advanced
 tutorial. 
@@ -1972,12 +1981,15 @@ can import from 1D parameter file and have the chemical shift distribution corre
 between 1D spectrum and MQMAS spectrum the parameter is named Gauss for MQMAS and quadrupole models.
 
 For simulation of MQMAS data, we need to define the quadrupolar parameters as before (see the section on fitting 
-of quadrupole lines). In this case, no satellite signals are included. Only infinite MAS spinning speeds are
- supported (no spinning sidebands are calculated). Moreover, it is an ideal simulation, so no excitation profiles 
+of quadrupole lines). In this case, no satellite signals are included. Only infinite MAS spinning speeds are 
+supported (no spinning sidebands are calculated). Moreover, it is an ideal simulation, so no excitation profiles 
 are taken into account.
 
-Apart from the spin quantum number I, MQMAS simulation also requires selected the multiple quantum transition 
+Apart from the spin quantum number I, MQMAS simulation also requires to select the multiple quantum transition 
 evolving in D1 to be supplied. This is labelled `MQ' in the interface. 
+
+The simulation will calculate the frequencies of -MQ coherence in D1 and -1Q coherence in D2 for each orientation
+in order to produce the 2D MQMAS powder simulation.
 
 Two additional parameters that need to be supplied are the shearing and spectral width scale factors. These allow 
 to model 2D MQMAS spectra processed using different shearing schemes. Check our advanced tutorial on MQMAS processing. 
@@ -1994,6 +2006,11 @@ as done using xfshear program for Bruker Topspin processed spectra, sw scaling i
 
 Finally, a check button named "Fold D1" will allow simulating a folded spectrum. If unchecked any signal that would fall outside
 the defined sw region will not be simulated. Folded spectra are slightly longer to simulate.
+
+Note that STMAS can also be simulated using a proper scaling of SW since using the universal scale, the spectra will show
+resonances at the same position. However it won't simulate the effect of mis-ajustment of magic angle. This does not work 
+with scaling Car/Ref as the frequencies used are the same for processed data and simulation but should be specific while one 
+can used a different scaling factor for SW when processing data and scaling the simulation.
 
 \subsection{Czjzek MQMAS}
 This routine can be used to fit an MQMAS spectrum of a species that is influenced by a Czjzek distribution. The 

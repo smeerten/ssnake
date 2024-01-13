@@ -4258,22 +4258,40 @@ class LPSVDWindow(wc.ToolWindow):
 class ScaleSWWindow(wc.ToolWindow):
 
     NAME = "Scale SW"
-
     def __init__(self, parent):
         super(ScaleSWWindow, self).__init__(parent)
         self.grid.addWidget(wc.QLabel("Scale Factor:"), 0, 0)
         self.scaleDropdown = QtWidgets.QComboBox()
-        self.scaleDropdown.addItems(['User Defined', 'Spin 3/2, -3Q (9/34)', 'Spin 5/2, 3Q (-12/17)', 'Spin 5/2, -5Q (12/85)', 'Spin 7/2, 3Q (-45/34)',
-                                     'Spin 7/2, 5Q (-9/34)', 'Spin 7/2, -7Q (45/476)', 'Spin 9/2, 3Q (-36/17)', 'Spin 9/2, 5Q (-36/85)', 'Spin 9/2, 7Q (-18/117)', 'Spin 9/2, -9Q (6/85)'])
+        drop_list = ['User Defined', 
+                     'Spin 3/2, 3QMAS', 'Spin 3/2, ST1MAS', 'Spin 3/2, DQ-STMAS',
+                     'Spin 5/2, 3QMAS', 'Spin 5/2, 5QMAS', 'Spin 5/2, ST1MAS', 'Spin 5/2, DQ-STMAS',
+                     'Spin 7/2, 3QMAS', 'Spin 5/2, 5QMAS', 'Spin 5/2, 7QMAS', 'Spin 7/2, ST1MAS', 'Spin 7/2, DQ-STMAS',
+                     'Spin 9/2, 3QMAS', 'Spin 9/2, 5QMAS', 'Spin 9/2, 7QMAS', 'Spin 9/2, 9QMAS', 'Spin 9/2, ST1MAS', 'Spin 9/2, DQ-STMAS',
+                    ]
+        self.scaleDropdown.addItems(drop_list)
+        #['User Defined','Spin 3/2, -3Q (9/34)',  'Spin 3/2, ST-1 (8/9)', 'Spin 5/2, 3Q (-12/17)', 
+        #                             'Spin 5/2, -5Q (12/85)', 'Spin 5/2, ST1 (12/85)', 'Spin 7/2, 3Q (-45/34)',
+        #                             'Spin 7/2, 5Q (-9/34)', 'Spin 7/2, -7Q (45/476)', 'Spin 9/2, 3Q (-36/17)', 'Spin 9/2, 5Q (-36/85)', 'Spin 9/2, 7Q (-18/117)', 'Spin 9/2, -9Q (6/85)'])
         self.scaleDropdown.activated.connect(self.dropdownChanged)
-        self.scaleList = [0, 9.0/34.0, -12.0/17.0, 12.0/85.0, -45.0/34.0, -9/34.0, 45.0/476.0, -36.0/17.0, -36.0/85.0, -18.0/117.0, 6.0/85.0]
+#        self.scaleList = [0, 9.0/34.0, 9/17, -12.0/17.0, 12.0/85.0, -45.0/34.0, -9/34.0, 45.0/476.0, -36.0/17.0, -36.0/85.0, -18.0/117.0, 6.0/85.0]
+        self.scaleList = [1,
+              (3/2, -3/2, 3/2), (3/2, -3/2, -1/2), (3/2, -3/2, 1/2),
+              (5/2, -3/2, 3/2), (5/2, -5/2, 5/2), (5/2, -3/2, -1/2), (5/2, -3/2, 1/2),
+              (7/2, -3/2, 3/2), (7/2, -5/2, 5/2), (7/2, -7/2, 7/2), (7/2, -3/2, -1/2), (7/2, -3/2, 1/2),
+              (9/2, -3/2, 3/2), (9/2, -5/2, 5/2), (9/2, -7/2, 7/2), (9/2, -9/2, 9/2), (9/2, -3/2, -1/2), (9/2, -3/2, 1/2),
+                        ]
         self.grid.addWidget(self.scaleDropdown, 1, 0)
         self.scaleEntry = wc.QLineEdit("0.0")
         self.grid.addWidget(self.scaleEntry, 3, 0)
 
     def dropdownChanged(self):
         index = self.scaleDropdown.currentIndex()
-        self.scaleEntry.setText("%.9f" % self.scaleList[index])
+        if index == 0:
+            scale = "1"
+        else:
+            scale = f"{func.scale_SW_ratio(*self.scaleList[index])}"
+        self.scaleEntry.setText(scale)
+        #self.scaleEntry.setText("%.9f" % self.scaleList[index])
 
     def applyFunc(self):
         scale = safeEval(self.scaleEntry.text(), length=self.father.current.len(), Type='FI')
@@ -4291,20 +4309,34 @@ class ScaleFreqRefWindow(wc.ToolWindow):
         self.grid.addWidget(wc.QLabel("MQMAS Scale Factor:"), 0, 0)
         self.scaleDropdown = QtWidgets.QComboBox()
         # f_ratio = abs(ratio - mq) with mq negative if mq=S+1/2
-        self.scaleDropdown.addItems(['User Defined', 'Spin 3/2, -3Q', 'Spin 5/2, 3Q', 'Spin 5/2, -5Q',
-                                     'Spin 7/2, 3Q', 'Spin 7/2, 5Q', 'Spin 7/2, -7Q', 
-                                     'Spin 9/2, 3Q', 'Spin 9/2, 5Q', 'Spin 9/2, 7Q', 'Spin 9/2, -9Q'])
+        drop_list = ['User Defined', 
+                     'Spin 3/2, 3QMAS', 'Spin 3/2, ST1MAS', 'Spin 3/2, DQ-STMAS',
+                     'Spin 5/2, 3QMAS', 'Spin 5/2, 5QMAS', 'Spin 5/2, ST1MAS', 'Spin 5/2, DQ-STMAS',
+                     'Spin 7/2, 3QMAS', 'Spin 5/2, 5QMAS', 'Spin 5/2, 7QMAS', 'Spin 7/2, ST1MAS', 'Spin 7/2, DQ-STMAS',
+                     'Spin 9/2, 3QMAS', 'Spin 9/2, 5QMAS', 'Spin 9/2, 7QMAS', 'Spin 9/2, 9QMAS', 'Spin 9/2, ST1MAS', 'Spin 9/2, DQ-STMAS',
+                    ]
+        self.scaleDropdown.addItems(drop_list)
+        #['User Defined', 'Spin 3/2, -3Q', 'Spin 5/2, 3Q', 'Spin 5/2, -5Q',
+        #                             'Spin 7/2, 3Q', 'Spin 7/2, 5Q', 'Spin 7/2, -7Q', 
+        #                             'Spin 9/2, 3Q', 'Spin 9/2, 5Q', 'Spin 9/2, 7Q', 'Spin 9/2, -9Q'])
         self.scaleDropdown.activated.connect(self.dropdownChanged)
-        self.scaleList = [1, 7/9 + 3, -19.0/12.0 + 3, 25/12 + 5, 
-                          -101/45 + 3, -11/9 + 5, 161/45 + 7, 
-                          -91/36 + 3, -95/36 + 5, -7/18 + 7, 31/6 + 9]
+        self.scaleList = [1,
+                          (3/2, -3/2, 3/2), (3/2, -3/2, -1/2), (3/2, -3/2, 1/2),
+                          (5/2, -3/2, 3/2), (5/2, -5/2, 5/2), (5/2, -3/2, -1/2), (5/2, -3/2, 1/2),
+                          (7/2, -3/2, 3/2), (7/2, -5/2, 5/2), (7/2, -7/2, 7/2), (7/2, -3/2, -1/2), (7/2, -3/2, 1/2),
+                          (9/2, -3/2, 3/2), (9/2, -5/2, 5/2), (9/2, -7/2, 7/2), (9/2, -9/2, 9/2), (9/2, -3/2, -1/2), (9/2, -3/2, 1/2),
+                         ]
         self.grid.addWidget(self.scaleDropdown, 1, 0)
         self.scaleEntry = wc.QLineEdit("0.0")
         self.grid.addWidget(self.scaleEntry, 3, 0)
 
     def dropdownChanged(self):
         index = self.scaleDropdown.currentIndex()
-        self.scaleEntry.setText("%.9f" % self.scaleList[index])
+        if index == 0:
+            scale = "1"
+        else:
+            scale = f"{func.scale_CarRef_ratio(*self.scaleList[index])}"
+        self.scaleEntry.setText(scale)
 
     def applyFunc(self):
         scale = safeEval(self.scaleEntry.text(), length=self.father.current.len(), Type='FI')
@@ -4315,7 +4347,6 @@ class ScaleFreqRefWindow(wc.ToolWindow):
         sw = self.father.current.sw()
         self.father.current.setFreq(freq*scale, sw)
         self.father.current.setRef(ref*scale)
-#        self.father.current.scaleSw(scale)
 
 
 ###########################################################################
@@ -6160,10 +6191,24 @@ class ShearingWindow(wc.ToolWindow):
         options = list(map(str, range(1, self.father.masterData.ndim() + 1)))
         self.grid.addWidget(wc.QLabel("Shearing constant:"), 0, 0)
         self.shearDropdown = QtWidgets.QComboBox()
-        self.shearDropdown.addItems(['User Defined', 'Spin 3/2, -3Q (7/9)', 'Spin 5/2, 3Q (19/12)', 'Spin 5/2, -5Q (25/12)', 'Spin 7/2, 3Q (101/45)',
-                                     'Spin 7/2, 5Q (11/9)', 'Spin 7/2, -7Q (161/45)', 'Spin 9/2, 3Q (91/36)', 'Spin 9/2, 5Q (95/36)', 'Spin 9/2, 7Q (7/18)', 'Spin 9/2, -9Q (31/6)'])
+        
+        drop_list = ['User Defined', 
+                     'Spin 3/2, 3QMAS', 'Spin 3/2, ST1MAS', 'Spin 3/2, DQ-STMAS',
+                     'Spin 5/2, 3QMAS', 'Spin 5/2, 5QMAS', 'Spin 5/2, ST1MAS', 'Spin 5/2, DQ-STMAS',
+                     'Spin 7/2, 3QMAS', 'Spin 5/2, 5QMAS', 'Spin 5/2, 7QMAS', 'Spin 7/2, ST1MAS', 'Spin 7/2, DQ-STMAS',
+                     'Spin 9/2, 3QMAS', 'Spin 9/2, 5QMAS', 'Spin 9/2, 7QMAS', 'Spin 9/2, 9QMAS', 'Spin 9/2, ST1MAS', 'Spin 9/2, DQ-STMAS',
+                    ]
+        self.shearDropdown.addItems(drop_list)
+        #['User Defined', 'Spin 3/2, -3Q (7/9)', 'Spin 5/2, 3Q (19/12)', 'Spin 5/2, -5Q (25/12)', 'Spin 7/2, 3Q (101/45)',
+        #'Spin 7/2, 5Q (11/9)', 'Spin 7/2, -7Q (161/45)', 'Spin 9/2, 3Q (91/36)', 'Spin 9/2, 5Q (95/36)', 'Spin 9/2, 7Q (7/18)', 'Spin 9/2, -9Q (31/6)']
         self.shearDropdown.activated.connect(self.dropdownChanged)
-        self.shearList = [0, 7.0 / 9.0, 19.0 / 12.0, 25.0 / 12.0, 101.0 / 45.0, 11.0 / 9.0, 161.0 / 45.0, 91.0 / 36.0, 95.0 / 36.0, 7.0 / 18.0, 31.0 / 6.0]
+        #self.shearList = [0, 7.0 / 9.0, 19.0 / 12.0, 25.0 / 12.0, 101.0 / 45.0, 11.0 / 9.0, 161.0 / 45.0, 91.0 / 36.0, 95.0 / 36.0, 7.0 / 18.0, 31.0 / 6.0]
+        self.scaleList = [1,
+              (3/2, -3/2, 3/2), (3/2, -3/2, -1/2), (3/2, -3/2, 1/2),
+              (5/2, -3/2, 3/2), (5/2, -5/2, 5/2), (5/2, -3/2, -1/2), (5/2, -3/2, 1/2),
+              (7/2, -3/2, 3/2), (7/2, -5/2, 5/2), (7/2, -7/2, 7/2), (7/2, -3/2, -1/2), (7/2, -3/2, 1/2),
+              (9/2, -3/2, 3/2), (9/2, -5/2, 5/2), (9/2, -7/2, 7/2), (9/2, -9/2, 9/2), (9/2, -3/2, -1/2), (9/2, -3/2, 1/2),
+                        ]
         self.grid.addWidget(self.shearDropdown, 1, 0)
         self.shearEntry = wc.QLineEdit("0.0", self.shearPreview)
         self.grid.addWidget(self.shearEntry, 3, 0)
@@ -6182,7 +6227,12 @@ class ShearingWindow(wc.ToolWindow):
 
     def dropdownChanged(self):
         index = self.shearDropdown.currentIndex()
-        self.shearEntry.setText("%.9f" % self.shearList[index])
+        if index == 0:
+            scale = "1"
+        else:
+            scale = f"{-func.R(*self.scaleList[index])}"
+        self.shearEntry.setText(scale)
+#        self.shearEntry.setText("%.9f" % self.shearList[index])
 
     def shearPreview(self, *args):
         shear = safeEval(self.shearEntry.text(), length=self.father.current.len(), Type='FI')
@@ -7593,6 +7643,15 @@ class shiftConversionWindow(wc.ToolWindow):
 
 ##############################################################################
 
+class quadMqStToolWindow(wc.ToolWindow):
+    Ioptions = ['1', '3/2', '2', '5/2', '3', '7/2', '4', '9/2', '5', '6', '7']
+    Ivalues = [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 6.0, 7.0]
+    NAME = "Factor calculation for MQMAS/STMAS experiments"
+    RESIZABLE = True
+    MENUDISABLE = False
+
+    def __init__(self, parent):
+        super(quadMqStToolWindow, self).__init__(parent)
 
 class quadConversionWindow(wc.ToolWindow):
 

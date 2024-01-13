@@ -5187,13 +5187,13 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         from math import gcd
         mq = self.MQvalues[self.entries['MQ'][-1].currentIndex()]
         m = 0.5 * mq
-        numerator = m * (18 * self.I * (self.I + 1) - 34 * m**2 - 5)
-        denomenator = 0.5 * (18 * self.I * (self.I + 1) - 34 * 0.5**2 - 5)
-        divis = gcd(int(numerator), int(denomenator))
-        numerator /= divis
-        denomenator /= divis
-        self.entries['shear'][-1].setText(str(numerator) + '/' + str(denomenator))
-        self.entries['scale'][-1].setText(str(denomenator) + '/' + str(mq * denomenator - numerator))
+#        numerator = m * (18 * self.I * (self.I + 1) - 34 * m**2 - 5)
+#        denomenator = 0.5 * (18 * self.I * (self.I + 1) - 34 * 0.5**2 - 5)
+#        divis = gcd(int(numerator), int(denomenator))
+#        numerator /= divis
+#        denomenator /= divis
+#        self.entries['shear'][-1].setText(str(-func.R(self.I, -m, m)))
+        self.entries['scale'][-1].setText(str(-func.scale_SW_ratio(self.I, -m, m)))
 
     def changeType(self, index):
         """
