@@ -3884,15 +3884,28 @@ class ApodWindow(wc.ToolWindow):
             self.ticks['shifting'] = shiftingTick
             self.shiftingFrame.addWidget(shiftingTick, 0, 0)
             self.shiftingDropdown = QtWidgets.QComboBox()
-            self.shiftingDropdown.addItems(['User Defined', 'Spin 3/2, -3Q (7/9)', 'Spin 5/2, 3Q (19/12)',
-                                            'Spin 5/2, -5Q (25/12)', 'Spin 7/2, 3Q (101/45)', 'Spin 7/2, 5Q (11/9)',
-                                            'Spin 7/2, -7Q (161/45)', 'Spin 9/2, 3Q (91/36)', 'Spin 9/2, 5Q (95/36)',
-                                            'Spin 9/2, 7Q (7/18)', 'Spin 9/2, -9Q (31/6)'])
+            drop_list = ['User Defined', 
+                     'Spin 3/2, 3QMAS', 'Spin 3/2, ST1MAS', 'Spin 3/2, DQ-STMAS',
+                     'Spin 5/2, 3QMAS', 'Spin 5/2, 5QMAS', 'Spin 5/2, ST1MAS', 'Spin 5/2, DQ-STMAS',
+                     'Spin 7/2, 3QMAS', 'Spin 5/2, 5QMAS', 'Spin 5/2, 7QMAS', 'Spin 7/2, ST1MAS', 'Spin 7/2, DQ-STMAS',
+                     'Spin 9/2, 3QMAS', 'Spin 9/2, 5QMAS', 'Spin 9/2, 7QMAS', 'Spin 9/2, 9QMAS', 'Spin 9/2, ST1MAS', 'Spin 9/2, DQ-STMAS',
+                    ]
+            self.shiftingDropdown.addItems(drop_list)
+            #['User Defined', 'Spin 3/2, -3Q (7/9)', 'Spin 5/2, 3Q (19/12)',
+            #                                'Spin 5/2, -5Q (25/12)', 'Spin 7/2, 3Q (101/45)', 'Spin 7/2, 5Q (11/9)',
+            #                                'Spin 7/2, -7Q (161/45)', 'Spin 9/2, 3Q (91/36)', 'Spin 9/2, 5Q (95/36)',
+            #                                'Spin 9/2, 7Q (7/18)', 'Spin 9/2, -9Q (31/6)'])
             self.shiftingDropdown.activated.connect(self.dropdownChanged)
-            self.shiftingList = [0, 7.0 / 9.0, 19.0 / 12.0,
-                                 25.0 / 12.0, 101.0 / 45.0, 11.0 / 9.0,
-                                 161.0 / 45.0, 91.0 / 36.0, 95.0 / 36.0,
-                                 7.0 / 18.0, 31.0 / 6.0]
+            #self.shiftingList = [0, 7.0 / 9.0, 19.0 / 12.0,
+            #                     25.0 / 12.0, 101.0 / 45.0, 11.0 / 9.0,
+            #                     161.0 / 45.0, 91.0 / 36.0, 95.0 / 36.0,
+            #                     7.0 / 18.0, 31.0 / 6.0]
+            self.shiftingList = [0,
+                          (3/2, -3/2, 3/2), (3/2, -3/2, -1/2), (3/2, -3/2, 1/2),
+                          (5/2, -3/2, 3/2), (5/2, -5/2, 5/2), (5/2, -3/2, -1/2), (5/2, -3/2, 1/2),
+                          (7/2, -3/2, 3/2), (7/2, -5/2, 5/2), (7/2, -7/2, 7/2), (7/2, -3/2, -1/2), (7/2, -3/2, 1/2),
+                          (9/2, -3/2, 3/2), (9/2, -5/2, 5/2), (9/2, -7/2, 7/2), (9/2, -9/2, 9/2), (9/2, -3/2, -1/2), (9/2, -3/2, 1/2),
+                        ]
             self.shiftingDropdown.setMinimumSize(widthHint)
             self.shiftingDropdown.setEnabled(False)
             self.shiftingFrame.addWidget(self.shiftingDropdown, 1, 2)
@@ -3950,11 +3963,15 @@ class ApodWindow(wc.ToolWindow):
     def dropdownChanged(self, update=True):
         index = self.shiftingDropdown.currentIndex()
         if index == 0:
-            self.shiftingEntry.setEnabled(True)
+            shifting = "0"
         else:
-            self.shiftingEntry.setEnabled(False)
+            shifting = f"{abs(func.R(*self.shiftingList[index]))}"
+#        if index == 0:
+#            self.shiftingEntry.setEnabled(True)
+#        else:
+#            self.shiftingEntry.setEnabled(False)
         if update:
-            self.shiftingEntry.setText("%.9f" % self.shiftingList[index])
+            self.shiftingEntry.setText(shifting)
             self.apodPreview()
 
     def checkEval(self, key):
