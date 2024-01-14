@@ -1667,7 +1667,7 @@ class Spectrum(object):
                 shift1 = shift + shifting * self.xaxArray[shiftingAxis]
             previewData = np.array([func.apodize(t, s, lor, gauss, cos2, hamming, self.wholeEcho[axis]) for s in shift1])
             if axis < shiftingAxis:
-                previewData = np.swapaxis(previewData, 0, 1)
+                previewData = np.swapaxes(previewData, 0, 1)
             multShape = np.ones(len(self.shape()), dtype=int)
             multShape[axis] = self.shape()[axis]
             multShape[shiftingAxis] = self.shape()[shiftingAxis]
