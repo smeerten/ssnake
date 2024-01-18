@@ -5000,7 +5000,11 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         if "Sidebands" in keys:
             self.entries['numssb'][0].setValue(int(preParams["Sidebands"]))
         if "FoldF1" in keys:
-            self.entries['foldF1'][0].setChecked(bool(preParams["FoldF1"]))
+            if preParams["FoldF1"] == 'True':
+                fold = True
+            else: 
+                fold = False
+            self.entries['foldF1'][0].setChecked(fold)
 
     def getExtraParams(self, out):
         """
