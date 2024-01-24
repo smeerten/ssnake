@@ -1419,8 +1419,11 @@ def loadBrukerTopspin(filePath):
         version_num = parsA[-1]['PROGRAM_VERSION'][1].split('.')
         if len(version_num) < 3:
             version_num.append('0')
-        checknum = int(version_num[0])*10000+int(version_num[1])*100+int(version_num[2])
-        print(parsA[-1]['PROGRAM_VERSION'],checknum)
+        try:
+            checknum = int(version_num[0])*10000+int(version_num[1])*100+int(version_num[2])
+        except ValueError:
+            # quick fix to catch beta versions that have version number with alphabetic numbering
+            checknum=0
         if checknum >= 40101:
             metafields['MAS Rate [Hz]'] = str(parsA[-1]['MASR'])
 
