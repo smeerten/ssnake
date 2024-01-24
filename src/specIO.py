@@ -23,6 +23,7 @@ import numpy as np
 from six import string_types
 import spectrum as sc
 import hypercomplex as hc
+import time
 
 class LoadException(sc.SpectrumException):
     pass
@@ -1118,6 +1119,26 @@ def brukerTopspinGetPars(file):
                     val = int(val)
             pars[name] = val
         pos += 1
+    if data[0].startswith('##TITLE= Parameter file,'):
+        PROG, VER = 'Unknown', 'Unknown'
+        _, TS_VER = data[0].split(',')
+        if 'TOPSPIN' in TS_VER.upper():
+            PROG = 'TOPSPIN'
+            if 'Version' in TS_VER:
+                VER = TS_VER.split()[-1]
+            elif 'pl' in TS_VER:
+                VER = TS_VER.split()[-3] + '.' + TS_VER.split()[-1]
+            else:
+                VER = TS_VER.split()[-1]
+        if 'XWINNMR1.1' in TS_VER.upper():
+            PROG = 'XWINNMR'
+            VER = 1.1
+        if 'XWINNMR1.3' in TS_VER.upper():
+            PROG = 'XWINNMR'
+            VER = 1.3
+    
+        pars['PROGRAM_VERSION'] = [PROG, VER]
+            
     return pars
 
 def getBrukerFilter(pars):
@@ -1384,29 +1405,32 @@ def loadBrukerTopspin(filePath):
 
     dFilter = getBrukerFilter(parsA[-1])
     masterData = sc.Spectrum(ComplexData, (filePath, None), FREQ, SW, spec=[False]*dimA, ref=REF, dFilter=dFilter)
-    metafields = {'Original dataset': filePath, '# Scans': 'NS', 'Receiver Gain': 'RG', 'Experiment Name': 'PULPROG', 'Offset [Hz]': 'O1', 
-'Recycle Delay [s]': 'D 1', 'Time Completed': 'DATE',
-'MAS Rate [Hz]': 'MASR', 'Alternate reference': [str(s) for s in set(SF_sets)]}
 
-    def conv_val(val):
-        """ Converts val to strings and extract value from acqus if val corresponds to a valid key.
-        """
-        if not type(val) == str:
-            return str(val)
-        if val not in parsA[-1]:
-            return val
-        if val == 'DATE':
-            import time
-            return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(parsA[-1][val])))
-        if ' ' in val: # array parameter
-            P_, I_ = val.split()
-            return str(parsA[-1][P_][int(I_)])
-        else: # simple parameter string
-            return str(parsA[-1][val])
+    metafields = {'Original dataset': filePath, 
+'# Scans': str(parsA[-1]['NS']), 
+'Receiver Gain': str(parsA[-1]['RG']), 
+'Experiment Name': str(parsA[-1]['PULPROG']), 
+'Recycle Delay [s]': str(parsA[-1]['D'][1]), 
+'Time Completed': time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(parsA[-1]['DATE']))),
+'Alternate reference': str([s for s in set(SF_sets)])}
 
+    # Note: MASR reliable only since topspin 4.1.1
+    if parsA[-1]['PROGRAM_VERSION'][0] == 'TOPSPIN':
+        version_num = parsA[-1]['PROGRAM_VERSION'][1].split('.')
+        if len(version_num) < 3:
+            version_num.append('0')
+        checknum = int(version_num[0])*10000+int(version_num[1])*100+int(version_num[2])
+        print(parsA[-1]['PROGRAM_VERSION'],checknum)
+        if checknum >= 40101:
+            metafields['MAS Rate [Hz]'] = str(parsA[-1]['MASR'])
+
+    FnModes = {0: 'undefined', 1: 'not hyper-complex', 2: 'QSEQ who can use that ? not supported', 3: 'TPPI: not supported yet', 4: 'States', 5: 'States-TPPI', 6: 'Echo-antiecho'}
+    if dimA>1:
+        for dim in range(dimA-1):
+            metafields[f'Dimension {dim+1} acquisition mode'] = FnModes[parsA[dim]['FnMODE']]
     for key, val in metafields.items():
         try:
-            masterData.metaData[key] = conv_val(val)
+            masterData.metaData[key] = val 
         except Exception as exc:
             print(exc)
     
