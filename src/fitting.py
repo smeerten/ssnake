@@ -1591,7 +1591,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
         for i, _ in enumerate(postReport):
             tmp = postReport[i].split('\n', 1)
             postParams[tmp[0].strip()] = tmp[1].strip()
-        splitReport = re.split("#\?", splitReport[0])
+        splitReport = re.split(r"#\?", splitReport[0])
         preReport = splitReport[0].split('\n')
         preParams = {}
         removeLimits = {'invert' : False, 'limits': []}
@@ -3958,19 +3958,19 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
             self.ax.scatter(peakPQ, eta[indices], color='w', edgecolor = 'k')
             self.ax.text(peakPQ * 0.92, eta[indices] * 0.95, '$P_{Q,peak}$', color='k', size = 8)
             self.ax.axvline(x=PQavg, color='k')
-            self.ax.text(PQavg * 1.025, 0.5, '$\overline{P_Q}$', color='k', size = 8)
+            self.ax.text(PQavg * 1.025, 0.5, r'$\overline{P_Q}$', color='k', size = 8)
         else:
             self.ax.contour(cqArray, etaArray, self.czjzek, 15)
             self.ax.set_xlabel(u"C$_Q$ [MHz]")
             self.ax.scatter(peakCQ, eta[indices], color='w', edgecolor = 'b')
             self.ax.text(peakCQ * 0.92, eta[indices] * 0.95, '$C_{Q,peak}$', color='b', size = 8)
             self.ax.axvline(x=CQavg, color='b')
-            self.ax.text(CQavg * 1.025, 0.5, '$\overline{C_Q}$', color='b', size = 8)
+            self.ax.text(CQavg * 1.025, 0.5, r'$\overline{C_Q}$', color='b', size = 8)
 
-        self.ax.text(0, 1.075, '$\overline{P_Q}$ = ' + str(np.round(PQavg, decimals=3)) 
+        self.ax.text(0, 1.075, r'$\overline{P_Q}$ = ' + str(np.round(PQavg, decimals=3)) 
                     + ' MHz' + '        $P_{Q,peak}$ = ' + str(np.round(peakPQ, decimals=3)) 
                     + ' MHz', color='k', size = 9)
-        self.ax.text(0, 1.025, '$\overline{C_Q}$ = ' + str(np.round(CQavg, decimals=3)) 
+        self.ax.text(0, 1.025, r'$\overline{C_Q}$ = ' + str(np.round(CQavg, decimals=3)) 
                     + ' MHz' + '        $C_{Q,peak}$ = ' + str(np.round(peakCQ, decimals=3)) 
                     + ' MHz', color='b', size = 9)
         
@@ -4096,7 +4096,7 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         if not fileName:
             return
         dirName, shortName = os.path.split(fileName)
-        nameSearch = re.search("(.*)-\d+\.\d+-\d+\.\d+\.\w*$", shortName)
+        nameSearch = re.search(r"(.*)-\d+\.\d+-\d+\.\d+\.\w*$", shortName)
         if not nameSearch:
             raise FittingException("Not a valid library file name")
         libName = nameSearch.group(1)
@@ -4105,7 +4105,7 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         eta = []
         data = []
         for name in nameList:
-            matchName = re.search(libName + "-(\d+\.\d+)-(\d+\.\d+)\.\w*$", name)
+            matchName = re.search(libName + r"-(\d+\.\d+)-(\d+\.\d+)\.\w*$", name)
             if matchName:
                 eta.append(float(matchName.group(1)))
                 cq.append(float(matchName.group(2)))
@@ -4468,7 +4468,7 @@ class ExternalFitDeconvParamFrame(AbstractParamFrame):
         inFile : str
             Script to analyse.
         """
-        matches = np.unique(re.findall("(@\w+@)", inFile))
+        matches = np.unique(re.findall(r"(@\w+@)", inFile))
         self.script = inFile
         for n in self.SINGLENAMES:
             self.labels[n][0].deleteLater()
@@ -4621,7 +4621,7 @@ class FunctionFitParamFrame(AbstractParamFrame):
         Interprets the input function and makes labels and entries.
         """
         self.resetDefaults()
-        matches = np.unique(re.findall("(@\w+@)", self.function))
+        matches = np.unique(re.findall(r"(@\w+@)", self.function))
         for n in self.SINGLENAMES+self.MULTINAMES:
             self.labels[n][0].deleteLater()
             self.labels[n][1].deleteLater()
