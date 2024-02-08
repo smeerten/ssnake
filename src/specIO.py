@@ -1075,8 +1075,15 @@ def brukerTopspinGetPars(file):
     dict:
         Dictionary with all parameters
     """
-    with open(file, 'r') as f:
-        data = f.read().splitlines()
+    encodings = ['ascii', 'utf-8', 'latin1']
+    for enc in encodings:
+        try:
+            f = open(file, 'r', encoding=enc)
+            data = f.read().splitlines()
+            f.close()
+            break
+        except UnicodeDecodeError:
+            f.close()
     pos = 0
     pars = dict()
     while pos < len(data):
@@ -1109,7 +1116,7 @@ def brukerTopspinGetPars(file):
                 else : # default to int
                     val =  [int(v) for v in vals.split()]
             else:
-                if val[0] == '<': # string type
+                if val[0] == '<': # string type may span over several lines!!!
                     val = val.lstrip('<').rstrip('>')
                 elif val in ['yes', 'no']: # boolean
                     val = val == 'yes'
