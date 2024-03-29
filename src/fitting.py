@@ -345,7 +345,7 @@ class TabFittingWindow(QtWidgets.QWidget):
                 new_args += (args[n] + args_tmp[n],)
             args = new_args  # tuples are immutable
         new_args = (selectList,) + args
-        allFitVal = self.fitProcess(xax, np.array(data1D), maskList, guess, new_args, funcs)
+        allFitVal = self.fitProcess(xax, np.array(data1D, dtype=object), maskList, guess, new_args, funcs)
         if allFitVal is None:
             return
         allFitVal = allFitVal['x']
