@@ -4991,7 +4991,7 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
             self.entries['spinType'][0].setCurrentIndex(self.MASTYPES.index(preParams["MAS"]))
         if "Shear" in keys:
             self.entries['shear'][0].setText(preParams["Shear"])
-        if "Scale" in keys:
+        if "ScaleSW" in keys:
             self.entries['scale'][0].setText(preParams["ScaleSW"])
         if "Cheng" in keys:
             self.entries['cheng'][0].setValue(int(preParams["Cheng"]))
