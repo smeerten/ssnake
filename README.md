@@ -1,5 +1,9 @@
 ![Alt text](src/Icons/logo.gif?raw=true)
 
+New repository location
+=======================
+from the release of version 1.5, the official ssNake development will continue [here](https://gitlab.science.ru.nl/mrrc/nmrzoo/ssnake).
+
 ssNake
 ======
 
@@ -82,8 +86,6 @@ Contact
 -------
 
 For question and suggestions mail to: ssnake@science.ru.nl
-
-Or use the GitHib [discussion forum](https://github.com/smeerten/ssnake/discussions)
 
 License
 -------

@@ -523,7 +523,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                    ['Utilities --> Dipolar Distance Tool', self.dipolarconvAct],
                                    ['Utilities --> Quadrupole Coupling Conversion Tool', self.quadconvAct],
                                    ['Utilities --> NMR Table', self.nmrtableAct],
-                                   ['Help --> GitHub Page', self.githubAct],
+                                   ['Help --> GitLab Page', self.githubAct],
                                    ['Help --> ssNake Tutorials', self.tutorialAct],
                                    ['Help --> About', self.aboutAct]]
             for element in self.defaultToolbarActionList:
@@ -912,8 +912,8 @@ class MainProgram(QtWidgets.QMainWindow):
         self.basTutorialAct.setToolTip('Open the Tutorial Folder')
         self.tutorialAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'Tutorial.png'), "Advanced Tutorials", lambda: webbrowser.open('https://github.com/smeerten/ssnake_tutorials/'))
         self.tutorialAct.setToolTip('Link to ssNake Advanced Processing Tutorials')
-        self.githubAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'GitHub.png'), "GitHub Page", lambda: webbrowser.open('https://github.com/smeerten/ssnake/'))
-        self.githubAct.setToolTip('ssNake GitHub Page')
+        self.githubAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'GitHub.png'), "GitLab Page", lambda: webbrowser.open('https://gitlab.science.ru.nl/mrrc/nmrzoo/ssnake'))
+        self.githubAct.setToolTip('ssNake GitLab Page')
         self.aboutAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'about.png'), "&About", lambda: aboutWindow(self))
         self.aboutAct.setToolTip('About Menu')
         self.helpActList = self.helpActList +  [self.shiftconvAct, self.quadconvAct, self.nmrtableAct, self.githubAct,
