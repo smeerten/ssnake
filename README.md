@@ -2,7 +2,7 @@
 
 New repository location
 =======================
-from the release of version 1.5, the official ssNake development will continue [here](https://gitlab.science.ru.nl/mrrc/nmrzoo/ssnake).
+From the release of version 1.5, official ssNake development will continue [here](https://gitlab.science.ru.nl/mrrc/nmrzoo/ssnake).
 
 ssNake
 ======
