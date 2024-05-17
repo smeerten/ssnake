@@ -910,7 +910,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.refmanAct.setToolTip('Open the Reference Manual')
         self.basTutorialAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'Tutorial.png'), "Basic Tutorial", openTutorial)
         self.basTutorialAct.setToolTip('Open the Tutorial Folder')
-        self.tutorialAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'Tutorial.png'), "Advanced Tutorials", lambda: webbrowser.open('https://github.com/smeerten/ssnake_tutorials/'))
+        self.tutorialAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'Tutorial.png'), "Advanced Tutorials", lambda: webbrowser.open('https://gitlab.science.ru.nl/mrrc/nmrzoo/ssnake_tutorials'))
         self.tutorialAct.setToolTip('Link to ssNake Advanced Processing Tutorials')
         self.githubAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'GitHub.png'), "GitLab Page", lambda: webbrowser.open('https://gitlab.science.ru.nl/mrrc/nmrzoo/ssnake'))
         self.githubAct.setToolTip('ssNake GitLab Page')
