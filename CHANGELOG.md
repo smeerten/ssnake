@@ -3,7 +3,7 @@ Changelog
 
 All notable changes to this project will be documented in this file.
 
-## [1.5] - up to 2024-02-08
+## [1.5] - up to 2024-05-29
 ### Added
 - Phasing: support for 2nd order phasing (credits: Florian Schreiner)
 - Save to ascii: 2D data now is saved with the 2nd axis described in the header.
@@ -27,12 +27,15 @@ All notable changes to this project will be documented in this file.
 - Better text output for history of several functions (credits: Famlam)
 - More error checking when inserting workspaces (credits: Famlam)
 - Bruker spectral data: better use of NC and NC\_proc scaling factors (credits: Julien Trébosc)
+- Bruker spectral data: fix detecting hypercomplex data
+- Bruker digital filter problems for TopSpin v1.3 or earlier
 - Bruker SF not properly read in 1D experiments
 - Some fixes and warning suppression in Bruker parameter import 
    + raw strings for re with \
    + allow non ascii char in parameter sets (utf-8 or latin-1)
 - Windows build: fixed save figure output in PDF/SVG/EPS format
 - Saving to Matlab: made sure naming is valid, so data can be loaded in Matlab (credits: Famlam)
+- Saving to Matlab: fix for newer numpy/scipy versions
 - Decreasing size of data now keeps the custom x-axis if set.
 - Chemagnetics data: fixed loading function.
 - Fixed some numpy code that was deprecated.
@@ -40,6 +43,7 @@ All notable changes to this project will be documented in this file.
 - Pq calculation in Czjzek plot corrected. 
 - Hilbert transform now OK: FT-HT-iFT now result in identical FID as initial FID (was time reversed)
 - fix bug #114: changing CSA definition in multi 1D fit now converts all rows to new definition 
+
 ## [1.4] - 2022-09-25
 ### Added
 - Export to CSV file option.
