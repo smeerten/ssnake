@@ -3,7 +3,7 @@ Changelog
 
 All notable changes to this project will be documented in this file.
 
-## [1.5] - up to 2024-05-29
+## [1.5] - 2024-06-22
 ### Added
 - Phasing: support for 2nd order phasing (credits: Florian Schreiner)
 - Save to ascii: 2D data now is saved with the 2nd axis described in the header.
