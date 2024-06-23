@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2016 - 2022 Bas van Meerten and Wouter Franssen
+# Copyright 2016 - 2024 Bas van Meerten and Wouter Franssen
 
 # This file is part of ssNake.
 #
@@ -623,7 +623,7 @@ def makeSpectrum(x, sw, v, gauss, lor, weight):
     inten *= len(inten)  / abs(sw)
     return inten
 
-def makeMQMASSpectrum(x, sw, v, gauss, lor, weight, slope):
+def makeMQMASSpectrum(x, sw, v, gauss, lor, weight, slope, fold_D1=True):
     """
     Creates an 2D FID from a list of frequencies with corresponding weights.
     Also applies Lorentzian and Gaussian broadening.
@@ -648,36 +648,82 @@ def makeMQMASSpectrum(x, sw, v, gauss, lor, weight, slope):
         The weights corresponding to the frequencies. Should have the same length as the arrays in v.
     slope : slope (t2/t1) along which the CS and CS distribution is refocused 
             to simulate CS distribution with gaussian g=broadening 
+    fold_D1 : bool
+        if fold_D1 is True, calculates a folded spectrum: any frequency that falls outside the 
+        spectrum window is folded in.
+        if fold_D1 is False, only retains frequencies that are within spetrum window.
 
     Returns
     -------
     ndarray
         The 2D FID. Has a shape of (len(x[-2]), len(x[-1])).
     """
-    length1 = len(x[-2])
-    t1 = np.fft.fftfreq(length1, sw[-2]/float(length1))
-    diff1 = (x[-2][1] - x[-2][0])*0.5
-    length2 = len(x[-1])
-    t2 = np.fft.fftfreq(length2, sw[-1]/float(length2))
-    diff2 = (x[-1][1] - x[-1][0])*0.5
+    length_final1 = len(x[-2])
+    step1 = x[-2][1] - x[-2][0]
+    diff1 = step1/2
+    sw1=abs(sw[-2])
+    if fold_D1:
+        sp_min = x[-2][0]  # current min freq
+        sp_max = x[-2][-1] # current max freq
+        if sp_min > sp_max: 
+        # case where sw < 0 (sw was scaled with negative factor)
+        # xax is reversed that is min is in x[-2][-1]
+#            print("reversal!!!")
+            sp_min, sp_max = sp_max, sp_min 
+            v[0] *= -1  # frequencies used in histogram are reversed as well ?
+            step1 *= -1 # make step > 0
+            diff1 *= -1 # makes diff1 > 0
+#        print(f"sp_min/max={sp_min}, {sp_max}  and sw1={sw1}, step1={step1}")
+        maxf = np.max(v[0]) # max freq to reach
+        minf = np.min(v[0])
+#        print(f"f_min/max={minf}, {maxf}")
+        # enlarge the histogram search to min/max frequencies in width multiple of initial sw1
+        maxD1 = sp_max + (int(np.ceil((maxf-sp_max)/sw1)))*sw1 + diff1
+        minD1 = sp_min - (int(np.ceil((sp_min-minf)/sw1)))*sw1 - diff1
+        length1 = int(np.round((maxD1 - minD1 )/step1))
+#        print(f"maxD1= {maxD1}, minD1={minD1}")
+#        print(f"supposed steps number: {(maxD1 - minD1 )/step1}")
+#        print(f"length1={length1}")
+    else:
+        sp_min = x[-2][0]  # current min freq
+        sp_max = x[-2][-1] # current max freq
+        if sp_min > sp_max:
+#            print("reversal!!!")
+            sp_min, sp_max = sp_max, sp_min 
+            v[0] *= -1
+            step1 *= -1
+            diff1 *= -1
+        maxD1 = sp_max+diff1
+        minD1 = sp_min-diff1
+        length1 = length_final1 
+
+    split_len = int(np.round(length1/length_final1))
+#    print(f"D1min/max={minD1}, {maxD1}    split_len={split_len}")
+    t1 = np.fft.fftfreq(length_final1, sw[-2]/length_final1)
     t1 = t1[:, np.newaxis]
-    minD1 = x[-2][0] - diff1
-    maxD1 = x[-2][-1] + diff1
+
+    length2 = len(x[-1])
+    t2 = np.fft.fftfreq(length2, sw[-1]/length2)
+    diff2 = (x[-1][1] - x[-1][0])*0.5
     minD2 = x[-1][0] - diff2
     maxD2 = x[-1][-1] + diff2
-    if minD1 > maxD1:
-        minD1, maxD1 = maxD1, minD1
-        v[0] *= -1
     if minD2 > maxD2:
         minD2, maxD2 = maxD2, minD2
         v[1] *= -1
+
     final, _, _ = np.histogram2d(v[0], v[1], [length1, length2], range=[[minD1, maxD1], [minD2, maxD2]], weights=weight)
+#    print(f"histogram shape is {final.shape}")
+    final = final.reshape(split_len, length_final1, length2)
+#    print(f"histogram reshape is {final.shape}")
+    final = final.sum(axis=0)
+#    print(f"histogram final shape is {final.shape}")
+    
     final = np.fft.ifftn(final)
     apod2 = np.exp(-np.pi * np.abs(lor[1] * t2) - 
                    ((np.pi * np.abs(gauss[1]) * (t2 + t1*slope))**2) / (4 * np.log(2)))
     apod1 = np.exp(-np.pi * np.abs(lor[0] * t1) - 
                    ((np.pi * np.abs(gauss[0]) * t1)**2) / (4 * np.log(2)))
-    final *= apod1 * apod2 * length1 / abs(sw[-2]) * length2 / abs(sw[-1])
+    final *= apod1 * apod2 * length_final1 / sw1 * length2 / abs(sw[-1])
     return final
 
 def carouselAveraging(spinspeed, v, weight, vConstant):
@@ -1045,6 +1091,7 @@ def mqmasFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, pos, sigmaCS, 
         shear is the shearing factor.
         scale is the scaling factor of the indirect axis.
         MAStype=0 performs a static simulation, MAStype=1 performs a finite spinning simulation, and MAStype=2 performs an infinite spinning simulation.
+        foldF1 (bool): calculates a folded spectrum in F1 if True
     bgrnd : float
         The offset value added to the FID.
     mult : float
@@ -1077,7 +1124,7 @@ def mqmasFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, pos, sigmaCS, 
     """
     freq1 = freq[-2]
     freq2 = freq[-1]
-    I, mq, numssb, angle, D2, D4, weight, shear, scale, MAStype = extra
+    I, mq, numssb, angle, D2, D4, weight, shear, scale, MAStype, foldF1 = extra
     if MAStype == 0:
         spinspeed = 0.0
     elif MAStype == 2:
@@ -1098,7 +1145,7 @@ def mqmasFunc(x, freq, sw, axMult, extra, bgrnd, mult, spinspeed, pos, sigmaCS, 
     v1 += mq*pos - v2 * shear
     v1 *= scale
     slope = (mq-shear)*scale  # t1/t2 slope along which to apply CS gaussian distribution
-    return mult * amp * makeMQMASSpectrum(x, sw, [np.real(v1.flatten()), np.real(v2.flatten())], [0, sigmaCS], [lor1, lor2], np.real(tot).flatten(), slope)
+    return mult * amp * makeMQMASSpectrum(x, sw, [np.real(v1.flatten()), np.real(v2.flatten())], [0, sigmaCS], [lor1, lor2], np.real(tot).flatten(), slope, foldF1)
 
 def mqmasCzjzekFunc(x, freq, sw, axMult, extra, bgrnd, mult, pos, sigmaCS, sigma, cq0, eta0, amp, lor2, lor1, gauss2=0, gauss1=0):
     """

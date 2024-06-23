@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2016 - 2022 Bas van Meerten and Wouter Franssen
+# Copyright 2016 - 2024 Bas van Meerten and Wouter Franssen
 
 # This file is part of ssNake.
 #
@@ -609,7 +609,7 @@ class Current1D(PlotFrame):
         self.upd()
         self.showFid()
 
-    def setPhaseInter(self, phase0in, phase1in):
+    def setPhaseInter(self, phase0in, phase1in, phase2in):
         """
         Interactive changing the phase without editing the actual data.
 
@@ -622,11 +622,12 @@ class Current1D(PlotFrame):
         """
         phase0 = float(phase0in)
         phase1 = float(phase1in)
-        self.data1D.phase(phase0, phase1, -1)
+        phase2 = float(phase2in)
+        self.data1D.phase(phase0, phase1, phase2, -1)
         self.showFid()
         self.upd()
 
-    def applyPhase(self, phase0, phase1, select=False):
+    def applyPhase(self, phase0, phase1, phase2=0, select=False):
         """
         Phase the data.
 
@@ -641,12 +642,13 @@ class Current1D(PlotFrame):
         """
         phase0 = float(phase0)
         phase1 = float(phase1)
+        phase2 = float(phase2)
         if select:
             selectSlice = self.getSelect()
         else:
             selectSlice = slice(None)
-        self.root.addMacro(['phase', (phase0, phase1, self.axes[-1] - self.data.ndim(), selectSlice)])
-        self.data.phase(phase0, phase1, self.axes[-1], selectSlice)
+        self.root.addMacro(['phase', (phase0, phase1, phase2, self.axes[-1] - self.data.ndim(), selectSlice)])
+        self.data.phase(phase0, phase1, phase2, self.axes[-1], selectSlice)
         self.upd()
         self.showFid()
 
@@ -1257,7 +1259,7 @@ class Current1D(PlotFrame):
         self.showFid()
         self.upd()
 
-    def roll(self, shift, select=False):
+    def roll(self, shift, select=False, shift_axis=True):
         """
         Circularly rolls the data along the current dimension. Non-integer shift values are allowed.
 
@@ -1267,17 +1269,19 @@ class Current1D(PlotFrame):
             The amount of data points to roll (negative is left roll, positive right roll)
         select (optional = False): boolean
             If True, apply only to the current slice.
+        shift_axis: boolean 
+            If True then shifts the axis when rolling data. Applies on frequency domain only and if select is False only.
         """
         if select:
             selectSlice = self.getSelect()
         else:
             selectSlice = slice(None)
-        self.root.addMacro(['roll', (shift, self.axes[-1] - self.data.ndim(), selectSlice)])
-        self.data.roll(shift, self.axes[-1], selectSlice)
+        self.root.addMacro(['roll', (shift, self.axes[-1] - self.data.ndim(), selectSlice, shift_axis)])
+        self.data.roll(shift, self.axes[-1], selectSlice, shift_axis)
         self.upd()
         self.showFid()
 
-    def rollPreview(self, shift):
+    def rollPreview(self, shift, shift_axis=False):
         """
         Shows a preview of the roll data operation.
 
@@ -1285,8 +1289,10 @@ class Current1D(PlotFrame):
         ----------
         shift: float
             The amount of data points to roll (negative is left roll, positive right roll)
+        shift_axis: boolean 
+            If True then shifts the axis when rolling data. Applies on frequency domain only and if select is False only.
         """
-        self.data1D.roll(shift, -1)
+        self.data1D.roll(shift, -1, shift_axis=shift_axis)
         self.showFid()
         self.upd()
 
@@ -1441,7 +1447,7 @@ class Current1D(PlotFrame):
         y = self.baselineFunctionFit(self.xax(), tmpData, bArray, degree, type)
         y = np.real(self.getDataType(y))
         self.root.addMacro(['baselineCorrection', (y, self.axes[-1] - self.data.ndim(), selectSlice)])
-        self.data.baselineCorrection(y, self.axes[-1], select=selectSlice)
+        self.data.baselineCorrection(y, self.axes[-1], select=selectSlice, degree=degree, type=type)
 
     def previewBaselineCorrection(self, degree, removeList, type, invert=False):
         """

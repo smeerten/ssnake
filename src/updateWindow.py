@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2016 - 2022 Bas van Meerten and Wouter Franssen
+# Copyright 2016 - 2024 Bas van Meerten and Wouter Franssen
 
 # This file is part of ssNake.
 #
@@ -66,12 +66,16 @@ class UpdateWindow(QtWidgets.QWidget):
         layout = QtWidgets.QGridLayout(self)
         grid = QtWidgets.QGridLayout()
         layout.addLayout(grid, 0, 0, 1, 2)
-        grid.addWidget(QtWidgets.QLabel("Update to version:"), 0, 0)
+        message_label = QtWidgets.QLabel("<b>Note: Updating to versions after v1.5 needs to be done manually via the <a href='https://gitlab.science.ru.nl/mrrc/nmrzoo/ssnake'>new repository</a>.</b>")
+        message_label.setWordWrap(True)
+        message_label.setOpenExternalLinks(True)
+        grid.addWidget(message_label, 0, 0)
+        grid.addWidget(QtWidgets.QLabel("Update to version:"), 1, 0)
         self.versionDrop = QtWidgets.QComboBox(parent=self)
         self.versionDrop.addItems(self.nameList)
         self.versionDrop.setCurrentIndex(1)
-        grid.addWidget(self.versionDrop, 1, 0)
-        grid.addWidget(QtWidgets.QLabel("Current version: " + self.father.VERSION), 2, 0)
+        grid.addWidget(self.versionDrop, 2, 0)
+        grid.addWidget(QtWidgets.QLabel("Current version: " + self.father.VERSION), 3, 0)
         cancelButton = QtWidgets.QPushButton("&Cancel")
         cancelButton.clicked.connect(self.closeEvent)
         okButton = QtWidgets.QPushButton("&Ok")

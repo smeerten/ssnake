@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2016 - 2022 Bas van Meerten and Wouter Franssen
+# Copyright 2016 - 2024 Bas van Meerten and Wouter Franssen
 
 # This file is part of ssNake.
 #
@@ -980,7 +980,11 @@ class HComplexData(object):
         import scipy.signal
         if axis >= 0:
             axis += 1
-        tmpData = scipy.signal.hilbert(np.real(self.data), axis=axis)
+        # note: scipy.signal.hilbert designed  for use in time domain, 
+        # with fft, zeros negative freq, ifft instead of
+        # ifft, zeros in time domain and fft required for nmr spectra
+        # this results in conjugated spectrum
+        tmpData = np.conjugate(scipy.signal.hilbert(np.real(self.data), axis=axis))
         return HComplexData(tmpData, np.copy(self.hyper))
 
     def regrid(self, newX, oldX, axis=-1):

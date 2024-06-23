@@ -1,4 +1,4 @@
-% Copyright 2016 - 2021 Bas van Meerten and Wouter Franssen
+% Copyright 2016 - 2024 Bas van Meerten and Wouter Franssen
 %
 %This file is part of ssNake.
 %
@@ -109,8 +109,8 @@ Most of this documentation discusses the menu items as can be found in ssNake. S
 Sections are inserted to explain underlying mechanisms of ssNake. For a general impression on how to
 work with ssNake, the tutorial that is bundled with ssNake is a better place to start. Detailed
 explanation of all the options can then be found in this Reference Manual. More advanced tutorials
-can be found online, on the dedicated github page:
-\url{https://github.com/smeerten/ssnake_tutorials}.
+can be found online, on the dedicated gitlab page:
+\url{https://gitlab.science.ru.nl/mrrc/nmrzoo/ssnake_tutorials}.
 
 
 \section{Running ssNake}
@@ -228,7 +228,7 @@ the index of the point along the y dimension. In most plot types, a dashed verti
 the position of the cursor to aid in the selection of a point. In the Contour plot, a horizontal
 line is also shown.
 
-\subsection{Side Frame}
+\subsection{Side Frame} \label{sec:sideframe}
 On the right side of the spectrum, there is an additional frame in some cases called the Side Frame. In this, special settings for the current plot type can be set, as well as the dimension along which the data should be plot. For a regular 1D spectrum of 1D data there are no additional options, and the Side Frame is not shown. The description of the elements that are shown in the Side Frame are explained in the section on the different plot types. However, the common feature for multidimensional data (i.e. the dimension selector) shall be explained here.
 
 \subsubsection*{The dimension selector}
@@ -492,6 +492,9 @@ Change the default settings of a contour plot.
   \item Ratio: sets the default ratio of the contour plot.
 \end{itemize}
 
+\subsubsection{Phasing}
+Decide if the second order phase correction should be displayed by default in the phasing dialog. This is only necessary if spectra with frequency swept pulses are to be phased and should generally be disabled unless necessary.
+
 \subsection{Quit}
 Closes the ssNake application. Quiting ssNake always asks for confirmation, to prevent data loss.
 
@@ -713,21 +716,22 @@ For most apodization types, negative line broadening parameters are allowed, but
 
 
 \subsection{Phasing}
-Opens a tool that can be use to change the phasing in the current spectrum or fid. Supports zero order and first order phasing. It also provides buttons for autophasing.
+Opens a tool that can be use to change the phasing in the current spectrum or fid. Supports zero order, first order and second order phasing. The option for second order phasing is hidden by default, but can be activated by checking the check box at the bottom of the window. This option can also be set permanently in the general preferences. It also provides buttons for autophasing.
 
-Selecting phasing in the tools menu opens the phasing window. In this windows, the zero and first
-order phasing can be set, as well as the pivot point (centre point) for the first order phasing. The
-values can be either filled in the boxes,  changed by pushing the left and right buttons (click for
-$\pm1$, ctrl+click for $\pm10$, shift+click for $\pm100$, and shift+ctrl+click for $\pm1000$) , or set by dragging the slider to the
-left or the right. For zero order phase correction, the limits are -180 and 180 degrees. For first
-order correction, these are -540 and 540 degrees. Higher values for the first order correction
-sometimes make sense, and can be filled in the box directly, or via clicking on the arrows. Note
-that the values for the zero order correction are circular, so that -180 and 180 degrees lead to the
-same effect.
+Selecting phasing in the tools menu opens the phasing window. In this windows, the zero, first and second order phasing can be set, as well as the pivot points (centre points) for the first and second order phasing.
+While the pivot point for the second order correction only influences the second order phasing, the pivot point of the first order correction influences both the first and second order correction.
+The values can be either filled in the boxes, changed by pushing the left and right buttons (click for
+$\pm1$, ctrl+click for $\pm10$, shift+click for $\pm100$, and shift+ctrl+click for $\pm1000$) , or set
+by dragging the slider to the left or the right. For zero order phase correction, the limits are -180
+and 180 degrees. For first order correction, these are -540 and 540 degrees. For second order
+correction, the limits are -1440 and 1440 degrees. Higher values for the first and second order
+corrections sometimes make sense, and can be filled in the box directly, or via clicking on the
+arrows. Note that the values for the zero order correction are circular, so that -180 and 180 degrees
+lead to the same effect.
 
 While in this menu, the effect of a certain phasing can be immediately viewed in the ssNake window.
 When a good setting is reached, `Ok' can be pushed to apply the phasing. Note that for
-multidimensional data, the preview only shows the current trace. Pushing `Ok' the applies the same
+multidimensional data, the preview only shows the current trace. Pushing `Ok' then applies the same
 phasing correction on all the traces (might take some time for large data). If the phasing should
 only be applied on the current spectrum or fid, the box `Single slice' can be ticked. Note that you
 still have to push `Ok' to apply the phasing.
@@ -895,6 +899,25 @@ To automate this process, ssNake uses information from a text by W.\ M.\ Westler
 
 Using this tool opens a windows, in which you have to open (again) the current Bruker file. ssNake then finds the desired phase correction and applies it to all traces.
 
+\subsection{LPSVD}
+LPSVD (or `Linear predication by singular value decomposition') is method to predict data points in an FID that have not been measured. Think of the data points that fall in the dead time of the probe at the start of the FID, or of data points at the end of the FID, which could not be acquired as the decoupling time would be to long for the used NMR probe.
+
+LPSVD estimates the signal by a series of exponential decays, with different frequency, phase, intensity, and decay. As input to the algorithm, the estimate maximum number of different decays (e.g.\ signals) is given. Note that LPSVD can only be accurately used if the data follows a Lorentzian profile in the spectral domain. Complicated powder spectra (consisting of an infinite amount of different lorentzians) cannot be accurately predicted.
+
+LPSVD can be used both in the time and frequency domain, but the underlying data model is always a complex exponential. So it only really makes sense in the time domain.
+
+In the LPSVD window the following settings need to be set:
+\begin{itemize}
+\item \textit{Backward/forward toggle}: Whether to predict new points before the start of the signal, or after the end of the signal.
+\item \textit{Number of point for analysis}: The LPSVD model is based on this many data points at the \textit{start} of the signal. (Independent on whether forwards or backwards prediction is asked for.)
+\item \textit{Number of points to predict}: The amount of new, predicted points to add to the data.
+\end{itemize}
+
+In ssNake LPSVD is always performed on each data slice individually. No information is shared between the different slices, meaning each gets its own set of predicted exponential decay parameters.
+
+The LPSVD algorithm as implemented in ssNake follows ref. \cite{kumaresan1982estimating}.
+
+
 \subsection{Scale SW}
 A function to scale the spectra width (i.e. the sweepwidth) of the current dimension. Essentially,
 this can also be done in the main windows, by filling in $a * b$, with $a$ the current SW and $b$
@@ -902,6 +925,25 @@ the multiplication factor. This tool is included for MQMAS data processing, were
 indirect dimension can be used to get a true isotropic dimension (i.e. 1 ppm chemical shift
 corresponds to a 1 ppm peak shift). This scaling factor for this is $Q$ and $I$ dependent, and can be selected in
 this tool via an easy dropdown menu.
+
+\subsection{Scale Car/Ref freq} \label{subsec:ScaleFreqRef}
+A function to scale the spectra carrier frequency (frequency of the spectrum center)  
+and the reference frequency of the current dimension. 
+Essentially, this can also be done in the main windows, by filling in $a * b$, 
+with $a$ the current Carrier frequency or Reference frequency and $b$ the multiplication factor. This tool is 
+included for MQMAS data processing, were a pseudo larmor frequency can be used to create a universal
+ppm scale in the indirect dimension where the position of peaks in the isotropic dimension is 
+the same whatever quantum is used for MQMAS or STMAS experiment (3QMAS, 5QMAS, STMAS etc.) \cite{amoureux_triple_1998}. 
+This scaling factor for this is $MQ$ and $I$ dependent, and can be selected in
+this tool via an easy dropdown menu.
+
+This approach is an alternative to scaling SW as described above. Scaling SW allows to have 
+a universal scale in ppm and in Hz while Scaling Car/Ref universal scale is only in ppm. On the other side,
+scaling SW alters the scale in Hz and sidebands will appear at scaled spinning speed while Scaling Car/Ref
+preserves the kHz scale and potential spinning sidebands will appear at integer number of spinning speed. 
+Scaling Car/Ref is the method used by Bruker xfshear AU processing program.
+
+The method used for processing will influence the method for fitting MQMAS spectra (scaling factor).
 
 \subsection{Reference}
 This is a collection of tools to set the current reference (0 frequency) of the current spectrum.
@@ -931,10 +973,10 @@ Delete a saved reference.
 Rename a saved reference.
 
 \subsubsection{Save}
-Save a saved reference to disk. The create file contains a single number: the zero frequency of the reference.
+Save a saved reference to disk. The created file contains a single number: the zero frequency of the reference.
 
 \subsubsection{Load}
-Loads a reference from disk.
+Loads a reference from disk. This does not apply the reference yet.
 
 
 %\subsection{LPSVD}
@@ -1018,6 +1060,12 @@ can be made by using negative values.  Alternatively, the arrows on the right an
 input box can be used to roll the data in the direction of the arrow.  The effect of the operation
 on the current 1D can be seen in the main window.  When pushing `Apply' the roll is performed on
 all traces of the nD data.
+
+Rolling data can be very useful for folded nD spectra. In that case a check button called `Shift axis' 
+can be activated to shift the X axis accordingly, so that the position of the peak doesn't change (only 
+the position relative to spectrum edges). Note that if the shift value is larger than the dimension size 
+then the X axis is shifted without rolling allowing to unfold the spectrum several times.
+The `Shift axis' button has no effect in time domain.
 
 \subsection{Integrate}
 Integrates a specific part of the active dimension on all traces.
@@ -1289,7 +1337,7 @@ In the case that the active dimension is not hypercomplex the complex pair of th
 
 \subsubsection{States}
 States conversion takes the alternating data set and makes new hypercomplex values.
-For 2D data this means that when preforming states along D1, the two complex numbers are converted to a real part along that dimension:
+For 2D data this means that when performing states along D1, the two complex numbers are converted to a real part along that dimension:
 \begin{equation*}
   \text{RR}_n + i \cdot \text{RI}_n = \text{R}_{2n} + i \cdot \text{I}_{2n} \quad .
 \end{equation*}
@@ -1425,7 +1473,42 @@ affected by rotations: they are scalars.
 The Hamiltonian of a rotated interaction is therefore just calculated using the rotated spin part
 $\Lambda^\prime_n$ for each rank $n$, following \autoref{eq:HamSphere}.
 
-\subsection{Exluding regions}
+\subsection{Simulating, fitting}
+The fitting tab in composed of 3 sections:
+\begin{itemize}
+  \item In the top part is the plot canvas where are displayed the experimental data and simulations curves.
+  \item In the bottom left part are the generic simulation/fitting buttons.
+  \item In the bottom right part are the model specific parameters.
+\end{itemize}
+\subsubsection{Generic buttons}
+The buttons are: 
+\begin{itemize}
+  \item `Sim' button to launch a simulation with current parameters.
+  \item `Fit' button to launch a fit of the currently plotted data varying the parameters that are {\em not} checked.
+  \item `Reset' button to default model parameter values.
+  \item `Fit all' button: In case of a multi dimensionnal spectrum displayed as multiple 1Ds, this button will fit each row separately. (see sub section below for details)
+  \item `Copy par.' button copies the current row model parameters to all other rows.
+  \item `Preferences' button opens a new window with fitting preferences like the minimization method used for fitting, 
+the number of significant digit displayed in the model parameter part, or the maximum number of iterations for the fit procedure.
+  \item `Exclude' button to define excluded region during cost function evaluation (see \hyperref[sec:ExcludeRegions] {Excluding regions section})
+  \item `Export/Import' button opens a new window with various import/export actions.
+  \item `Cancel' button do quit the fitting module.
+\end{itemize}
+
+\subsubsection{Fit all option}
+`Fit all' button applies to multi dimensional data fitted as series of lower dimensionality spectra. Typically, T1 measurement recorded as pseudo 2D 
+will be fitted as a series of 1D sub spectra to extract integral parameters. Note that each sub-spectrum possess its own set of parameters.
+See \hyperref[sec:sideframe] {Side Frame section} for selecting rows.
+
+`Fit all' button behavior depends on a check box called `Incr copy' for incremental copy:\\
+If the check box ins't checked, `Fit all' will fit sub-spectra each with their own parameter sets.\\
+If the check box is checked, `Fit all' does incremental copy/fit of parameters. First it fits the first sub-spectrum then copyies the new parameter set to next 
+sub-spectrum parameters. This operation (fit/copy to next) continues for all subsequent sub-spectra. \\
+This is useful for series of spectra where the fitted parameters evolve slowly from one sub-spectrum to the next one.
+One should use `Incr copy' only once. If convergence is not reached the first time, then one can `Fit all' again with the check box unchecked. It will refine the fit
+for all sub-spectra from the state each parameter was after first fit.
+
+\subsection{Exluding regions}\label{sec:ExcludeRegions}
 For each fitting routine, specific regions can be excluded from the fit. This means that the deviation between the data and the simulation in this region is not taken into account during fitting. Regions can be excluded by pushing the `Exclude' button in the fitting window. When this window is open, regions can be selected by left clicking in the plot. Pushing `Ok' saves the changes.
 
 \subsection{Connecting parameters}
@@ -1459,6 +1542,15 @@ Note that chain-linking parameters will lead to errors. That is, do not link \te
 \texttt{par1}, and \texttt{par3}
 to \texttt{par2}. Always refer to the original parameter (link \texttt{par2} to \texttt{par1}, and
 \texttt{par3} to \texttt{par1}).
+
+One can link parameters with different names. It is the user responsability to check it is consistent.
+For example when simultaneaouly fitting (see next section below), the chemical shift may have 
+different name depending on the model. If it's a model without CSA, the name will be `position'. 
+If the model accounts for Chemical Shift Anisotropy, it will depend on the definition used
+for the Chemical Shift tensor. Some definitions do not define the isotropic chemical shift but
+rather the tensor eigen values. If the definition used defines the chemical shift it will be called
+`definition1' which could be connected to the `position' parameter of another data set fitting with 
+a model without CSA for example.
 
 A tutorial on fitting using connected parameters can be found in the `MultiFitQuadrupole' advanced
 tutorial. 
@@ -1780,8 +1872,11 @@ depend on the Czjzek distribution that is to be calculated (i.e. the $\sigma$ va
 distribution with a higher $\sigma$ value is used, the largest $C_\text{Q}$ value of the distribution
 should be higher, the properly sample the whole intensity distribution. To aid with this, the
 current distribution of each site can be viewed in this window (press `Show' on the righthand side
-of the window to draw the contour plot). Press `Generate' to generate the library, and then close
-the window.
+of the window to draw the contour plot). The distribution can viewed as a 2D map  $C_\text{Q}$ vs $\eta$.
+A check box allows to plot the $P_Q$ vs $\eta$ ($P_Q = C_Q * \sqrt {1 + \eta^2/3}$ represent the shift of 
+the gravity center of a quadrupolar lineshape with respect to chemical shift due to the quadrupolar 
+interaction). The average and most probable $C_\text{Q}$ and $P_Q$ are indicated on the map.
+Press `Generate' to generate the library, and then close the window.
 
 The created library can now be used to simulate Czjzek spectra. For this, the following values need
 to be set:
@@ -1802,6 +1897,30 @@ Note that the extended Czjzek values will be activated when the `Type' dropdown 
 Note that, if the parameters change much during a fit, the $C_\text{Q}$ and $\eta$ range of the
 Library might not be appropriate anymore. If this is the case, we advice to generate a new library
 with better settings, and then rerun the fit, to get the final convergence.
+
+\subsubsection*{Custom library}\label{sec:CzjzekCustom}
+The ssNake interface also allows for the loading of a custom library for fitting Czjzek spectra. In this way, sub-spectra with more involved interactions can be used that are simulated outside ssNake. Think, for example, of spectra where an excitation profile is taken into account. Such a custom library can be loaded by using the `Load' button at the bottom of the library window. Using this, a file can be selected which should follow the following convention:
+
+\begin{itemize}
+\item \texttt{<libname>-<eta>-<Cq>.<ext>}
+\end{itemize}
+ssNake loads all the files which have the save libname as the file pointed to (and are in the same directory). The <eta> and <Cq> values can have decimal notation (e.g. 2.3). Negative values are not supported, and are not needed in general. The Cq values are in MHz.
+
+A valid filename might be: \texttt{mylib-0.1-2.3.spe}
+
+All the files together should span a rectangular grid in eta and Cq.
+
+ssNake uses its general `Load' backend to load the separate files. So any file format ssNake supports can be used, as long as they are in a single file format (not raw TopSpin data for example). Examples of useful file formats are:
+
+\begin{itemize}
+\item ssNake .mat and .json
+\item Simpson .spe or .fid
+\end{itemize}
+
+Note that both FID and spectrum data can be used as input.
+
+After the library has loaded, fitting can be done using the normal procedures. Make sure not to push 'Generate' from the library window: this causes ssNake to simulate its own library, and overwrite the one you just imported.
+
 
 
 \subsubsection*{Equations}
@@ -1850,35 +1969,57 @@ To speed-up the calculations of these distributions, ssNake can use the \texttt{
 the extended Czjzek distribution, around a twofold speed increase can be gained in this way. ssNake
 tests for the \texttt{numba} package itself, so regular installation of this package should be sufficient.
 
+
+
+
 \subsection{MQMAS}
 This fitting routine can be used to fit an MQMAS spectrum. It is a 2D fitting routine, showing a contour plot 
 of the data. The fit result is plot on top of this using a different contour colour. Related to the additional dimension
-a Lorentz1 parameter is added to describe relaxation in D1. Regardin Gaussian broadening, Gauss parameter is used in 
-both dimensions to describe chemical shift distribution.
+a Lorentz1 parameter is added to describe relaxation in D1. Regarding Gaussian broadening, a single $\sigma_{CS}$ parameter is used in 
+both dimensions to describe chemical shift distribution. It is important to note that internally the parameter is called Gauss such that one 
+can import from 1D parameter file and have the chemical shift distribution correctly imported. Moreover for connecting parameters 
+between 1D spectrum and MQMAS spectrum the parameter is named Gauss for MQMAS and quadrupole models.
 
 For simulation of MQMAS data, we need to define the quadrupolar parameters as before (see the section on fitting 
-of quadrupole lines). In this case, no satellite signals are included. Only infinite MAS spinning speeds are
- supported (no spinning sidebands are calculated). Moreover, it is an ideal simulation, so no excitation profiles 
+of quadrupole lines). In this case, no satellite signals are included. Only infinite MAS spinning speeds are 
+supported (no spinning sidebands are calculated). Moreover, it is an ideal simulation, so no excitation profiles 
 are taken into account.
 
-Apart from the spin quantum number I, MQMAS simulation also requires selected the multiple quantum transition 
+Apart from the spin quantum number I, MQMAS simulation also requires to select the multiple quantum transition 
 evolving in D1 to be supplied. This is labelled `MQ' in the interface. 
 
+The simulation will calculate the frequencies of -MQ coherence in D1 and -1Q coherence in D2 for each orientation
+in order to produce the 2D MQMAS powder simulation.
+
 Two additional parameters that need to be supplied are the shearing and spectral width scale factors. These allow 
-to model 2D MQMAS spectra processed using diferent shearing schemes. Check our advanced tutorial on MQMAS processing. 
+to model 2D MQMAS spectra processed using different shearing schemes. Check our advanced tutorial on MQMAS processing. 
 By default, the shearing is set at 0, and the sw scaling at 1. This results in unsheared data with D1 corresponding 
-to 3Q coherence evolution, and can be used to fit experimental data that has not been sheared.
+to 3Q coherence evolution, and can be used to fit experimental data that has not been sheared. In that case, you will probably need 
+to adjust the reference frequency to have proper triple quantum dimension by setting a new reference as 
+$\mathrm{Ref(D1)}= 3*\mathrm{Ref(D2)}-2*\mathrm{Freq(D2)}$. 
+(also see tutorial on processing DQ-SQ for analog explanation).
 
-The required sharing and sw scaling factors depend on both I and MQ. Using the 'Auto' push button in the interface, 
-the correct values are filled in in the boxes, depending on the current I and MQ setting.
+The required shearing and sw scaling factors depend on both I and MQ. Using the 'Auto' push button in the interface, 
+the correct values are filled in in the boxes, depending on the current I and MQ setting for a standard MQMAS experiment.
+If universal scale is achieved by scaling carrier and reference frequencies (see section \ref{subsec:ScaleFreqRef}), instead of scaling sw, such 
+as done using xfshear program for Bruker Topspin processed spectra, sw scaling is not be required (keep default value of 1).
 
+Finally, a check button named "Fold D1" will allow simulating a folded spectrum. If unchecked any signal that would fall outside
+the defined sw region will not be simulated. Folded spectra are slightly longer to simulate.
+
+Note that STMAS can also be simulated using a proper scaling of SW since using the universal scale, the spectra will show
+resonances at the same position. However it won't simulate the effect of mis-ajustment of magic angle. This does not work 
+with scaling Car/Ref as the frequencies used are the same for processed data and simulation but should be specific while one 
+can used a different scaling factor for SW when processing data and scaling the simulation.
 
 \subsection{Czjzek MQMAS}
 This routine can be used to fit an MQMAS spectrum of a species that is influenced by a Czjzek distribution. The 
 required inputs are describe in the section on 1D Czjzek fitting, and regular MQMAS fitting respectively. Note 
 that this again means that firstly a library needs to be generated of a $C_\text{Q}$ and $\eta$ grid. The spectrum 
-sharing and sw scaling are as described in the MQMAS section.
-
+shearing and sw scaling are as described in the MQMAS section.
+In Czjzek MQMAS fitting, sites will be folded if folding is due to Chemical Shift. If $\sigma$ is so large that 
+a spectrum would be folded due to quadupolar interaction, the resulting simulated spectrum will probably be wrong.
+But such spectrum would probably be impossible to record experimentally.
 
 \subsection{External}
 Simulating NMR data for fitting can be straightforward, if idealized line shapes are requires. These
@@ -2286,12 +2427,12 @@ displayed).
 
 \section{Help}
 \subsection{Update}
-This tool can be used to update ssNake via the github page. It show a dropdown menu with all the available
+This tool can be used to update ssNake via the gitlab page. It shows a dropdown menu with all the available
 versions. We recommend using that latest version (that has a version number). The `develop' version is the
 version we are currency working on. This has the most resent features, but might be unstable. Note that updating via
 this tool does not always work (ssNake needs write permission on its ow directory). If ssNake does not work
-after using the Update tool, you can download it from the github page:
-\url{https://github.com/smeerten/ssnake/}.
+after using the Update tool, you can download it from the gitlab page:
+\url{https://gitlab.science.ru.nl/mrrc/nmrzoo/ssnake}.
 
 \subsection{About}
 Opens the About box with information on the version, acknowledgements and license (GPL v3.0).

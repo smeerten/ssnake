@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# Copyright 2016 - 2022 Bas van Meerten and Wouter Franssen
+# Copyright 2016 - 2024 Bas van Meerten and Wouter Franssen
 
 # This file is part of ssNake.
 #
@@ -115,6 +115,15 @@ class TabFittingWindow(QtWidgets.QWidget):
         grid3.addWidget(self.tabs, 0, 0)
         grid3.setColumnStretch(0, 1)
         grid3.setRowStretch(0, 1)
+        
+    # Property and setter to enable macro manipulation also from fitting windows
+    @property
+    def currentMacro(self):
+        return self.oldMainWindow.currentMacro
+
+    @currentMacro.setter
+    def currentMacro(self, value):
+        self.oldMainWindow.currentMacro = value
 
     def rename(self, name):
         """
@@ -269,6 +278,7 @@ class TabFittingWindow(QtWidgets.QWidget):
         self.runningAll = False
         self.stopMP()
         self.mainFitWindow.paramframe.stopAllButton.hide()
+        self.mainFitWindow.paramframe.fitAllIncrCpyCB.show()
 
     def fitAll(self, *args):
         """
@@ -276,20 +286,38 @@ class TabFittingWindow(QtWidgets.QWidget):
         """
         self.runningAll = True
         self.mainFitWindow.paramframe.stopAllButton.show()
-        tmp = np.array(self.mainFitWindow.current.data.shape())
-        tmp[self.mainFitWindow.current.axes] = 1
-        tmp2 = ()
-        for i in tmp:
-            tmp2 += (np.arange(i),)
-        grid = np.array([i.flatten() for i in np.meshgrid(*tmp2)]).T
-        for i in grid:
+        self.mainFitWindow.paramframe.fitAllIncrCpyCB.hide()
+        # validate current entries and transfer entries values to fitParamList
+        self.mainFitWindow.paramframe.checkInputs()
+        if self.mainFitWindow.paramframe.fitIncrCpy : # Incremental copy check button is True
+            # save current slice parameters
+            locList = self.mainFitWindow.paramframe.getRedLocList()
+            buffer_param = copy.deepcopy(self.mainFitWindow.paramframe.fitParamList[locList])
+            buffer_Num = self.mainFitWindow.paramframe.fitNumList[locList]
+            buffer_limits = self.mainFitWindow.paramframe.removeLimits[locList]
+        shape_to_iter = np.array(self.mainFitWindow.current.data.shape())
+        shape_to_iter[self.mainFitWindow.current.axes] = 1
+        for i in np.ndindex(tuple(shape_to_iter)):
             QtWidgets.qApp.processEvents()
             if self.runningAll is False:
                 break
             self.mainFitWindow.current.setSlice(self.mainFitWindow.current.axes, i)
+            if self.mainFitWindow.paramframe.fitIncrCpy : # Incremental copy check button is True
+                locList = self.mainFitWindow.paramframe.getRedLocList()
+                # set current slice fitParamList to buffer saved  slice parameters
+                self.mainFitWindow.paramframe.fitParamList[locList] = buffer_param
+                self.mainFitWindow.paramframe.fitNumList[locList] = buffer_Num
+                self.mainFitWindow.paramframe.removeLimits[locList] = buffer_limits
+                self.mainFitWindow.paramframe.dispParams() # copy new values to entries
+            # run the fit (fit function reads param values from entries)
             self.fit()
             self.mainFitWindow.sideframe.upd()
+            if self.mainFitWindow.paramframe.fitIncrCpy : # Incremental copy check button is True
+                buffer_param = copy.deepcopy(self.mainFitWindow.paramframe.fitParamList[locList])
+                buffer_Num = self.mainFitWindow.paramframe.fitNumList[locList]
+                buffer_limits = self.mainFitWindow.paramframe.removeLimits[locList]
         self.mainFitWindow.paramframe.stopAllButton.hide()
+        self.mainFitWindow.paramframe.fitAllIncrCpyCB.show()
 
     def fit(self):
         """
@@ -317,7 +345,7 @@ class TabFittingWindow(QtWidgets.QWidget):
                 new_args += (args[n] + args_tmp[n],)
             args = new_args  # tuples are immutable
         new_args = (selectList,) + args
-        allFitVal = self.fitProcess(xax, np.array(data1D), maskList, guess, new_args, funcs)
+        allFitVal = self.fitProcess(xax, np.array(data1D, dtype=object), maskList, guess, new_args, funcs)
         if allFitVal is None:
             return
         allFitVal = allFitVal['x']
@@ -1038,9 +1066,19 @@ class AbstractParamFrame(QtWidgets.QWidget):
             self.stopButton.setStyleSheet('background-color: green')
             self.frame1.addWidget(self.stopButton, 0, 1)
             self.stopButton.hide()
+
+            fitAllLayout = QtWidgets.QGridLayout()
+            self.frame1.addLayout(fitAllLayout, 1, 0)
             fitAllButton = QtWidgets.QPushButton("Fit all")
             fitAllButton.clicked.connect(self.rootwindow.tabWindow.fitAll)
-            self.frame1.addWidget(fitAllButton, 1, 0)
+            self.fitAllIncrCpyCB = QtWidgets.QCheckBox('Incr.\ncopy')
+            self.fitAllIncrCpyCB.toggled.connect(self.set_fitIncrCpy)
+            self.fitAllIncrCpyCB.setChecked(False)
+            self.fitIncrCpy = False
+            
+            fitAllLayout.addWidget(fitAllButton, 0, 0)
+            fitAllLayout.addWidget(self.fitAllIncrCpyCB, 0, 1)
+
             self.stopAllButton = QtWidgets.QPushButton("Stop all")
             self.stopAllButton.clicked.connect(self.rootwindow.tabWindow.stopAll)
             self.stopAllButton.setStyleSheet('background-color: green')
@@ -1079,6 +1117,12 @@ class AbstractParamFrame(QtWidgets.QWidget):
         self.checkFitParamList(self.getRedLocList())
         colorList = mpl.rcParams['axes.prop_cycle'].by_key()['color']
         self.fit_color_list = colorList[2:] + colorList[0:2]
+
+    def set_fitIncrCpy(self):
+        if self.fitAllIncrCpyCB.isChecked():
+            self.fitIncrCpy = True
+        else:
+            self.fitIncrCpy = False
 
     def togglePick(self):
         # Dummy function for fitting routines which require peak picking
@@ -1262,7 +1306,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
 
     def checkInputs(self):
         """
-        Checks the values set in the parameter boxes for validity.
+        Checks the values set in the parameter entry boxes for validity and save the values to fitParamList current index.
 
         Returns
         -------
@@ -1547,7 +1591,7 @@ class AbstractParamFrame(QtWidgets.QWidget):
         for i, _ in enumerate(postReport):
             tmp = postReport[i].split('\n', 1)
             postParams[tmp[0].strip()] = tmp[1].strip()
-        splitReport = re.split("#\?", splitReport[0])
+        splitReport = re.split(r"#\?", splitReport[0])
         preReport = splitReport[0].split('\n')
         preParams = {}
         removeLimits = {'invert' : False, 'limits': []}
@@ -2965,28 +3009,35 @@ class CsaDeconvParamFrame(AbstractParamFrame):
             self.labelskew.show()
             self.pickTick.setChecked(False)
             self.pickTick.hide()
-        val = self.numExp.currentIndex() + 1
-        tensorList = []
-        for i in range(10):  # Convert input
-            if i < val:
-                def1 = safeEval(self.entries["Definition1"][i].text())
-                def2 = safeEval(self.entries["Definition2"][i].text())
-                def3 = safeEval(self.entries["Definition3"][i].text())
-                startTensor = [def1, def2, def3]
-                if None in startTensor:
-                    self.entries['shiftdef'][-1].setCurrentIndex(OldType)  # error, reset to old view
-                    raise FittingException("Fitting: One of the inputs is not valid")
-                Tensors = func.shiftConversion(startTensor, OldType)
-                for element in range(3):  # Check for `ND' s
-                    if isinstance(Tensors[NewType][element], str):
-                        Tensors[NewType][element] = 0
-                tensorList.append(Tensors)
-        printStr = '%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g'
-        for i in range(10):  # Print output if not stopped before
-            if i < val:
-                self.entries["Definition1"][i].setText(printStr % tensorList[i][NewType][0])
-                self.entries["Definition2"][i].setText(printStr % tensorList[i][NewType][1])
-                self.entries["Definition3"][i].setText(printStr % tensorList[i][NewType][2])
+        # copy current entries to fitParamList
+        self.checkInputs()
+        # convert for each slice each fitParamList 
+        with np.nditer(self.fitParamList, flags=["refs_ok", "multi_index"], op_flags=['readwrite']) as it:
+            for slice_params in it:
+                # one need to check fitParamList is valid/exists for each slice! 
+                # This is not necessarily the case for slices that have not been displayed...
+                self.checkFitParamList(it.multi_index)
+                # note that slice_params is a zero-dimensional ndarray which content is accessed with slice_params[()]
+                val = self.fitNumList[it.multi_index] + 1
+    #            tensorList = []
+                for i in range(self.FITNUM):  # Convert input
+#                    if i < val:  # not sure this is required, one could imagine to enable disable sites but keeping their updated value in cache. 
+                        def1 = slice_params[()]['Definition1'][i][0]
+                        def2 = slice_params[()]['Definition2'][i][0]
+                        def3 = slice_params[()]['Definition3'][i][0]
+                        startTensor = [def1, def2, def3]
+                        if None in startTensor:
+                            self.entries['shiftdef'][-1].setCurrentIndex(OldType)  # error, reset to old definition
+                            raise FittingException("Fitting: One of the inputs is not valid")
+                        Tensors = func.shiftConversion(startTensor, OldType)
+                        for element in range(3):  # Check for `ND' s
+                            if isinstance(Tensors[NewType][element], str):
+                                Tensors[NewType][element] = 0
+                        slice_params[()]['Definition1'][i][0] = Tensors[NewType][0]
+                        slice_params[()]['Definition2'][i][0] = Tensors[NewType][1]
+                        slice_params[()]['Definition3'][i][0] = Tensors[NewType][2]
+        # copy current fitParamList to entries and update the new definition 
+        self.dispParams()
         self.shiftDefType = NewType
 
     def extraParamToFile(self):
@@ -3545,28 +3596,34 @@ class QuadCSADeconvParamFrame(AbstractParamFrame):
             self.labeliso2.show()
             self.labelspan.show()
             self.labelskew.show()
-        val = self.numExp.currentIndex() + 1
-        tensorList = []
-        for i in range(10):  # Convert input
-            if i < val:
-                def1 = safeEval(self.entries["Definition1"][i].text())
-                def2 = safeEval(self.entries["Definition2"][i].text())
-                def3 = safeEval(self.entries["Definition3"][i].text())
-                startTensor = [def1, def2, def3]
-                if None in startTensor:
-                    self.entries['shiftdef'][-1].setCurrentIndex(OldType)  # error, reset to old view
-                    raise FittingException("Fitting: One of the inputs is not valid")
-                Tensors = func.shiftConversion(startTensor, OldType)
-                for element in range(3):  # Check for `ND' s
-                    if isinstance(Tensors[NewType][element], str):
-                        Tensors[NewType][element] = 0
-                tensorList.append(Tensors)
-        printStr = '%#.' + str(self.rootwindow.tabWindow.PRECIS) + 'g'
-        for i in range(10):  # Print output if not stopped before
-            if i < val:
-                self.entries["Definition1"][i].setText(printStr % tensorList[i][NewType][0])
-                self.entries["Definition2"][i].setText(printStr % tensorList[i][NewType][1])
-                self.entries["Definition3"][i].setText(printStr % tensorList[i][NewType][2])
+        # copy current entries to fitParamList
+        self.checkInputs()
+        # convert for each slice each fitParamList 
+        with np.nditer(self.fitParamList, flags=["refs_ok", "multi_index"], op_flags=['readwrite']) as it:
+            for slice_params in it:
+                # one need to check fitParamList is valid/exists for each slice! 
+                # This is not necessarily the case for slices that have not been displayed...
+                self.checkFitParamList(it.multi_index)
+                # note that slice_params is a zero-dimensional ndarray which content is accessed with slice_params[()]
+                val = self.fitNumList[it.multi_index] + 1
+                for i in range(self.FITNUM):  # Convert input
+#                    if i < val:  # not sure this is required, one could imagine to enable disable sites but keeping their value in cache. 
+                        def1 = slice_params[()]['Definition1'][i][0]
+                        def2 = slice_params[()]['Definition2'][i][0]
+                        def3 = slice_params[()]['Definition3'][i][0]
+                        startTensor = [def1, def2, def3]
+                        if None in startTensor:
+                            self.entries['shiftdef'][-1].setCurrentIndex(OldType)  # error, reset to old definition
+                            raise FittingException("Fitting: One of the inputs is not valid")
+                        Tensors = func.shiftConversion(startTensor, OldType)
+                        for element in range(3):  # Check for `ND' s
+                            if isinstance(Tensors[NewType][element], str):
+                                Tensors[NewType][element] = 0
+                        slice_params[()]['Definition1'][i][0] = Tensors[NewType][0]
+                        slice_params[()]['Definition2'][i][0] = Tensors[NewType][1]
+                        slice_params[()]['Definition3'][i][0] = Tensors[NewType][2]
+        # copy current fitParamList to entries and update the new definition 
+        self.dispParams()
         self.shiftDefType = NewType
 
     def extraParamToFile(self):
@@ -3889,8 +3946,7 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
 
         self.czjzek = self.czjzek.reshape(etasteps, cqsteps)
         # Calculate average and peak CQ and PQ values
-        # peak CQ is obtained from DMFit
-        PQs = cq * np.sqrt(1 + eta/3)
+        PQs = cq * np.sqrt(1 + eta**2/3)
         PQavg = np.average(PQs, None, self.czjzek)
         CQavg = np.average(cq, None, self.czjzek)
         indices = np.unravel_index(self.czjzek.argmax(), self.czjzek.shape)
@@ -3902,19 +3958,19 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
             self.ax.scatter(peakPQ, eta[indices], color='w', edgecolor = 'k')
             self.ax.text(peakPQ * 0.92, eta[indices] * 0.95, '$P_{Q,peak}$', color='k', size = 8)
             self.ax.axvline(x=PQavg, color='k')
-            self.ax.text(PQavg * 1.025, 0.5, '$\overline{P_Q}$', color='k', size = 8)
+            self.ax.text(PQavg * 1.025, 0.5, r'$\overline{P_Q}$', color='k', size = 8)
         else:
             self.ax.contour(cqArray, etaArray, self.czjzek, 15)
             self.ax.set_xlabel(u"C$_Q$ [MHz]")
             self.ax.scatter(peakCQ, eta[indices], color='w', edgecolor = 'b')
             self.ax.text(peakCQ * 0.92, eta[indices] * 0.95, '$C_{Q,peak}$', color='b', size = 8)
             self.ax.axvline(x=CQavg, color='b')
-            self.ax.text(CQavg * 1.025, 0.5, '$\overline{C_Q}$', color='b', size = 8)
+            self.ax.text(CQavg * 1.025, 0.5, r'$\overline{C_Q}$', color='b', size = 8)
 
-        self.ax.text(0, 1.075, '$\overline{P_Q}$ = ' + str(np.round(PQavg, decimals=3)) 
+        self.ax.text(0, 1.075, r'$\overline{P_Q}$ = ' + str(np.round(PQavg, decimals=3)) 
                     + ' MHz' + '        $P_{Q,peak}$ = ' + str(np.round(peakPQ, decimals=3)) 
                     + ' MHz', color='k', size = 9)
-        self.ax.text(0, 1.025, '$\overline{C_Q}$ = ' + str(np.round(CQavg, decimals=3)) 
+        self.ax.text(0, 1.025, r'$\overline{C_Q}$ = ' + str(np.round(CQavg, decimals=3)) 
                     + ' MHz' + '        $C_{Q,peak}$ = ' + str(np.round(peakCQ, decimals=3)) 
                     + ' MHz', color='b', size = 9)
         
@@ -4040,7 +4096,7 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         if not fileName:
             return
         dirName, shortName = os.path.split(fileName)
-        nameSearch = re.search("(.*)-\d+\.\d+-\d+\.\d+\.\w*$", shortName)
+        nameSearch = re.search(r"(.*)-\d+\.\d+-\d+\.\d+\.\w*$", shortName)
         if not nameSearch:
             raise FittingException("Not a valid library file name")
         libName = nameSearch.group(1)
@@ -4049,7 +4105,7 @@ class CzjzekPrefWindow(QtWidgets.QWidget):
         eta = []
         data = []
         for name in nameList:
-            matchName = re.search(libName + "-(\d+\.\d+)-(\d+\.\d+)\.\w*$", name)
+            matchName = re.search(libName + r"-(\d+\.\d+)-(\d+\.\d+)\.\w*$", name)
             if matchName:
                 eta.append(float(matchName.group(1)))
                 cq.append(float(matchName.group(2)))
@@ -4412,7 +4468,7 @@ class ExternalFitDeconvParamFrame(AbstractParamFrame):
         inFile : str
             Script to analyse.
         """
-        matches = np.unique(re.findall("(@\w+@)", inFile))
+        matches = np.unique(re.findall(r"(@\w+@)", inFile))
         self.script = inFile
         for n in self.SINGLENAMES:
             self.labels[n][0].deleteLater()
@@ -4565,7 +4621,7 @@ class FunctionFitParamFrame(AbstractParamFrame):
         Interprets the input function and makes labels and entries.
         """
         self.resetDefaults()
-        matches = np.unique(re.findall("(@\w+@)", self.function))
+        matches = np.unique(re.findall(r"(@\w+@)", self.function))
         for n in self.SINGLENAMES+self.MULTINAMES:
             self.labels[n][0].deleteLater()
             self.labels[n][1].deleteLater()
@@ -4739,7 +4795,7 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
     MQvalues = [3, 5, 7, 9]
     SINGLENAMES = ["Offset", "Multiplier", "Spinspeed"]
     MULTINAMES = ["Position", "Gauss", "Cq", 'eta', "Integral", "Lorentz", "Lorentz1"] # , "Gauss2", "Gauss1"
-    EXTRANAMES = ['spinType', 'angle', 'numssb', 'cheng', 'I', 'MQ', 'shear', 'scale']
+    EXTRANAMES = ['spinType', 'angle', 'numssb', 'cheng', 'I', 'MQ', 'shear', 'scale', 'foldF1']
     MASTYPES = ["Static", "Finite MAS", "Infinite MAS"]
 
     def __init__(self, parent, rootwindow, isMain=True):
@@ -4761,7 +4817,8 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
                          "Position": [0.0, False], "Gauss": [0.0, False], "Cq": [1.0, False], 'eta': [0.0, False],
                          "Integral": [self.fullInt, False], "Lorentz": [10.0, False],   # "Gauss2": [0.0, True],
                          "Lorentz1": [10.0, False] } # ,"Gauss1": [0.0, True] }
-        self.extraDefaults = {'spinType': 2, 'angle': "arctan(sqrt(2))", 'numssb': 32, 'cheng': 15, 'I': 0, 'MQ': 0, 'shear': '0.0', 'scale': '1.0'}
+        self.extraDefaults = {'spinType': 2, 'angle': "arctan(sqrt(2))", 'numssb': 32, 'cheng': 15, 'I': 0, 'MQ': 0, 
+                                'shear': '0.0', 'scale': '1.0', 'foldF1': False}
         super(MqmasDeconvParamFrame, self).__init__(parent, rootwindow, isMain)
         self.optframe.addWidget(wc.QLabel("MAS:"), 2, 0)
         self.entries['spinType'].append(QtWidgets.QComboBox(self))
@@ -4801,22 +4858,28 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         autoButton = QtWidgets.QPushButton("&Auto")
         autoButton.clicked.connect(self.autoShearScale)
         self.optframe.addWidget(autoButton, 8, 1)
+        self.entries['foldF1'].append(QtWidgets.QCheckBox('D1 fold'))
+        self.optframe.addWidget(self.entries['foldF1'][-1], 8, 0)
+
         self.spinLabel = wc.QLabel("Spin. speed [kHz]:")
         self.frame2.addWidget(self.spinLabel, 0, 0, 1, 2)
         self.ticks["Spinspeed"].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks["Spinspeed"][-1], 1, 0)
         self.entries["Spinspeed"].append(wc.QLineEdit())
         self.frame2.addWidget(self.entries["Spinspeed"][-1], 1, 1)
+
         self.frame2.addWidget(wc.QLabel("Offset:"), 2, 0, 1, 2)
         self.ticks["Offset"].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks["Offset"][-1], 3, 0)
         self.entries["Offset"].append(wc.QLineEdit())
         self.frame2.addWidget(self.entries["Offset"][-1], 3, 1)
+
         self.frame2.addWidget(wc.QLabel("Multiplier:"), 4, 0, 1, 2)
         self.ticks["Multiplier"].append(QtWidgets.QCheckBox(''))
         self.frame2.addWidget(self.ticks["Multiplier"][-1], 5, 0)
         self.entries["Multiplier"].append(wc.QLineEdit())
         self.frame2.addWidget(self.entries["Multiplier"][-1], 5, 1)
+
         self.numExp = QtWidgets.QComboBox()
         self.numExp.addItems([str(x + 1) for x in range(self.FITNUM)])
         self.numExp.currentIndexChanged.connect(self.changeNum)
@@ -4850,6 +4913,7 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         self.entries['MQ'][-1].setCurrentIndex(self.extraDefaults['MQ'])
         self.entries['shear'][-1].setText(self.extraDefaults['shear'])
         self.entries['scale'][-1].setText(self.extraDefaults['scale'])
+        self.entries['foldF1'][-1].setChecked(self.extraDefaults['foldF1'])
         self.MASChange(self.extraDefaults['spinType'])
         super(MqmasDeconvParamFrame, self).reset()
 
@@ -4909,7 +4973,9 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
                      "Cheng": self.entries['cheng'][-1].text(),
                      "MAS": self.MASTYPES[self.entries['spinType'][-1].currentIndex()],
                      "Angle": self.entries['angle'][-1].text(),
-                     "Sidebands": self.entries['numssb'][-1].text()}
+                     "Sidebands": self.entries['numssb'][-1].text(),
+                     "FoldF1" :  self.entries['foldF1'][-1].isChecked(),
+                    }
         return (extraDict, {})
 
     def extraFileToParam(self, preParams, postParams):
@@ -4925,7 +4991,7 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
             self.entries['spinType'][0].setCurrentIndex(self.MASTYPES.index(preParams["MAS"]))
         if "Shear" in keys:
             self.entries['shear'][0].setText(preParams["Shear"])
-        if "Scale" in keys:
+        if "ScaleSW" in keys:
             self.entries['scale'][0].setText(preParams["ScaleSW"])
         if "Cheng" in keys:
             self.entries['cheng'][0].setValue(int(preParams["Cheng"]))
@@ -4933,6 +4999,12 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
             self.entries['angle'][0].setText(preParams["Angle"])
         if "Sidebands" in keys:
             self.entries['numssb'][0].setValue(int(preParams["Sidebands"]))
+        if "FoldF1" in keys:
+            if preParams["FoldF1"] == 'True':
+                fold = True
+            else: 
+                fold = False
+            self.entries['foldF1'][0].setChecked(fold)
 
     def getExtraParams(self, out):
         """
@@ -4953,7 +5025,8 @@ class MqmasDeconvParamFrame(AbstractParamFrame):
         MAStype = self.entries['spinType'][-1].currentIndex()
         shear = safeEval(self.entries['shear'][-1].text())
         scale = safeEval(self.entries['scale'][-1].text())
-        out['extra'] = [I, MQ, numssb, angle, D2, D4, weight, shear, scale, MAStype]
+        foldF1 = self.entries['foldF1'][-1].isChecked()
+        out['extra'] = [I, MQ, numssb, angle, D2, D4, weight, shear, scale, MAStype, foldF1]
         return (out, out['extra'])
 
     def checkResults(self, numExp, struc):
@@ -5118,13 +5191,13 @@ class MqmasCzjzekParamFrame(AbstractParamFrame):
         from math import gcd
         mq = self.MQvalues[self.entries['MQ'][-1].currentIndex()]
         m = 0.5 * mq
-        numerator = m * (18 * self.I * (self.I + 1) - 34 * m**2 - 5)
-        denomenator = 0.5 * (18 * self.I * (self.I + 1) - 34 * 0.5**2 - 5)
-        divis = gcd(int(numerator), int(denomenator))
-        numerator /= divis
-        denomenator /= divis
-        self.entries['shear'][-1].setText(str(numerator) + '/' + str(denomenator))
-        self.entries['scale'][-1].setText(str(denomenator) + '/' + str(mq * denomenator - numerator))
+#        numerator = m * (18 * self.I * (self.I + 1) - 34 * m**2 - 5)
+#        denomenator = 0.5 * (18 * self.I * (self.I + 1) - 34 * 0.5**2 - 5)
+#        divis = gcd(int(numerator), int(denomenator))
+#        numerator /= divis
+#        denomenator /= divis
+#        self.entries['shear'][-1].setText(str(-func.R(self.I, -m, m)))
+        self.entries['scale'][-1].setText(str(-func.scale_SW_ratio(self.I, -m, m)))
 
     def changeType(self, index):
         """

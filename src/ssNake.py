@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# Copyright 2016 - 2022 Bas van Meerten and Wouter Franssen
+# Copyright 2016 - 2024 Bas van Meerten and Wouter Franssen
 
 # This file is part of ssNake.
 #
@@ -96,7 +96,7 @@ matplotlib.rc('font', family='DejaVu Sans')
 np.set_printoptions(threshold=sys.maxsize)
 QtCore.QLocale.setDefault(QtCore.QLocale('en_US'))
 
-VERSION = 'v1.4'
+VERSION = 'v1.5'
 # Required library version
 NPVERSION = '1.11.0'
 MPLVERSION = '1.5.0'
@@ -248,6 +248,7 @@ class MainProgram(QtWidgets.QMainWindow):
         self.defaultContourConst = True
         self.defaultPosColor = '#1F77B4'
         self.defaultNegColor = '#FF7F0E'
+        self.defaultSecondOrderPhaseDialog = False
         self.defaultStartupBool = False
         self.defaultStartupDir = '~'
         self.defaultTooltips = True
@@ -352,6 +353,7 @@ class MainProgram(QtWidgets.QMainWindow):
             self.defaultHeightRatio = settings.value("contour/height_ratio", self.defaultHeightRatio, float)
         except TypeError:
             self.dispMsg("Incorrect value in the config file for the contour/height_ratio")
+        self.defaultSecondOrderPhaseDialog = settings.value("phasing/second_order_phase_dialog", self.defaultSecondOrderPhaseDialog, bool)
 
     def saveDefaults(self):
         QtCore.QSettings.setDefaultFormat(QtCore.QSettings.IniFormat)
@@ -389,12 +391,13 @@ class MainProgram(QtWidgets.QMainWindow):
         settings.setValue("contour/diagonalbool", self.defaultDiagonalBool)
         settings.setValue("contour/diagonalmult", self.defaultDiagonalMult)
         settings.setValue("2Dcolor/colourmap", self.defaultPColorMap)
+        settings.setValue("phasing/second_order_phase_dialog", self.defaultSecondOrderPhaseDialog)
 
     def dispMsg(self, msg, color='black'):
         if color == 'red':
             self.statusBar.setStyleSheet("QStatusBar{padding-left:8px;color:red;}")
         else:
-            self.statusBar.setStyleSheet("QStatusBar{padding-left:8px;}")
+            self.statusBar.setStyleSheet("QStatusBar{padding-left:8px;color:blue;}")
         self.statusBar.showMessage(msg, 10000)
 
     def initToolbar(self):
@@ -445,6 +448,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                    ['Tools --> Reference Deconvolution', self.refDeconvAct],
                                    ['Tools --> Correct Digital Filter', self.digitalFilterAct],
                                    ['Tools --> Scale SW', self.scaleSWAct],
+                                   ['Tools --> Scale freq and ref', self.scaleFreqRefAct],
                                    ['Tools --> LPSVD', self.lpsvdAct],
                                    ['Matrix --> Sizing', self.sizingAct],
                                    ['Matrix --> Shift Data', self.shiftAct],
@@ -519,7 +523,7 @@ class MainProgram(QtWidgets.QMainWindow):
                                    ['Utilities --> Dipolar Distance Tool', self.dipolarconvAct],
                                    ['Utilities --> Quadrupole Coupling Conversion Tool', self.quadconvAct],
                                    ['Utilities --> NMR Table', self.nmrtableAct],
-                                   ['Help --> GitHub Page', self.githubAct],
+                                   ['Help --> GitLab Page', self.githubAct],
                                    ['Help --> ssNake Tutorials', self.tutorialAct],
                                    ['Help --> About', self.aboutAct]]
             for element in self.defaultToolbarActionList:
@@ -666,6 +670,9 @@ class MainProgram(QtWidgets.QMainWindow):
         self.lpsvdAct.setToolTip('LPSVD linear prediction')
         self.scaleSWAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'ScaleSW.png'), "Scale SW", lambda: self.mainWindowCheck(lambda mainWindow: ScaleSWWindow(mainWindow)))
         self.scaleSWAct.setToolTip('Scale the Current Spectral Width')
+        self.scaleFreqRefAct = self.toolMenu.addAction(QtGui.QIcon(IconDirectory + 'ScaleFreqRef.png'), "Scale Car/Ref freq", 
+                                    lambda: self.mainWindowCheck(lambda mainWindow: ScaleFreqRefWindow(mainWindow)))
+        self.scaleFreqRefAct.setToolTip('Scale the current Carrier and Reference frequencies')
         self.referencelistmenu = QtWidgets.QMenu('&Reference', self)
         self.toolMenu.addMenu(self.referencelistmenu)
         self.setrefAct = self.referencelistmenu.addAction(QtGui.QIcon(IconDirectory + 'setreference.png'), "&Set Reference", lambda: self.mainWindowCheck(lambda mainWindow: RefWindow(mainWindow)))
@@ -687,7 +694,7 @@ class MainProgram(QtWidgets.QMainWindow):
                              self.autoPhaseAct1, self.autoPhaseAllAct0, self.phasingmenu,
                              self.autoPhaseAllAct1, self.swapEchoAct, self.corOffsetAct,
                              self.baselineAct, self.subAvgAct, self.refDeconvAct, self.lpsvdAct,
-                             self.digitalFilterAct, self.scaleSWAct]
+                             self.digitalFilterAct, self.scaleSWAct, self.scaleFreqRefAct]
         # the matrix drop down menu
         self.matrixMenu = QtWidgets.QMenu("M&atrix", self)
         self.menubar.addMenu(self.matrixMenu)
@@ -903,10 +910,10 @@ class MainProgram(QtWidgets.QMainWindow):
         self.refmanAct.setToolTip('Open the Reference Manual')
         self.basTutorialAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'Tutorial.png'), "Basic Tutorial", openTutorial)
         self.basTutorialAct.setToolTip('Open the Tutorial Folder')
-        self.tutorialAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'Tutorial.png'), "Advanced Tutorials", lambda: webbrowser.open('https://github.com/smeerten/ssnake_tutorials/'))
+        self.tutorialAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'Tutorial.png'), "Advanced Tutorials", lambda: webbrowser.open('https://gitlab.science.ru.nl/mrrc/nmrzoo/ssnake_tutorials'))
         self.tutorialAct.setToolTip('Link to ssNake Advanced Processing Tutorials')
-        self.githubAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'GitHub.png'), "GitHub Page", lambda: webbrowser.open('https://github.com/smeerten/ssnake/'))
-        self.githubAct.setToolTip('ssNake GitHub Page')
+        self.githubAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'GitHub.png'), "GitLab Page", lambda: webbrowser.open('https://gitlab.science.ru.nl/mrrc/nmrzoo/ssnake'))
+        self.githubAct.setToolTip('ssNake GitLab Page')
         self.aboutAct = self.helpMenu.addAction(QtGui.QIcon(IconDirectory + 'about.png'), "&About", lambda: aboutWindow(self))
         self.aboutAct.setToolTip('About Menu')
         self.helpActList = self.helpActList +  [self.shiftconvAct, self.quadconvAct, self.nmrtableAct, self.githubAct,
@@ -1131,8 +1138,11 @@ class MainProgram(QtWidgets.QMainWindow):
             self.dispMsg("Macro name '" + givenName + "' already exists")
             givenName, ok = QtWidgets.QInputDialog.getText(self, 'Macro name', 'Name:', text=name)
         self.macros[givenName] = self.macros.pop(oldName)
+
         if self.mainWindow.currentMacro == oldName:
             self.mainWindow.currentMacro = givenName
+                    
+
         oldActions = self.macroActions.pop(oldName)
         self.macrolistmenu.removeAction(oldActions[0])
         self.macrosavemenu.removeAction(oldActions[1])
@@ -2454,8 +2464,11 @@ class SideFrame(QtWidgets.QScrollArea):
                 frameWidget.setLayout(frame)
                 name = current.viewSettings["extraName"][i]
                 if len(name) > 20:
-                    name = name[:20]
-                self.nameLabels.append(wc.QLabel(name, self))
+                    nameLabel = wc.QLabel(name[:20] + '…', self)
+                    nameLabel.setToolTip(name)
+                else:
+                    nameLabel = wc.QLabel(name, self)
+                self.nameLabels.append(nameLabel)
                 frame.addWidget(self.nameLabels[i], 0, 0, 1, 3)
                 self.nameLabels[i].setStyleSheet("QLabel { color: rgb" + str(current.getExtraColor(i)) + ";}")
                 colorbutton = QtWidgets.QPushButton("Colour", self)
@@ -2476,8 +2489,8 @@ class SideFrame(QtWidgets.QScrollArea):
                     frame.addWidget(self.shiftLabel, 4, 0)
                     scaleEntry = wc.SsnakeDoubleSpinBox()
                     scaleEntry.setDecimals(4)
-                    scaleEntry.setMaximum(1e3)
-                    scaleEntry.setMinimum(-1e3)
+                    scaleEntry.setMaximum(1e6)
+                    scaleEntry.setMinimum(-1e6)
                     scaleEntry.setSingleStep(0.1)
                     scaleEntry.setValue(self.father.current.viewSettings["extraScale"][i])
                     scaleEntry.valueChanged.connect(lambda arg, num=i: self.setScale(arg, num))
@@ -2512,8 +2525,8 @@ class SideFrame(QtWidgets.QScrollArea):
                     frame.addWidget(self.shift2Label, 4, 0)
                     scaleEntry = wc.SsnakeDoubleSpinBox()
                     scaleEntry.setDecimals(4)
-                    scaleEntry.setMaximum(1e3)
-                    scaleEntry.setMinimum(-1e3)
+                    scaleEntry.setMaximum(1e6)
+                    scaleEntry.setMinimum(-1e6)
                     scaleEntry.setSingleStep(0.1)
                     scaleEntry.setValue(self.father.current.viewSettings["extraScale"][i])
                     scaleEntry.valueChanged.connect(lambda arg, num=i: self.setScale(arg, num))
@@ -3281,6 +3294,8 @@ class AsciiLoadWindow(QtWidgets.QDialog):
         try:
             with open(file, 'r') as f:
                 line = f.readline()
+                while len(line)>0 and (line[0]=='#' or line[0]=='\n'):
+                    line = f.readline()
             if line.count(',') > 0:
                 sep = 'Comma'
             elif line.count('\t') > 0:
@@ -3390,15 +3405,20 @@ class PhaseWindow(wc.ToolWindow):
     SINGLESLICE = True
     RESOLUTION = 1000
     P1LIMIT = 540.0
+    P2LIMIT = 1440.0
     PHASE0STEP = 1.0
     PHASE1STEP = 1.0
+    PHASE2STEP = 1.0
 
     def __init__(self, parent):
         super(PhaseWindow, self).__init__(parent)
         self.zeroVal = 0.0
         self.firstVal = 0.0
-        self.pivotVal = 0.0
+        self.secondVal = 0.0
+        self.pivotFirstVal = 0.0
+        self.pivotSecondVal = 0.0
         self.available = True
+
         # Zero order
         self.zeroOrderGroup = QtWidgets.QGroupBox('Zero order:')
         self.zeroOrderFrame = QtWidgets.QGridLayout()
@@ -3408,11 +3428,11 @@ class PhaseWindow(wc.ToolWindow):
         self.zeroEntry = wc.QLineEdit("0.000", self.inputZeroOrder)
         self.zeroOrderFrame.addWidget(self.zeroEntry, 2, 1)
         self.leftZero = QtWidgets.QPushButton("<")
-        self.leftZero.clicked.connect(lambda: self.stepPhase(-1, 0))
+        self.leftZero.clicked.connect(lambda: self.stepPhase(-1, 0, 0))
         self.leftZero.setAutoRepeat(True)
         self.zeroOrderFrame.addWidget(self.leftZero, 2, 0)
         self.rightZero = QtWidgets.QPushButton(">")
-        self.rightZero.clicked.connect(lambda: self.stepPhase(1, 0))
+        self.rightZero.clicked.connect(lambda: self.stepPhase(1, 0, 0))
         self.rightZero.setAutoRepeat(True)
         self.zeroOrderFrame.addWidget(self.rightZero, 2, 2)
         self.zeroScale = wc.SsnakeSlider(QtCore.Qt.Horizontal)
@@ -3421,42 +3441,81 @@ class PhaseWindow(wc.ToolWindow):
         self.zeroOrderFrame.addWidget(self.zeroScale, 3, 0, 1, 3)
         self.zeroOrderGroup.setLayout(self.zeroOrderFrame)
         self.grid.addWidget(self.zeroOrderGroup, 0, 0, 1, 3)
+
         # First order
         self.firstOrderGroup = QtWidgets.QGroupBox('First order:')
         self.firstOrderFrame = QtWidgets.QGridLayout()
         autoFirst = QtWidgets.QPushButton("Autophase 0th+1st")
         autoFirst.clicked.connect(lambda: self.autophase(1))
-        self.firstOrderFrame.addWidget(autoFirst, 5, 1)
+        self.firstOrderFrame.addWidget(autoFirst, 0, 1)
         self.firstEntry = wc.QLineEdit("0.000", self.inputFirstOrder)
-        self.firstOrderFrame.addWidget(self.firstEntry, 6, 1)
+        self.firstOrderFrame.addWidget(self.firstEntry, 1, 1)
         self.leftFirst = QtWidgets.QPushButton("<")
-        self.leftFirst.clicked.connect(lambda: self.stepPhase(0, -1))
+        self.leftFirst.clicked.connect(lambda: self.stepPhase(0, -1, 0))
         self.leftFirst.setAutoRepeat(True)
-        self.firstOrderFrame.addWidget(self.leftFirst, 6, 0)
+        self.firstOrderFrame.addWidget(self.leftFirst, 1, 0)
         self.rightFirst = QtWidgets.QPushButton(">")
-        self.rightFirst.clicked.connect(lambda: self.stepPhase(0, 1))
+        self.rightFirst.clicked.connect(lambda: self.stepPhase(0, 1, 0))
         self.rightFirst.setAutoRepeat(True)
-        self.firstOrderFrame.addWidget(self.rightFirst, 6, 2)
+        self.firstOrderFrame.addWidget(self.rightFirst, 1, 2)
         self.firstScale = wc.SsnakeSlider(QtCore.Qt.Horizontal)
         self.firstScale.setRange(-self.RESOLUTION, self.RESOLUTION)
         self.firstScale.valueChanged.connect(self.setFirstOrder)
-        self.firstOrderFrame.addWidget(self.firstScale, 7, 0, 1, 3)
+        self.firstOrderFrame.addWidget(self.firstScale, 2, 0, 1, 3)
+
         if self.father.current.spec() > 0:
-            self.firstOrderFrame.addWidget(wc.QLabel("Pivot point [Hz]:"), 8, 0, 1, 3)
-            pickRef = QtWidgets.QPushButton("Pick pivot")
-            pickRef.clicked.connect(self.pickRef)
-            self.firstOrderFrame.addWidget(pickRef, 9, 1)
-            self.refEntry = wc.QLineEdit(('%.3f' % self.pivotVal), self.inputRef)
-            self.firstOrderFrame.addWidget(self.refEntry, 10, 1)
+            self.firstOrderFrame.addWidget(wc.QLabel("Pivot point [Hz]:"), 3, 0, 1, 3)
+            pickFirstRef = QtWidgets.QPushButton("Pick pivot")
+            pickFirstRef.clicked.connect(lambda: self.pickRef(1))
+            self.firstOrderFrame.addWidget(pickFirstRef, 4, 1)
+            self.refFirstEntry = wc.QLineEdit(('%.3f' % self.pivotFirstVal), lambda: self.inputRef(1))
+            self.firstOrderFrame.addWidget(self.refFirstEntry, 5, 1)
         self.firstOrderGroup.setLayout(self.firstOrderFrame)
         self.grid.addWidget(self.firstOrderGroup, 1, 0, 1, 3)
+
+        # Second order
+        self.secondOrderGroup = QtWidgets.QGroupBox('Second order:')
+        self.secondOrderFrame = QtWidgets.QGridLayout()
+        self.secondEntry = wc.QLineEdit("0.000", self.inputSecondOrder)
+        self.secondOrderFrame.addWidget(self.secondEntry, 0, 1)
+        self.leftSecond = QtWidgets.QPushButton("<")
+        self.leftSecond.clicked.connect(lambda: self.stepPhase(0, 0, -1))
+        self.leftSecond.setAutoRepeat(True)
+        self.secondOrderFrame.addWidget(self.leftSecond, 0, 0)
+        self.rightSecond = QtWidgets.QPushButton(">")
+        self.rightSecond.clicked.connect(lambda: self.stepPhase(0, 0, 1))
+        self.rightSecond.setAutoRepeat(True)
+        self.secondOrderFrame.addWidget(self.rightSecond, 0, 2)
+        self.secondScale = wc.SsnakeSlider(QtCore.Qt.Horizontal)
+        self.secondScale.setRange(-self.RESOLUTION, self.RESOLUTION)
+        self.secondScale.valueChanged.connect(self.setSecondOrder)
+        self.secondOrderFrame.addWidget(self.secondScale, 1, 0, 1, 3)
+
+        if self.father.current.spec() > 0:
+            self.secondOrderFrame.addWidget(wc.QLabel("Pivot point [Hz]:"), 2, 0, 1, 3)
+            pickSecondRef = QtWidgets.QPushButton("Pick pivot")
+            pickSecondRef.clicked.connect(lambda: self.pickRef(2))
+            self.secondOrderFrame.addWidget(pickSecondRef, 3, 1)
+            self.refSecondEntry = wc.QLineEdit(('%.3f' % self.pivotSecondVal), lambda: self.inputRef(2))
+            self.secondOrderFrame.addWidget(self.refSecondEntry, 4, 1)
+        self.secondOrderGroup.setLayout(self.secondOrderFrame)
+        self.grid.addWidget(self.secondOrderGroup, 2, 0, 1, 3)
+        self.secondOrderGroup.setVisible(self.father.father.defaultSecondOrderPhaseDialog)
+
+        self.secondOrderCheckBox = QtWidgets.QCheckBox("2nd order phasing")
+        self.secondOrderCheckBox.setChecked(self.father.father.defaultSecondOrderPhaseDialog)
+        self.layout.addWidget(self.secondOrderCheckBox, 2, 0, 1, 3)
+        self.secondOrderCheckBox.stateChanged.connect(self.setSecondOrderVisible)
+
+    def setSecondOrderVisible(self):
+        self.secondOrderGroup.setVisible(self.secondOrderCheckBox.isChecked())
 
     def setModifierTexts(self, event):
         sign = u"\u00D7"
         if event.modifiers() & QtCore.Qt.AltModifier:
             sign = '/'
-        left = [self.leftZero, self.leftFirst]
-        right = [self.rightZero, self.rightFirst]
+        left = [self.leftZero, self.leftFirst, self.leftSecond]
+        right = [self.rightZero, self.rightFirst, self.rightSecond]
         if event.modifiers() & QtCore.Qt.ControlModifier and event.modifiers() & QtCore.Qt.ShiftModifier:
             text = ' ' + sign + '1000'
         elif event.modifiers() & QtCore.Qt.ControlModifier:
@@ -3480,7 +3539,7 @@ class PhaseWindow(wc.ToolWindow):
         if self.available:
             self.zeroVal = float(value) / self.RESOLUTION * 180
             self.zeroEntry.setText('%.3f' % self.zeroVal)
-            self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0)
+            self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0, np.pi * self.secondVal / 180.0)
 
     def inputZeroOrder(self, *args):
         inp = safeEval(self.zeroEntry.text(), length=self.father.current.len(), Type='FI')
@@ -3491,12 +3550,12 @@ class PhaseWindow(wc.ToolWindow):
         self.available = False
         self.zeroScale.setValue(int(round(self.zeroVal / 180.0 * self.RESOLUTION)))
         self.available = True
-        self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0)
+        self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0, np.pi * self.secondVal / 180.0)
 
     def setFirstOrder(self, value, *args):
         if self.available:
             value = float(value) / self.RESOLUTION * self.P1LIMIT
-            newZero = (self.zeroVal - (value - self.firstVal) * self.pivotVal / self.father.current.sw())
+            newZero = (self.zeroVal - (value - self.firstVal) * self.pivotFirstVal / self.father.current.sw())
             self.zeroVal = np.mod(newZero + 180, 360) - 180
             self.zeroEntry.setText('%.3f' % self.zeroVal)
             self.firstVal = value
@@ -3504,13 +3563,13 @@ class PhaseWindow(wc.ToolWindow):
             self.available = False
             self.zeroScale.setValue(int(round(self.zeroVal / 180.0 * self.RESOLUTION)))
             self.available = True
-            self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0)
+            self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0, np.pi * self.secondVal / 180.0)
 
     def inputFirstOrder(self, *args):
         value = safeEval(self.firstEntry.text(), length=self.father.current.len(), Type='FI')
         if value is None:
             raise SsnakeException('Phasing: first order value input is not valid!')
-        newZero = (self.zeroVal - (value - self.firstVal) * self.pivotVal / self.father.current.sw())
+        newZero = (self.zeroVal - (value - self.firstVal) * self.pivotFirstVal / self.father.current.sw())
         self.zeroVal = np.mod(newZero + 180, 360) - 180
         self.zeroEntry.setText('%.3f' % self.zeroVal)
         self.firstVal = value
@@ -3519,7 +3578,53 @@ class PhaseWindow(wc.ToolWindow):
         self.zeroScale.setValue(int(round(self.zeroVal / 180.0 * self.RESOLUTION)))
         self.firstScale.setValue(int(round(self.firstVal / self.P1LIMIT * self.RESOLUTION)))
         self.available = True
-        self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0)
+        self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0, np.pi * self.secondVal / 180.0)
+
+    def setSecondOrder(self, value, *args):
+        if self.available:
+            value = float(value) / self.RESOLUTION * self.P2LIMIT
+            pivot1 = self.pivotFirstVal / self.father.current.sw()
+            pivot2 = self.pivotSecondVal / self.father.current.sw()
+            if pivot1 == pivot2:
+                newFirst = (self.firstVal - 2 * (value - self.secondVal) * pivot1)
+            else:
+                newFirst = (self.firstVal + (value - self.secondVal) * (np.power(pivot2, 2) - np.power(pivot1, 2)) / (pivot1 -pivot2))
+            newZero = (self.zeroVal - (newFirst - self.firstVal) * pivot1 - (value - self.secondVal) * np.power(pivot1, 2))
+            self.zeroVal = np.mod(newZero + 180, 360) - 180
+            self.zeroEntry.setText('%.3f' % self.zeroVal)
+            self.firstVal = newFirst
+            self.firstEntry.setText('%.3f' % newFirst)
+            self.secondVal = value
+            self.secondEntry.setText('%.3f' % self.secondVal)
+            self.available = False
+            self.zeroScale.setValue(int(round(self.zeroVal / 180.0 * self.RESOLUTION)))
+            self.firstScale.setValue(int(round(self.firstVal / self.P1LIMIT * self.RESOLUTION)))
+            self.available = True
+            self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0, np.pi * self.secondVal / 180.0)
+
+    def inputSecondOrder(self, *args):
+        value = safeEval(self.secondEntry.text(), length=self.father.current.len(), Type='FI')
+        if value is None:
+            raise SsnakeException('Phasing: second order value input is not valid!')
+        pivot1 = self.pivotFirstVal / self.father.current.sw()
+        pivot2 = self.pivotSecondVal / self.father.current.sw()
+        if pivot1 == pivot2:
+            newFirst = (self.firstVal - 2 * (value - self.secondVal) * pivot1)
+        else:
+            newFirst = (self.firstVal + (value - self.secondVal) * (np.power(pivot2, 2) - np.power(pivot1, 2)) / (pivot1 - pivot2))
+        newZero = (self.zeroVal - (newFirst - self.firstVal) * pivot1 - (value - self.secondVal) * np.power(pivot1, 2))
+        self.zeroVal = np.mod(newZero + 180, 360) - 180
+        self.zeroEntry.setText('%.3f' % self.zeroVal)
+        self.firstVal = newFirst
+        self.firstEntry.setText('%.3f' % newFirst)
+        self.secondVal = value
+        self.secondEntry.setText('%.3f' % self.secondVal)
+        self.available = False
+        self.zeroScale.setValue(int(round(self.zeroVal / 180.0 * self.RESOLUTION)))
+        self.firstScale.setValue(int(round(self.firstVal / self.P1LIMIT * self.RESOLUTION)))
+        self.secondScale.setValue(int(round(self.secondVal / self.P2LIMIT * self.RESOLUTION)))
+        self.available = True
+        self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0, np.pi * self.secondVal / 180.0)
 
     def autophase(self, num):
         phases = self.father.current.autoPhase(num)
@@ -3535,7 +3640,7 @@ class PhaseWindow(wc.ToolWindow):
             self.firstEntry.setText('%.3f' % self.firstVal)
         self.inputFirstOrder()
 
-    def stepPhase(self, phase0, phase1):
+    def stepPhase(self, phase0, phase1, phase2):
         step = 1
         multiplier = 1
         if QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ControlModifier and QtWidgets.qApp.keyboardModifiers() & QtCore.Qt.ShiftModifier:
@@ -3550,6 +3655,7 @@ class PhaseWindow(wc.ToolWindow):
             step = step * multiplier
         phase0 = step * phase0
         phase1 = step * phase1
+        phase2 = step * phase2
         inp = safeEval(self.zeroEntry.text(), length=self.father.current.len(), Type='FI')
         if inp is None:
             raise SsnakeException('Phasing: zero order value input is not valid!')
@@ -3560,40 +3666,72 @@ class PhaseWindow(wc.ToolWindow):
             raise SsnakeException('Phasing: first order value input is not valid!')
         value += phase1 * self.PHASE1STEP
         if self.father.current.spec() > 0:
-            self.inputRef()
-        value += phase1 * self.PHASE1STEP
-        newZero = (self.zeroVal - (value - self.firstVal) * self.pivotVal / self.father.current.sw())
+            self.inputRef(1)
+        second = safeEval(self.secondEntry.text(), length=self.father.current.len(), Type='FI')
+        if second is None:
+            raise SsnakeException('Phasing: second order value input is not valid!')
+        second += phase2 * self.PHASE2STEP
+        if self.father.current.spec() > 0:
+            self.inputRef(2)
+        pivot1 = self.pivotFirstVal / self.father.current.sw()
+        pivot2 = self.pivotSecondVal / self.father.current.sw()
+        if pivot1 == pivot2:
+            newFirst = (value - 2 * (second - self.secondVal) * pivot1)
+        else:
+            newFirst = (value + (second - self.secondVal) * (np.power(pivot2, 2) - np.power(pivot1, 2)) / (pivot1 - pivot2))
+        newZero = (self.zeroVal - (newFirst - self.firstVal) * pivot1 - (second - self.secondVal) * np.power(pivot1, 2))
         self.zeroVal = np.mod(newZero + 180, 360) - 180
         self.zeroEntry.setText('%.3f' % self.zeroVal)
-        self.firstVal = value
+        self.firstVal = newFirst
         self.firstEntry.setText('%.3f' % self.firstVal)
+        self.secondVal = second
+        self.secondEntry.setText('%.3f' % self.secondVal)
         self.available = False
         self.zeroScale.setValue(round(self.zeroVal / 180.0 * self.RESOLUTION))
         self.firstScale.setValue(round(self.firstVal / self.P1LIMIT * self.RESOLUTION))
+        self.secondScale.setValue(round(self.secondVal / self.P2LIMIT * self.RESOLUTION))
         self.available = True
-        self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0)
+        self.father.current.setPhaseInter(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0, np.pi * self.secondVal / 180.0)
 
-    def inputRef(self, *args):
-        Val = safeEval(self.refEntry.text(), length=self.father.current.len(), Type='FI')
-        if Val is None:
-            raise SsnakeException('Phasing: pivot input is not valid!')
-        self.pivotVal = Val
-        self.refEntry.setText('%.3f' % self.pivotVal)
+    def inputRef(self, order, *args):
+        if order == 1:
+            Val = safeEval(self.refFirstEntry.text(), length=self.father.current.len(), Type='FI')
+            if Val is None:
+                raise SsnakeException('Phasing: pivot input is not valid!')
+            self.pivotFirstVal = Val
+            self.refFirstEntry.setText('%.3f' % self.pivotFirstVal)
+        elif order == 2:
+            Val = safeEval(self.refSecondEntry.text(), length=self.father.current.len(), Type='FI')
+            if Val is None:
+                raise SsnakeException('Phasing: pivot input is not valid!')
+            self.pivotSecondVal = Val
+            self.refSecondEntry.setText('%.3f' % self.pivotSecondVal)
 
-    def setRef(self, value, *args):
-        self.pivotVal = float(value)
-        self.refEntry.setText('%.3f' % self.pivotVal)
+    def setRef(self, value, order, *args):
+        if order == 1:
+            self.pivotFirstVal = float(value)
+            self.refFirstEntry.setText('%.3f' % self.pivotFirstVal)
+        elif order == 2:
+            self.pivotSecondVal = float(value)
+            self.refSecondEntry.setText('%.3f' % self.pivotSecondVal)
 
-    def pickRef(self, *args):
-        self.father.current.peakPickFunc = lambda pos, self=self: self.setRef(self.father.current.xax()[pos[0]])
+    def pickRef(self, order, *args):
+        if order == 1:
+            self.father.current.peakPickFunc = lambda pos, self=self: self.setRef(self.father.current.xax()[pos[0]], 1)
+        elif order == 2:
+            self.father.current.peakPickFunc = lambda pos, self=self: self.setRef(self.father.current.xax()[pos[0]], 2)
         self.father.current.peakPick = True
 
     def applyFunc(self):
         if self.father.current.spec() > 0:
-            self.inputRef()
+            self.inputRef(1)
+            if self.secondOrderCheckBox.isChecked():
+                self.inputRef(2)
         self.inputZeroOrder()
         self.inputFirstOrder()
-        self.father.current.applyPhase(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0, (self.singleSlice.isChecked() == 1))
+        if self.secondOrderCheckBox.isChecked():
+            self.inputSecondOrder()
+        self.father.current.applyPhase(np.pi * self.zeroVal / 180.0, np.pi * self.firstVal / 180.0, np.pi * self.secondVal / 180.0, (self.singleSlice.isChecked() == 1))
 
 ################################################################
 
@@ -3746,15 +3884,28 @@ class ApodWindow(wc.ToolWindow):
             self.ticks['shifting'] = shiftingTick
             self.shiftingFrame.addWidget(shiftingTick, 0, 0)
             self.shiftingDropdown = QtWidgets.QComboBox()
-            self.shiftingDropdown.addItems(['User Defined', 'Spin 3/2, -3Q (7/9)', 'Spin 5/2, 3Q (19/12)',
-                                            'Spin 5/2, -5Q (25/12)', 'Spin 7/2, 3Q (101/45)', 'Spin 7/2, 5Q (11/9)',
-                                            'Spin 7/2, -7Q (161/45)', 'Spin 9/2, 3Q (91/36)', 'Spin 9/2, 5Q (95/36)',
-                                            'Spin 9/2, 7Q (7/18)', 'Spin 9/2, -9Q (31/6)'])
+            drop_list = ['User Defined', 
+                     'Spin 3/2, 3QMAS', 'Spin 3/2, ST1MAS', 'Spin 3/2, DQ-STMAS',
+                     'Spin 5/2, 3QMAS', 'Spin 5/2, 5QMAS', 'Spin 5/2, ST1MAS', 'Spin 5/2, DQ-STMAS',
+                     'Spin 7/2, 3QMAS', 'Spin 5/2, 5QMAS', 'Spin 5/2, 7QMAS', 'Spin 7/2, ST1MAS', 'Spin 7/2, DQ-STMAS',
+                     'Spin 9/2, 3QMAS', 'Spin 9/2, 5QMAS', 'Spin 9/2, 7QMAS', 'Spin 9/2, 9QMAS', 'Spin 9/2, ST1MAS', 'Spin 9/2, DQ-STMAS',
+                    ]
+            self.shiftingDropdown.addItems(drop_list)
+            #['User Defined', 'Spin 3/2, -3Q (7/9)', 'Spin 5/2, 3Q (19/12)',
+            #                                'Spin 5/2, -5Q (25/12)', 'Spin 7/2, 3Q (101/45)', 'Spin 7/2, 5Q (11/9)',
+            #                                'Spin 7/2, -7Q (161/45)', 'Spin 9/2, 3Q (91/36)', 'Spin 9/2, 5Q (95/36)',
+            #                                'Spin 9/2, 7Q (7/18)', 'Spin 9/2, -9Q (31/6)'])
             self.shiftingDropdown.activated.connect(self.dropdownChanged)
-            self.shiftingList = [0, 7.0 / 9.0, 19.0 / 12.0,
-                                 25.0 / 12.0, 101.0 / 45.0, 11.0 / 9.0,
-                                 161.0 / 45.0, 91.0 / 36.0, 95.0 / 36.0,
-                                 7.0 / 18.0, 31.0 / 6.0]
+            #self.shiftingList = [0, 7.0 / 9.0, 19.0 / 12.0,
+            #                     25.0 / 12.0, 101.0 / 45.0, 11.0 / 9.0,
+            #                     161.0 / 45.0, 91.0 / 36.0, 95.0 / 36.0,
+            #                     7.0 / 18.0, 31.0 / 6.0]
+            self.shiftingList = [0,
+                          (3/2, -3/2, 3/2), (3/2, -3/2, -1/2), (3/2, -3/2, 1/2),
+                          (5/2, -3/2, 3/2), (5/2, -5/2, 5/2), (5/2, -3/2, -1/2), (5/2, -3/2, 1/2),
+                          (7/2, -3/2, 3/2), (7/2, -5/2, 5/2), (7/2, -7/2, 7/2), (7/2, -3/2, -1/2), (7/2, -3/2, 1/2),
+                          (9/2, -3/2, 3/2), (9/2, -5/2, 5/2), (9/2, -7/2, 7/2), (9/2, -9/2, 9/2), (9/2, -3/2, -1/2), (9/2, -3/2, 1/2),
+                        ]
             self.shiftingDropdown.setMinimumSize(widthHint)
             self.shiftingDropdown.setEnabled(False)
             self.shiftingFrame.addWidget(self.shiftingDropdown, 1, 2)
@@ -3812,11 +3963,15 @@ class ApodWindow(wc.ToolWindow):
     def dropdownChanged(self, update=True):
         index = self.shiftingDropdown.currentIndex()
         if index == 0:
-            self.shiftingEntry.setEnabled(True)
+            shifting = "0"
         else:
-            self.shiftingEntry.setEnabled(False)
+            shifting = f"{abs(func.R(*self.shiftingList[index]))}"
+#        if index == 0:
+#            self.shiftingEntry.setEnabled(True)
+#        else:
+#            self.shiftingEntry.setEnabled(False)
         if update:
-            self.shiftingEntry.setText("%.9f" % self.shiftingList[index])
+            self.shiftingEntry.setText(shifting)
             self.apodPreview()
 
     def checkEval(self, key):
@@ -4120,28 +4275,95 @@ class LPSVDWindow(wc.ToolWindow):
 class ScaleSWWindow(wc.ToolWindow):
 
     NAME = "Scale SW"
-
     def __init__(self, parent):
         super(ScaleSWWindow, self).__init__(parent)
         self.grid.addWidget(wc.QLabel("Scale Factor:"), 0, 0)
         self.scaleDropdown = QtWidgets.QComboBox()
-        self.scaleDropdown.addItems(['User Defined', 'Spin 3/2, -3Q (9/34)', 'Spin 5/2, 3Q (-12/17)', 'Spin 5/2, -5Q (12/85)', 'Spin 7/2, 3Q (-45/34)',
-                                     'Spin 7/2, 5Q (-9/34)', 'Spin 7/2, -7Q (45/476)', 'Spin 9/2, 3Q (-36/17)', 'Spin 9/2, 5Q (-36/85)', 'Spin 9/2, 7Q (-18/117)', 'Spin 9/2, -9Q (6/85)'])
+        drop_list = ['User Defined', 
+                     'Spin 3/2, 3QMAS', 'Spin 3/2, ST1MAS', 'Spin 3/2, DQ-STMAS',
+                     'Spin 5/2, 3QMAS', 'Spin 5/2, 5QMAS', 'Spin 5/2, ST1MAS', 'Spin 5/2, DQ-STMAS',
+                     'Spin 7/2, 3QMAS', 'Spin 5/2, 5QMAS', 'Spin 5/2, 7QMAS', 'Spin 7/2, ST1MAS', 'Spin 7/2, DQ-STMAS',
+                     'Spin 9/2, 3QMAS', 'Spin 9/2, 5QMAS', 'Spin 9/2, 7QMAS', 'Spin 9/2, 9QMAS', 'Spin 9/2, ST1MAS', 'Spin 9/2, DQ-STMAS',
+                    ]
+        self.scaleDropdown.addItems(drop_list)
+        #['User Defined','Spin 3/2, -3Q (9/34)',  'Spin 3/2, ST-1 (8/9)', 'Spin 5/2, 3Q (-12/17)', 
+        #                             'Spin 5/2, -5Q (12/85)', 'Spin 5/2, ST1 (12/85)', 'Spin 7/2, 3Q (-45/34)',
+        #                             'Spin 7/2, 5Q (-9/34)', 'Spin 7/2, -7Q (45/476)', 'Spin 9/2, 3Q (-36/17)', 'Spin 9/2, 5Q (-36/85)', 'Spin 9/2, 7Q (-18/117)', 'Spin 9/2, -9Q (6/85)'])
         self.scaleDropdown.activated.connect(self.dropdownChanged)
-        self.scaleList = [0, 9.0/34.0, -12.0/17.0, 12.0/85.0, -45.0/34.0, -9/34.0, 45.0/476.0, -36.0/17.0, -36.0/85.0, -18.0/117.0, 6.0/85.0]
+#        self.scaleList = [0, 9.0/34.0, 9/17, -12.0/17.0, 12.0/85.0, -45.0/34.0, -9/34.0, 45.0/476.0, -36.0/17.0, -36.0/85.0, -18.0/117.0, 6.0/85.0]
+        self.scaleList = [1,
+              (3/2, -3/2, 3/2), (3/2, -3/2, -1/2), (3/2, -3/2, 1/2),
+              (5/2, -3/2, 3/2), (5/2, -5/2, 5/2), (5/2, -3/2, -1/2), (5/2, -3/2, 1/2),
+              (7/2, -3/2, 3/2), (7/2, -5/2, 5/2), (7/2, -7/2, 7/2), (7/2, -3/2, -1/2), (7/2, -3/2, 1/2),
+              (9/2, -3/2, 3/2), (9/2, -5/2, 5/2), (9/2, -7/2, 7/2), (9/2, -9/2, 9/2), (9/2, -3/2, -1/2), (9/2, -3/2, 1/2),
+                        ]
         self.grid.addWidget(self.scaleDropdown, 1, 0)
         self.scaleEntry = wc.QLineEdit("0.0")
         self.grid.addWidget(self.scaleEntry, 3, 0)
 
     def dropdownChanged(self):
         index = self.scaleDropdown.currentIndex()
-        self.scaleEntry.setText("%.9f" % self.scaleList[index])
+        if index == 0:
+            scale = "1"
+        else:
+            scale = f"{func.scale_SW_ratio(*self.scaleList[index])}"
+        self.scaleEntry.setText(scale)
+        #self.scaleEntry.setText("%.9f" % self.scaleList[index])
 
     def applyFunc(self):
         scale = safeEval(self.scaleEntry.text(), length=self.father.current.len(), Type='FI')
         if scale is None:
             raise SsnakeException("Scale SW: Factor not a valid value")
         self.father.current.scaleSw(scale)
+
+
+class ScaleFreqRefWindow(wc.ToolWindow):
+
+    NAME = "Scale Freq and Ref for MQMAS"
+
+    def __init__(self, parent):
+        super(ScaleFreqRefWindow, self).__init__(parent)
+        self.grid.addWidget(wc.QLabel("MQMAS Scale Factor:"), 0, 0)
+        self.scaleDropdown = QtWidgets.QComboBox()
+        # f_ratio = abs(ratio - mq) with mq negative if mq=S+1/2
+        drop_list = ['User Defined', 
+                     'Spin 3/2, 3QMAS', 'Spin 3/2, ST1MAS', 'Spin 3/2, DQ-STMAS',
+                     'Spin 5/2, 3QMAS', 'Spin 5/2, 5QMAS', 'Spin 5/2, ST1MAS', 'Spin 5/2, DQ-STMAS',
+                     'Spin 7/2, 3QMAS', 'Spin 5/2, 5QMAS', 'Spin 5/2, 7QMAS', 'Spin 7/2, ST1MAS', 'Spin 7/2, DQ-STMAS',
+                     'Spin 9/2, 3QMAS', 'Spin 9/2, 5QMAS', 'Spin 9/2, 7QMAS', 'Spin 9/2, 9QMAS', 'Spin 9/2, ST1MAS', 'Spin 9/2, DQ-STMAS',
+                    ]
+        self.scaleDropdown.addItems(drop_list)
+        #['User Defined', 'Spin 3/2, -3Q', 'Spin 5/2, 3Q', 'Spin 5/2, -5Q',
+        #                             'Spin 7/2, 3Q', 'Spin 7/2, 5Q', 'Spin 7/2, -7Q', 
+        #                             'Spin 9/2, 3Q', 'Spin 9/2, 5Q', 'Spin 9/2, 7Q', 'Spin 9/2, -9Q'])
+        self.scaleDropdown.activated.connect(self.dropdownChanged)
+        self.scaleList = [1,
+                          (3/2, -3/2, 3/2), (3/2, -3/2, -1/2), (3/2, -3/2, 1/2),
+                          (5/2, -3/2, 3/2), (5/2, -5/2, 5/2), (5/2, -3/2, -1/2), (5/2, -3/2, 1/2),
+                          (7/2, -3/2, 3/2), (7/2, -5/2, 5/2), (7/2, -7/2, 7/2), (7/2, -3/2, -1/2), (7/2, -3/2, 1/2),
+                          (9/2, -3/2, 3/2), (9/2, -5/2, 5/2), (9/2, -7/2, 7/2), (9/2, -9/2, 9/2), (9/2, -3/2, -1/2), (9/2, -3/2, 1/2),
+                         ]
+        self.grid.addWidget(self.scaleDropdown, 1, 0)
+        self.scaleEntry = wc.QLineEdit("0.0")
+        self.grid.addWidget(self.scaleEntry, 3, 0)
+
+    def dropdownChanged(self):
+        index = self.scaleDropdown.currentIndex()
+        if index == 0:
+            scale = "1"
+        else:
+            scale = f"{func.scale_CarRef_ratio(*self.scaleList[index])}"
+        self.scaleEntry.setText(scale)
+
+    def applyFunc(self):
+        scale = safeEval(self.scaleEntry.text(), length=self.father.current.len(), Type='FI')
+        if scale is None:
+            raise SsnakeException("Scale: Factor not a valid value")
+        freq = self.father.current.freq()
+        ref = self.father.current.ref()
+        sw = self.father.current.sw()
+        self.father.current.setFreq(freq*scale, sw)
+        self.father.current.setRef(ref*scale)
 
 
 ###########################################################################
@@ -4236,6 +4458,8 @@ class RollDataWindow(wc.ToolWindow):
         rightShift.clicked.connect(self.stepUpShift)
         rightShift.setAutoRepeat(True)
         self.grid.addWidget(rightShift, 1, 2)
+        self.shift_axisCB = QtWidgets.QCheckBox("Shift axis")
+        self.layout.addWidget(self.shift_axisCB, 2, 0)
 
     def stepUpShift(self, *args):
         inp = safeEval(self.shiftEntry.text(), length=self.father.current.len(), Type='FI')
@@ -4275,14 +4499,16 @@ class RollDataWindow(wc.ToolWindow):
             raise SsnakeException("Roll data: roll value not valid")
         self.shiftVal = inp
         self.shiftEntry.setText(str(self.shiftVal))
-        self.father.current.rollPreview(self.shiftVal)
+        self.father.current.rollPreview(self.shiftVal, shift_axis=self.shift_axisCB.isChecked())
 
     def applyFunc(self):
         inp = safeEval(self.shiftEntry.text(), length=self.father.current.len(), Type='FI')
         if inp is None:
             raise SsnakeException("Roll data: roll value not valid")
+        if self.singleSlice.isChecked() and self.shift_axisCB.isChecked():
+            raise SsnakeException("Shifting axis is not allowed when single slice is checked!")
         shift = inp
-        self.father.current.roll(shift, (self.singleSlice.isChecked()))
+        self.father.current.roll(shift, (self.singleSlice.isChecked()), shift_axis=self.shift_axisCB.isChecked())
 
 #############################################################
 
@@ -5982,10 +6208,24 @@ class ShearingWindow(wc.ToolWindow):
         options = list(map(str, range(1, self.father.masterData.ndim() + 1)))
         self.grid.addWidget(wc.QLabel("Shearing constant:"), 0, 0)
         self.shearDropdown = QtWidgets.QComboBox()
-        self.shearDropdown.addItems(['User Defined', 'Spin 3/2, -3Q (7/9)', 'Spin 5/2, 3Q (19/12)', 'Spin 5/2, -5Q (25/12)', 'Spin 7/2, 3Q (101/45)',
-                                     'Spin 7/2, 5Q (11/9)', 'Spin 7/2, -7Q (161/45)', 'Spin 9/2, 3Q (91/36)', 'Spin 9/2, 5Q (95/36)', 'Spin 9/2, 7Q (7/18)', 'Spin 9/2, -9Q (31/6)'])
+        
+        drop_list = ['User Defined', 
+                     'Spin 3/2, 3QMAS', 'Spin 3/2, ST1MAS', 'Spin 3/2, DQ-STMAS',
+                     'Spin 5/2, 3QMAS', 'Spin 5/2, 5QMAS', 'Spin 5/2, ST1MAS', 'Spin 5/2, DQ-STMAS',
+                     'Spin 7/2, 3QMAS', 'Spin 5/2, 5QMAS', 'Spin 5/2, 7QMAS', 'Spin 7/2, ST1MAS', 'Spin 7/2, DQ-STMAS',
+                     'Spin 9/2, 3QMAS', 'Spin 9/2, 5QMAS', 'Spin 9/2, 7QMAS', 'Spin 9/2, 9QMAS', 'Spin 9/2, ST1MAS', 'Spin 9/2, DQ-STMAS',
+                    ]
+        self.shearDropdown.addItems(drop_list)
+        #['User Defined', 'Spin 3/2, -3Q (7/9)', 'Spin 5/2, 3Q (19/12)', 'Spin 5/2, -5Q (25/12)', 'Spin 7/2, 3Q (101/45)',
+        #'Spin 7/2, 5Q (11/9)', 'Spin 7/2, -7Q (161/45)', 'Spin 9/2, 3Q (91/36)', 'Spin 9/2, 5Q (95/36)', 'Spin 9/2, 7Q (7/18)', 'Spin 9/2, -9Q (31/6)']
         self.shearDropdown.activated.connect(self.dropdownChanged)
-        self.shearList = [0, 7.0 / 9.0, 19.0 / 12.0, 25.0 / 12.0, 101.0 / 45.0, 11.0 / 9.0, 161.0 / 45.0, 91.0 / 36.0, 95.0 / 36.0, 7.0 / 18.0, 31.0 / 6.0]
+        #self.shearList = [0, 7.0 / 9.0, 19.0 / 12.0, 25.0 / 12.0, 101.0 / 45.0, 11.0 / 9.0, 161.0 / 45.0, 91.0 / 36.0, 95.0 / 36.0, 7.0 / 18.0, 31.0 / 6.0]
+        self.scaleList = [1,
+              (3/2, -3/2, 3/2), (3/2, -3/2, -1/2), (3/2, -3/2, 1/2),
+              (5/2, -3/2, 3/2), (5/2, -5/2, 5/2), (5/2, -3/2, -1/2), (5/2, -3/2, 1/2),
+              (7/2, -3/2, 3/2), (7/2, -5/2, 5/2), (7/2, -7/2, 7/2), (7/2, -3/2, -1/2), (7/2, -3/2, 1/2),
+              (9/2, -3/2, 3/2), (9/2, -5/2, 5/2), (9/2, -7/2, 7/2), (9/2, -9/2, 9/2), (9/2, -3/2, -1/2), (9/2, -3/2, 1/2),
+                        ]
         self.grid.addWidget(self.shearDropdown, 1, 0)
         self.shearEntry = wc.QLineEdit("0.0", self.shearPreview)
         self.grid.addWidget(self.shearEntry, 3, 0)
@@ -6004,7 +6244,12 @@ class ShearingWindow(wc.ToolWindow):
 
     def dropdownChanged(self):
         index = self.shearDropdown.currentIndex()
-        self.shearEntry.setText("%.9f" % self.shearList[index])
+        if index == 0:
+            scale = "1"
+        else:
+            scale = f"{-func.R(*self.scaleList[index])}"
+        self.shearEntry.setText(scale)
+#        self.shearEntry.setText("%.9f" % self.shearList[index])
 
     def shearPreview(self, *args):
         shear = safeEval(self.shearEntry.text(), length=self.father.current.len(), Type='FI')
@@ -6864,18 +7109,22 @@ class PreferenceWindow(QtWidgets.QWidget):
         tab2 = QtWidgets.QWidget()
         tab3 = QtWidgets.QWidget()
         tab4 = QtWidgets.QWidget()
+        tab5 = QtWidgets.QWidget()
         tabWidget.addTab(tab1, "Window")
         tabWidget.addTab(tab2, "Plot")
         tabWidget.addTab(tab3, "Contour")
         tabWidget.addTab(tab4, "2D Colour")
+        tabWidget.addTab(tab5, "Phasing")
         grid1 = QtWidgets.QGridLayout()
         grid2 = QtWidgets.QGridLayout()
         grid3 = QtWidgets.QGridLayout()
         grid4 = QtWidgets.QGridLayout()
+        grid5 = QtWidgets.QGridLayout()
         tab1.setLayout(grid1)
         tab2.setLayout(grid2)
         tab3.setLayout(grid3)
         tab4.setLayout(grid4)
+        tab5.setLayout(grid5)
         grid1.setColumnStretch(10, 1)
         grid1.setRowStretch(10, 1)
         grid2.setColumnStretch(10, 1)
@@ -6884,6 +7133,8 @@ class PreferenceWindow(QtWidgets.QWidget):
         grid3.setRowStretch(10, 1)
         grid4.setColumnStretch(10, 1)
         grid4.setRowStretch(10, 1)
+        grid5.setColumnStretch(10, 1)
+        grid5.setRowStretch(10, 1)
         # grid1.addWidget(wc.QLabel("Window size:"), 0, 0, 1, 2)
         grid1.addWidget(wc.QLabel("Width:"), 1, 0)
         self.widthSpinBox = wc.SsnakeSpinBox()
@@ -7017,6 +7268,10 @@ class PreferenceWindow(QtWidgets.QWidget):
         self.cmEntry2D.addItems(views.COLORMAPLIST)
         self.cmEntry2D.setCurrentIndex(views.COLORMAPLIST.index(self.father.defaultPColorMap))
         grid4.addWidget(self.cmEntry2D, 0, 1)
+        # Phasing Options (if 2nd order should be available)
+        self.secondOrderPhaseCheckBox = QtWidgets.QCheckBox("Always show 2nd order phase correction")
+        self.secondOrderPhaseCheckBox.setChecked(self.father.defaultSecondOrderPhaseDialog)
+        grid5.addWidget(self.secondOrderPhaseCheckBox, 0, 1)
         # Others
         layout = QtWidgets.QGridLayout(self)
         layout.addWidget(tabWidget, 0, 0, 1, 4)
@@ -7084,6 +7339,7 @@ class PreferenceWindow(QtWidgets.QWidget):
         self.father.defaultWidthRatio = self.WRSpinBox.value()
         self.father.defaultHeightRatio = self.HRSpinBox.value()
         self.father.defaultPColorMap = self.cmEntry2D.currentText()
+        self.father.defaultSecondOrderPhaseDialog = self.secondOrderPhaseCheckBox.isChecked()
         self.father.saveDefaults()
         self.closeEvent()
 
@@ -7192,7 +7448,7 @@ class aboutWindow(wc.ToolWindow):
         pythonVersion = pythonVersion[:pythonVersion.index(' ')]
         from scipy import __version__ as scipyVersion
         self.text.setText('<p><b>ssNake ' + VERSION + '</b></p>' +
-                          '<p>Copyright (&copy;) 2016&ndash;2022 Bas van Meerten & Wouter Franssen</p>' + '<p>Email: <a href="mailto:ssnake@science.ru.nl" >ssnake@science.ru.nl</a></p>' +
+                          '<p>Copyright (&copy;) 2016&ndash;2024 Bas van Meerten & Wouter Franssen</p>' + '<p>Email: <a href="mailto:ssnake@science.ru.nl" >ssnake@science.ru.nl</a></p>' +
                           '<p>Publication: <a href="https://doi.org/10.1016/j.jmr.2019.02.006" >https://doi.org/10.1016/j.jmr.2019.02.006</a></p>' +
                           '<b>Library versions</b>:<br>Python ' + pythonVersion + '<br>numpy ' + np.__version__ +
                           '<br>SciPy ' + scipyVersion +
@@ -7404,6 +7660,15 @@ class shiftConversionWindow(wc.ToolWindow):
 
 ##############################################################################
 
+class quadMqStToolWindow(wc.ToolWindow):
+    Ioptions = ['1', '3/2', '2', '5/2', '3', '7/2', '4', '9/2', '5', '6', '7']
+    Ivalues = [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 6.0, 7.0]
+    NAME = "Factor calculation for MQMAS/STMAS experiments"
+    RESIZABLE = True
+    MENUDISABLE = False
+
+    def __init__(self, parent):
+        super(quadMqStToolWindow, self).__init__(parent)
 
 class quadConversionWindow(wc.ToolWindow):
 
@@ -7663,26 +7928,12 @@ class dipolarDistanceWindow(wc.ToolWindow):
         self.M2hetGO = QtWidgets.QPushButton("Go")
         self.M2Frame.addWidget(self.M2hetGO, 1, 0)
         self.M2hetGO.clicked.connect(lambda: self.Calc(2))
-        #M2label1 = wc.QLabel(u'M<sub>2</sub>')
-        #self.M2Frame.addWidget(M2label1, 0, 1)
         self.M2label = wc.QLabel(u'Heteronuclear')
         self.M2Frame.addWidget(self.M2label, 0, 0)
         self.M2 = wc.QLineEdit("0")
         self.M2.setMinimumWidth(100)
         self.M2Frame.addWidget(self.M2, 1, 1)
-        # self.HetroWidgets = [self.M2hetGO,self.M2hetlabel,self.M2het]
         
-        # self.M2homGO = QtWidgets.QPushButton("Go")
-        # self.M2Frame.addWidget(self.M2homGO, 4, 0)
-        # self.M2homGO.clicked.connect(lambda: self.Calc(3))
-        # self.noqplabel = wc.QLabel(u'No quadrupolar interaction')
-        # self.M2Frame.addWidget(self.noqplabel, 2, 1)
-        # self.M2homlabel = wc.QLabel(u'Homonuclear')
-        # self.M2Frame.addWidget(self.M2homlabel, 2, 0)
-        # self.M2hom = wc.QLineEdit("0")
-        # self.M2hom.setMinimumWidth(100)
-        # self.M2Frame.addWidget(self.M2hom, 4, 1)
-        # self.HomoWidgets = [self.M2homGO,self.noqplabel,self.M2homlabel,self.M2hom]
         
         self.M2SEDGO = QtWidgets.QPushButton("Go")
         self.M2Frame.addWidget(self.M2SEDGO, 6, 0)
@@ -7704,10 +7955,10 @@ class dipolarDistanceWindow(wc.ToolWindow):
         self.okButton.clicked.disconnect()
         self.okButton.clicked.connect(self.valueReset)
 
-        self.checkHomoHetro()
+        self.checkHomoHetero()
 
 
-    def checkHomoHetro(self):
+    def checkHomoHetero(self):
         gamma1 = float(safeEval(self.gamma1.text(), Type='FI')) * 1e7
         gamma2 = float(safeEval(self.gamma2.text(), Type='FI')) * 1e7
         I1 = self.Ivalues[self.spin1.currentIndex()]
@@ -7723,40 +7974,40 @@ class dipolarDistanceWindow(wc.ToolWindow):
                 self.M2SEDlabel.hide()
                 self.M2SED.hide()
         else:
-            self.M2label.setText(u'M₂ Hetronuclear')
+            self.M2label.setText(u'M₂ Heteronuclear')
             self.M2SEDGO.hide()
             self.M2SEDlabel.hide()
             self.M2SED.hide()
     
     def spin1Changed(self):
         self.gamma1Drop.setCurrentIndex(0)
-        self.checkHomoHetro()
+        self.checkHomoHetero()
         
     def spin2Changed(self):
         self.gamma2Drop.setCurrentIndex(0)
-        self.checkHomoHetro()
+        self.checkHomoHetero()
             
     def gamma1Changed(self):
         self.gamma1Drop.setCurrentIndex(0)
-        self.checkHomoHetro()
+        self.checkHomoHetero()
 
     def gamma2Changed(self):
         self.gamma2Drop.setCurrentIndex(0)
-        self.checkHomoHetro()
+        self.checkHomoHetero()
 
     def setGamma1(self, index):
         if index != 0:
             self.spin1.setCurrentIndex(self.Ivalues.index(self.spinValues[index]))
             self.gamma1.setText(str(self.gammaValues[index]))
             self.gamma1Drop.setCurrentIndex(index) #Needed to avoid resets by other boxes
-            self.checkHomoHetro()
+            self.checkHomoHetero()
 
     def setGamma2(self, index):
         if index != 0:
             self.spin2.setCurrentIndex(self.Ivalues.index(self.spinValues[index]))
             self.gamma2.setText(str(self.gammaValues[index]))
             self.gamma2Drop.setCurrentIndex(index) #Needed to avoid resets by other boxes
-            self.checkHomoHetro()
+            self.checkHomoHetero()
 
     def Calc(self, Type):
         try:
@@ -7895,7 +8146,7 @@ class dipolarDistanceWindow(wc.ToolWindow):
         self.spin1.setCurrentIndex(0)
         self.gamma1Drop.setCurrentIndex(0)
         self.gamma2Drop.setCurrentIndex(0)
-        self.checkHomoHetro()
+        self.checkHomoHetero()
 
     def closeEvent(self, *args):
         self.deleteLater()

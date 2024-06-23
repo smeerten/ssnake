@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2016 - 2022 Bas van Meerten and Wouter Franssen
+# Copyright 2016 - 2024 Bas van Meerten and Wouter Franssen
 
 # This file is part of ssNake.
 #
@@ -23,6 +23,7 @@ import numpy as np
 from six import string_types
 import spectrum as sc
 import hypercomplex as hc
+import time
 
 class LoadException(sc.SpectrumException):
     pass
@@ -264,13 +265,19 @@ def fileTypeCheck(filePath):
     if (os.path.exists(direc + os.path.sep + '..' + os.path.sep + 'procpar') or os.path.exists(direc + os.path.sep + 'procpar')) and os.path.exists(direc + os.path.sep + 'data'):
         return 0, direc
     elif os.path.exists(direc + os.path.sep + 'acqus') and (os.path.exists(direc + os.path.sep + 'fid') or os.path.exists(direc + os.path.sep + 'ser')):
+        # a better option would be to parse acqus TITLE first line for Topspin/Xwinnmr string
         return 1, direc
     elif os.path.exists(direc + os.path.sep + 'acqp') and os.path.exists(direc + os.path.sep + 'fid'):
         return 18, direc
-    elif os.path.exists(direc + os.path.sep + 'procs') and (os.path.exists(direc + os.path.sep + '1r') or os.path.exists(direc + os.path.sep + '2rr') or os.path.exists(direc + os.path.sep + '3rrr')):
-        return 7, direc
-    elif os.path.exists(direc + os.path.sep + 'procs') and os.path.exists(direc + os.path.sep + 'd3proc') and os.path.exists(direc + os.path.sep + '2dseq'):
-        return 17, direc
+    elif os.path.exists(os.path.join(direc, 'procs')):
+        # and (os.path.exists(direc + os.path.sep + '1r') or os.path.exists(direc + os.path.sep + '2rr') or os.path.exists(direc + os.path.sep + '3rrr')):
+        # look for 1r, 2rr ... files. If any exist then folder contains processed Topspin/xwinNMR data
+        # a better option would be to parse procs TITLE first line for Topspin/Xwinnmr string
+        file_exist = [os.path.exists(os.path.join(direc, file)) for file in [str(i)+'r'*i for i in [1, 2, 3, 4]] + [str(i)+'r' for i in [5, 6, 7, 8, 9]]]
+        if True in file_exist:        
+            return 7, direc
+        elif os.path.exists(direc + os.path.sep + 'd3proc') and os.path.exists(direc + os.path.sep + '2dseq'):
+            return 17, direc
     elif os.path.exists(direc + os.path.sep + 'acq') and os.path.exists(direc + os.path.sep + 'data'):
         return 2, direc
     elif os.path.exists(direc + os.path.sep + 'acqu.par'):
@@ -414,6 +421,7 @@ def loadVarianFile(filePath):
         masterData = sc.Spectrum(fid, (filePath, None), [freq1, freq], [sw1, sw], spec=[bool(int(spec))]*2, ref=[reffreq1, reffreq])
     masterData.addHistory("Varian data loaded from " + filePath)
     try:
+        masterData.metaData['Original dataset'] = filePath
         masterData.metaData['# Scans'] = str(pars['nt'])
         masterData.metaData['Acquisition Time [s]'] = str(pars['at'])
         masterData.metaData['Experiment Name'] = pars['seqfil']
@@ -746,7 +754,7 @@ def saveJSONFile(filePath, spectrum):
     struct['sw'] = list(spectrum.sw)
     struct['spec'] = list(1.0 * np.array(spectrum.spec))
     struct['wholeEcho'] = list(1.0 * np.array(spectrum.wholeEcho))
-    struct['ref'] = np.array(spectrum.ref, dtype=np.float).tolist()
+    struct['ref'] = np.array(spectrum.ref, dtype=float).tolist()
     struct['history'] = spectrum.history
     struct['metaData'] = spectrum.metaData
     if spectrum.dFilter is not None:
@@ -837,12 +845,18 @@ def saveMatlabFile(filePath, spectrum, name='spectrum'):
     struct['sw'] = spectrum.sw
     struct['spec'] = spectrum.spec
     struct['wholeEcho'] = spectrum.wholeEcho
-    struct['ref'] = np.array(spectrum.ref, dtype=np.float)
+    struct['ref'] = np.array(spectrum.ref, dtype=float)
     struct['history'] = spectrum.history
-    struct['xaxArray'] = spectrum.xaxArray
+    if len(spectrum.xaxArray) == 1:
+        struct['xaxArray'] = spectrum.xaxArray
+    else:
+        struct['xaxArray'] = np.array(spectrum.xaxArray,dtype=object)
     struct['metaData'] = spectrum.metaData
     if spectrum.dFilter is not None:
         struct['dFilter'] = spectrum.dFilter
+    if not re.match(r'^[a-z]\w+$', name, re.IGNORECASE):
+        # Matlab variable name must start with a letter, then any of letters, digits or underscores
+        name = 'nmr_' + re.sub('\W', '_', name)
     matlabStruct = {name: struct}
     scipy.io.savemat(filePath, matlabStruct)
 
@@ -1047,7 +1061,9 @@ def loadMatNMRFile(filePath):
     
 def brukerTopspinGetPars(file):
     """
-    Loads Bruker Topspin parameter file.
+    Loads Bruker Topspin parameter file. The file is parsed and a dict is returned with name:value pairs.
+    Parameters can be string, int, float or boolean. Or list of these.
+    The type is guessed. Ambiguity can arise between float and integer.
 
     Parameters
     ----------
@@ -1059,39 +1075,77 @@ def brukerTopspinGetPars(file):
     dict:
         Dictionary with all parameters
     """
-    with open(file, 'r') as f:
-        data = f.read().split('\n')
+    encodings = ['ascii', 'utf-8', 'latin1']
+    for enc in encodings:
+        try:
+            f = open(file, 'r', encoding=enc)
+            data = f.read().splitlines()
+            f.close()
+            break
+        except UnicodeDecodeError:
+            f.close()
     pos = 0
     pars = dict()
     while pos < len(data):
         if data[pos].startswith('##$'):
             line = data[pos].split('=')
-            line[1] = re.sub('^ ', '', line[1])
+            line[1] = line[1].strip()
             name = line[0].strip('##$=')
             val = line[1]
-            if val[0] == '<':
-                val = val.strip('<>')
-            elif val[0] == '(': #If list of values (always int/floats)
+            if val[0] == '(': # list of values of format ##$NAME= (0:31)val1 val2 ... spreading over several lines
+                span, vals = val[1:].split(')')
+                start, stop = [ int(i) for i in span.split('..')]
+                length = stop - start + 1
+                # concatenate the lines containing values
                 pos += 1
-                val = []
                 while not data[pos].startswith('##$') and not data[pos].startswith('$$'):
-                    try:
-                        val = val + [float(x) for x in data[pos].strip('<>').split()]
-                    except Exception:
-                        val = val + data[pos].strip('<>').split()
-
+                    vals = vals + " " + data[pos]
                     pos += 1
                 pos += -1
+
+                val = []
+                if '<' in vals : # strings
+                    for i in range(length):
+                        v, vals = vals.split('<', maxsplit=1)
+                        v, vals = vals.split('>', maxsplit=1)
+                        val.append(v)
+                elif 'yes' in vals or 'no' in vals:
+                    val = [v == 'yes' for v in vals.split()]
+                elif '.' in vals or 'e' in vals or 'E' in vals: # float
+                    val =  [float(v) for v in vals.split()]
+                else : # default to int
+                    val =  [int(v) for v in vals.split()]
             else:
-                try: #Both int, float and string can be in...
+                if val[0] == '<': # string type may span over several lines!!!
+                    val = val.lstrip('<').rstrip('>')
+                elif val in ['yes', 'no']: # boolean
+                    val = val == 'yes'
+                elif '.' in val or 'e' in val or 'E' in val: # float
+                    val = float(val)
+                else : # default to int
                     val = int(val)
-                except ValueError:
-                    try:
-                        val = float(val)
-                    except ValueError:
-                        pass
             pars[name] = val
         pos += 1
+    if data[0].startswith('##TITLE= Parameter file,'):
+        PROG, VER = 'Unknown', 'Unknown'
+        _, TS_VER = data[0].split(',')
+        if 'TOPSPIN' in TS_VER.upper():
+            PROG = 'TOPSPIN'
+            if 'Version' in TS_VER:
+                VER = TS_VER.split()[-1]
+            elif 'pl' in TS_VER:
+                VER = TS_VER.split()[-3] + '.' + TS_VER.split()[-1]
+            else:
+                VER = TS_VER.split()[-1]
+        if 'XWINNMR1.1' in TS_VER.upper():
+            PROG = 'XWINNMR'
+            VER = 1.1
+        if 'XWINNMR1.3' in TS_VER.upper():
+            PROG = 'XWINNMR'
+            VER = 1.3
+    
+        pars['PROGRAM_VERSION'] = [PROG, VER]
+            
     return pars
 
 def getBrukerFilter(pars):
@@ -1106,39 +1160,129 @@ def getBrukerFilter(pars):
     Returns
     -------
     float:
-        Phase delay (first order phasing correction) of the data
+        digital filter induced delay (for first order phasing correction) of the data
     """
-    delay = -1
-    if 'GRPDLY' in pars.keys():
-        delay = pars['GRPDLY'] * 2 * np.pi
-    if delay >= 0.0:
-        return delay
-    if pars['DSPFVS'] == 10 or pars['DSPFVS'] == 11 or pars['DSPFVS'] == 12:  # get from table
-        CorrectionList = [{'2': 44.7500, '3': 33.5000, '4': 66.6250, '6': 59.0833, '8': 68.5625, '12': 60.3750,
-                           '16': 69.5313, '24': 61.0208, '32': 70.0156, '48': 61.3438, '64': 70.2578, '96': 61.5052,
-                           '128': 70.3789, '192': 61.5859, '256': 70.4395, '384': 61.6263, '512': 70.4697, '768': 61.6465,
-                           '1024': 70.4849, '1536': 61.6566, '2048': 70.4924},
-                          {'2': 46.0000, '3': 36.5000, '4': 48.0000, '6': 50.1667, '8': 53.2500, '12': 69.5000,
-                           '16': 72.2500, '24': 70.1667, '32': 72.7500, '48': 70.5000, '64': 73.0000, '96': 70.6667,
-                           '128': 72.5000, '192': 71.3333, '256': 72.2500, '384': 71.6667, '512': 72.1250, '768': 71.8333,
-                           '1024': 72.0625, '1536': 71.9167, '2048': 72.0313},
-                          {'2': 46.311, '3': 36.530, '4': 47.870, '6': 50.229, '8': 53.289, '12': 69.551, '16': 71.600,
-                           '24': 70.184, '32': 72.138, '48': 70.528, '64': 72.348, '96': 70.700, '128': 72.524}]
+    dspfirm = pars["DSPFIRM"]
+    digtyp = pars["DIGTYP"]
+    decim = int(pars["DECIM"]) # decim can be float ?
+    dspfvs = pars["DSPFVS"]
+    digmod = pars["DIGMOD"]
+
+    if digmod == 0:
+        return None
+    if dspfvs >= 20:
+        return pars["GRPDLY"] * 2 * np.pi
+    if ((dspfvs == 10) | (dspfvs == 11) |
+                         (dspfvs == 12) | (dspfvs == 13)):
+        grpdly_table = {
+            10:     {
+                2: 44.7500,
+                3: 33.5000,
+                4: 66.6250,
+                6: 59.0833,
+                8: 68.5625,
+                12: 60.3750,
+                16: 69.5313,
+                24: 61.0208,
+                32: 70.0156,
+                48: 61.3438,
+                64: 70.2578,
+                96: 61.5052,
+                128: 70.3789,
+                192: 61.5859,
+                256: 70.4395,
+                384: 61.6263,
+                512: 70.4697,
+                768: 61.6465,
+                1024:    70.4849,
+                1536: 61.6566,
+                2048: 70.4924,
+                },
+            11:    {
+                2: 46.0000,
+                3: 36.5000,
+                4: 48.0000,
+                6: 50.1667,
+                8: 53.2500,
+                12: 69.5000,
+                16: 72.2500,
+                24: 70.1667,
+                32: 72.7500,
+                48: 70.5000,
+                64: 73.0000,
+                96: 70.6667,
+                128: 72.5000,
+                192: 71.3333,
+                256: 72.2500,
+                384: 71.6667,
+                512: 72.1250,
+                768: 71.8333,
+                1024: 72.0625,
+                1536: 71.9167,
+                2048: 72.0313
+                },
+            12:     {
+                2: 46.3110,
+                3: 36.5300,
+                4: 47.8700,
+                6: 50.2290,
+                8: 53.2890,
+                12: 69.5510,
+                16: 71.6000,
+                24: 70.1840,
+                32: 72.1380,
+                48: 70.5280,
+                64: 72.3480,
+                96: 70.7000,
+                128: 72.5240,
+                192: 0.0000,
+                256: 0.0000,
+                384: 0.0000,
+                512: 0.0000,
+                768: 0.0000,
+                1024:    0.0000,
+                1536: 0.0000,
+                2048: 0.0000
+                },
+            13:     {
+                2: 2.75,
+                3: 2.8333333333333333,
+                4: 2.875,
+                6: 2.9166666666666667,
+                8: 2.9375,
+                12: 2.9583333333333333,
+                16: 2.96875,
+                24: 2.9791666666666667,
+                32: 2.984375,
+                48: 2.9895833333333333,
+                64: 2.9921875,
+                96: 2.9947916666666667
+                }
+            }
+
 #            # Take correction from database. Based on matNMR routine (Jacco van Beek), which is itself based
 #            # on a text by W. M. Westler and F. Abildgaard.
-        return CorrectionList[10 - pars['DSPFVS']][str(pars['DECIM'])] * 2 * np.pi
-    else:
+        return grpdly_table[dspfvs][decim] * 2 * np.pi
+    if dspfvs == 0:
+        return None
+    if dspfvs == -1: # For FIDs gnereated by genser of genfid for example
         return None
 
+    raise NameError("DSPFVS="+str(dspfvs)+" not implemented")
 
 def loadBrukerTopspin(filePath):
     """
-    Loads Bruker Topspin/Xwinnmr data (i.e. time-domain data).
+    Loads Bruker Topspin/Xwinnmr data (i.e. fid/ser time-domain data). Looks for SF parameters (reference frequencies) 
+    in all processing sub folders matching the acquisition dimensionality (1D, ..., nD)
+    If several SF sets differs in values, then it uses the set in lowest processing number folder and stores 
+    the alternative sets references in metadata of SpectrumClass for further knowledge by user
+    If no processing has the same dimensionality as acquistion (dimP<dimA) then it uses BF1 as ref.
+    TODO : look for SF in sub plane/cube processing parameters
 
     Parameters
     ----------
     filePath: string
-        Path to the file that should be loaded
+        Path to the file that should be loaded. The file can be part of path or not.
 
     Returns
     -------
@@ -1149,64 +1293,156 @@ def loadBrukerTopspin(filePath):
         Dir = os.path.dirname(filePath)
     else:
         Dir = filePath
-    pars = []
-    # makes list of par file names
-    parFileN = ['acqus'] + [f'acqu{int(x)}s' for x in range(2,9)]
-    for File in parFileN:
-        if os.path.exists(Dir + os.path.sep + File):
-            pars.append(brukerTopspinGetPars(Dir + os.path.sep + File))
-    SIZE = [x['TD'] for x in pars]
-    FREQ = [x['SFO1'] * 1e6 for x in pars]
-    SW = [x['SW']*x['SFO1'] for x in pars]
-    REF = [x['O1'] for x in pars]
-    DtypeA = [np.dtype(np.int32), np.dtype(np.float32), np.dtype(np.float64)][pars[0]['DTYPA']] #The byte orders that is used
-    DtypeA = DtypeA.newbyteorder(['L', 'B'][pars[0]['BYTORDA']]) #The byte orders that is used 'L' =little endian, 'B' = big endian
-    REF = list(- np.array(REF) + np.array(FREQ))
-    dFilter = getBrukerFilter(pars[0])
-    totsize = np.prod(SIZE)
-    dim = len(SIZE)
-    directSize = int(np.ceil(float(SIZE[0]*DtypeA.itemsize) / 1024)) * int(1024 / DtypeA.itemsize)  #Size of direct dimension including
-    #blocking size of 1kb that is 256 int32 data points or 128 float64
-    for file in ['fid', 'ser']:
-        if os.path.exists(Dir + os.path.sep + file):
-            if file == 'ser':
-                totsize = int(totsize / SIZE[0]) * directSize #Always load full 1024 byte blocks (256 data points) for >1D
-            with open(Dir + os.path.sep + file, "rb") as f:
-                raw = np.fromfile(f, DtypeA, totsize)
-    ComplexData = np.array(raw[0:len(raw):2]) + 1j * np.array(raw[1:len(raw):2])
-    if dim >= 2:
-        newSize = list(SIZE)
-        newSize[0] = int(directSize / 2)
-        ComplexData = ComplexData.reshape(*newSize[-1::-1])
-        ComplexData = ComplexData[..., 0:int(SIZE[0]/2)] #Cut off placeholder data
-    masterData = sc.Spectrum(ComplexData, (filePath, None), FREQ[-1::-1], SW[-1::-1], spec=[False]*dim, ref=REF[-1::-1], dFilter=dFilter)
-    # TODO: Inserting metadata should be made more generic
-    try:
-        masterData.metaData['# Scans'] = str(pars[0]['NS'])
-    except Exception:
-        pass
-    try:
-        masterData.metaData['Receiver Gain'] = str(pars[0]['RG'])
-    except Exception:
-        pass
-    try:
-        masterData.metaData['Experiment Name'] = pars[0]['PULPROG']
-    except Exception:
-        pass
-    try:        
-        masterData.metaData['Offset [Hz]'] = str(pars[0]['O1'])
-    except Exception:
-        pass
-    try:
-        masterData.metaData['Recycle Delay [s]'] = str(pars[0]['D'][1])
-    except Exception:
-        pass
-    try:
-        import time
-        masterData.metaData['Time Completed'] = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(pars[0]['DATE'])))
-    except Exception:
-        pass
+    
+    parsA = [brukerTopspinGetPars(os.path.join(Dir, 'acqus'))]
+    dimA = parsA[0]['PARMODE'] + 1
 
+    # makes list of proc file names
+    procDirs = []
+    if int(dimA) > 1:
+        procfile = f"proc{int(dimA)}s"
+    else:
+        procfile = "procs"
+    for root, dirs, files in os.walk(os.path.join(Dir, 'pdata')):
+        if procfile in files:
+            procDirs.append(root)
+    # sort found processed data by increasing procno
+    procDirs.sort(key=lambda x : int(os.path.split(x)[-1]))
+    if len(procDirs) == 0:
+        # one didn't find a processing having the same dimension size as the acquisition
+        # how to deal with that ? search a lower dimensionality processing dir ? but how to
+        # match the dimensions ? procns AXNAME contain the axis number as F1, F2, F3... 
+        # AXNUC contain the isotope
+        skipSF = True
+    else :
+        skipSF = False
+    SF_sets = []
+    # extract SF from all procnos and store in a set that will automatically remove duplicates
+    if not skipSF:
+        for procDir in procDirs:
+            parPFileN = ['procs'] + [f'proc{int(x)}s' for x in range(2,1+dimA)]
+            SFs = []
+            for File in parPFileN:
+                ffilename = os.path.join(procDir, File)
+                if os.path.exists(ffilename):
+                    SFs.insert(0, brukerTopspinGetPars(ffilename)['SF'])
+            SF_sets.append(tuple(SFs))
+
+    parAFileN = [f'acqu{int(x)}s' for x in range(2,1+dimA)]
+    for File in parAFileN:
+        if os.path.exists(os.path.join(Dir, File)):
+            parsA.insert(0,brukerTopspinGetPars(os.path.join(Dir, File)))
+    SIZE = [x['TD'] for x in parsA]
+    FREQ = [x['SFO1'] * 1e6 for x in parsA]
+    SW = [x['SW']*x['SFO1'] for x in parsA]
+    if skipSF:
+        REF = [x['BF1']*1e6 for x in parsA]
+    else:
+        REF = [sf*1e6 for sf in SF_sets.pop(0)]
+    DtypeA = [np.dtype(np.int32), np.dtype(np.float32), np.dtype(np.float64)][parsA[-1]['DTYPA']] #The byte orders that is used
+    DtypeA = DtypeA.newbyteorder(['L', 'B'][parsA[-1]['BYTORDA']]) #The byte orders that is used 'L' =little endian, 'B' = big endian
+    if (parsA[-1]['DTYPA'] == 0) and ('NC' in parsA[-1]): # scale with NC only if data stored as int32
+        NC = parsA[-1]['NC']
+    else : 
+        NC = 0
+
+    """
+    AQSEQ contains an integer that codes the dimension (F1, F2, F3 as
+          they appear in eda and refering to acqus, acqu2s, acqu3s
+          etc...) storage order.
+    For 2D there is no need for it. the value is always 0
+    For 3D one has the following order:
+        0: F3F2F1
+        1: F3F1F2
+    For 4D : not checked on real dataset but my guess
+        0: F4F3F2F1
+        1: F4F3F1F2
+        2: F4F2F3F1
+        3: F4F2F1F3
+        4: F4F1F3F2
+        5: F4F1F2F3
+    For 5D nd larger only natural order is allowed : 
+        0: F5F4F3F2F1
+    If AQSEQ is not set (-1 ??? or missing key ?) then processing parameter AQORDER is used
+    """
+    # permutations dict(dimension: dict(AQSEQ: [dimension order]))
+    # where dimension as int is the spectrum dimensionality (2D, 3D, .... nD)
+    # and AQSEQ as int is the AQSEQ order (0, 1, 2...)
+    AQSEQ_permutations = { 3: {0: [ 0, 1], 1: [1, 0]}, 
+                    4: {0: [ 0, 1, 2], 1: [1, 0, 2], 2: [0, 2, 1], 3: [2, 0, 1], 4: [1, 2, 0], 5: [2, 1, 0]}
+                  }
+
+    aqseq = parsA[-1]['AQSEQ'] 
+
+    if dimA == 1 :
+        file = 'fid'
+        shaperaw = SIZE.copy()
+        totsize = SIZE[0]
+    elif dimA > 1 :
+        file = 'ser'
+        shaperaw = SIZE.copy()
+        blocksize = 1024 // DtypeA.itemsize  # direct dimension is multiple of 1024 byte blocks
+        shaperaw[-1] = int(np.ceil(SIZE[-1]/blocksize))*blocksize
+        totsize = 1
+        for x in shaperaw:
+            totsize *= x
+    shaperaw[-1] //= 2
+    shaperaw.append(2)
+
+    try:   # only for 3D/4D if AQSEQ parameter is valid (key exist in AQSEQ_permutations)
+        final = AQSEQ_permutations[dimA][aqseq]
+        start = [i for i in range(dimA-1)] 
+        tmp = shaperaw.copy()
+        for i, j in zip(start, final):
+            tmp[j] = shaperaw[i]
+        shaperaw = tmp
+    except KeyError:  # other cases : 1D, 2D and >=5D : uses natural order
+        start = [i for i in range(dimA-1)] 
+        final = start
+    
+    if os.path.exists(Dir + os.path.sep + file):
+        with open(Dir + os.path.sep + file, "rb") as f:
+            raw = np.fromfile(f, DtypeA, totsize).astype(float)
+
+    raw = raw.reshape(shaperaw)
+    # moveaxis to restore natural order (array dimensions match acquns entries)
+    raw = np.moveaxis(raw, start, final)
+
+    ComplexData = ((raw[...,0:SIZE[-1]//2, 0]) + 1j * np.array(raw[..., 0:SIZE[-1]//2, 1]))*2**NC
+
+    dFilter = getBrukerFilter(parsA[-1])
+    masterData = sc.Spectrum(ComplexData, (filePath, None), FREQ, SW, spec=[False]*dimA, ref=REF, dFilter=dFilter)
+
+    metafields = {'Original dataset': filePath, 
+'# Scans': str(parsA[-1]['NS']), 
+'Receiver Gain': str(parsA[-1]['RG']), 
+'Experiment Name': str(parsA[-1]['PULPROG']), 
+'Recycle Delay [s]': str(parsA[-1]['D'][1]), 
+'Time Completed': time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(parsA[-1]['DATE']))),
+'Alternate reference': str([s for s in set(SF_sets)])}
+
+    # Note: MASR reliable only since topspin 4.1.1
+    if parsA[-1]['PROGRAM_VERSION'][0] == 'TOPSPIN':
+        version_num = parsA[-1]['PROGRAM_VERSION'][1].split('.')
+        if len(version_num) < 3:
+            version_num.append('0')
+        try:
+            checknum = int(version_num[0])*10000+int(version_num[1])*100+int(version_num[2])
+        except ValueError:
+            # quick fix to catch beta versions that have version number with alphabetic numbering
+            checknum=0
+        if checknum >= 40101:
+            metafields['MAS Rate [Hz]'] = str(parsA[-1]['MASR'])
+
+    FnModes = {0: 'undefined', 1: 'not hyper-complex', 2: 'QSEQ who can use that ? not supported', 3: 'TPPI: not supported yet', 4: 'States', 5: 'States-TPPI', 6: 'Echo-antiecho'}
+    if dimA>1:
+        for dim in range(dimA-1):
+            metafields[f'Dimension {dim+1} acquisition mode'] = FnModes[parsA[dim]['FnMODE']]
+    for key, val in metafields.items():
+        try:
+            masterData.metaData[key] = val 
+        except Exception as exc:
+            print(exc)
     
     masterData.addHistory("Bruker TopSpin data loaded from " + filePath)
     return masterData
@@ -1251,7 +1487,7 @@ def loadBrukerImagingTime(filePath):
 
     totsize = int(totsize / SIZE[0]) * directSize #Always load full 1024 byte blocks (256 data points) for >1D
     with open(Dir + os.path.sep + 'fid', "rb") as f:
-        raw = np.fromfile(f, np.int32, totsize)
+        raw = np.fromfile(f, np.int32, totsize).astype(float)
     raw = raw.newbyteorder(ByteOrder) #Load with right byte order
     ComplexData = np.array(raw[0:len(raw):2]) + 1j * np.array(raw[1:len(raw):2])
     if dim >= 2:
@@ -1322,6 +1558,7 @@ def loadBrukerWinNMR(filePath):
     masterData = sc.Spectrum(ComplexData, (filePath, None), [FREQ], [SW], spec=[spec], ref=[REF])
     if not spec:
         try:
+            masterData.metaData['Original dataset'] = filePath
             masterData.metaData['# Scans'] = str(pars['NS'])
             masterData.metaData['Receiver Gain'] = str(pars['RG'])
             masterData.metaData['Experiment Name'] = pars['PULPROG']
@@ -1335,12 +1572,15 @@ def loadBrukerWinNMR(filePath):
 
 def loadBrukerSpectrum(filePath):
     """
-    Loads Bruker spectrum data (processed data). Supports 1-3D.
-
+    Loads Bruker spectrum data (processed data). Supports 1D to nD.
+    Limited support for 3D to nD: reads only the real part if more than the direct dimension
+    has been processed. So it is mostly usefull for ploting as some quadrant data may not be available 
+    (e.g. imaginary parts removed or not loaded)
+    Topspin processing capabilities of datasets > 3D is limited:
     Parameters
     ----------
     filePath: string
-        Path to the file that should be loaded
+        Path to the file or directory containing the data that should be loaded
 
     Returns
     -------
@@ -1352,70 +1592,209 @@ def loadBrukerSpectrum(filePath):
     else:
         Dir = filePath
     pars = []
-    for File in ['procs', 'proc2s', 'proc3s']:
-        if os.path.exists(Dir + os.path.sep + File):
-            pars.append(brukerTopspinGetPars(Dir + os.path.sep + File))
-    SIZE = [x['SI'] for x in pars]
+    if os.path.exists(os.path.join(Dir, 'procs')):
+        pars.insert(0, brukerTopspinGetPars(os.path.join(Dir, 'procs')))
+    dimP = pars[0]['PPARMOD'] + 1
+    files = [f"proc{d}s" for d in range(2, dimP +1)]
+    for File in files:
+        if os.path.exists(os.path.join(Dir, File)):
+            pars.insert(0, brukerTopspinGetPars(os.path.join(Dir, File)))
+    SIZE = [x['STSI'] for x in pars]  # STSI is processing status SI. It may not be equal to SI in procs on old topspin versions
+
     try:
         XDIM = [x['XDIM'] for x in pars]
-    except KeyError:
+    except KeyError: # ???? XDIM always exists even in 1D
         XDIM = SIZE # If not specified the data is assumed to be 1D
-    SW = [x['SW_p'] for x in pars]
-    FREQ = [x['SF'] * 1e6 for x in pars]
-    OFFSET = [x['OFFSET'] for x in pars]
-    SCALE = 1
-    if 'NC_proc' in pars[0]: # Set intensity scaling parameter
-        SCALE = 2**pars[0]['NC_proc']
+    XDIM = [ x if x!=0 else s for x, s in zip(XDIM, SIZE) ]  # xdim can be 0 if FT_mod == 0 (no FT ever performed)
+    REST = [s//x  for s, x in zip(SIZE, XDIM)]  # used to unfold XDIM mangling
+    # parameters to determine the domain (time/frequency and hypercomplex)
+    # FT_mod_meaning = ['no', 'isr', 'iqc', 'iqr', 'fsc', 'fsr', 'fqc', 'fqr', 'isc']
+    # type is FT_mod_meaning[FT_mod]
+    FT_mod = [ x['FT_mod'] for x in pars ]  # used to determine which FT is done or not 
+    freq_FT_modes = [4, 5, 6, 7] # list of values of FT_mod that correspond to frequency domain
+    axis_is_freq = [True if ftmod in freq_FT_modes else False for ftmod in FT_mod] 
+
+    MC2 = [ x['MC2'] for x in pars[0:-1]] # useful to know if data is hypercomplex and how it should be or was processed
+    hyper_MC_modes = [1, 2, 3, 4, 5] # list of values of MC2 that correspond to hyper-complex dimension
+    axis_is_hyper_mc = [True if mc in hyper_MC_modes else False for mc in MC2] 
+    # if magnitude processed a dimension lose its hyper property
+    PH_mod =  [x['PH_mod'] for x in pars[0:-1]]
+    axis_is_hyper_ph = [True if ph in [0, 1] else False for ph in PH_mod] 
+    axis_is_hyper = [mc and ph for mc, ph in zip(axis_is_hyper_mc, axis_is_hyper_ph)]
+    
+    # MC2_meaning = ['QF', 'QSEQ', 'TPPI', 'STATES', 'STATES-TPPI', 'ECHO-ANTIECHO', 'QF(no-frequency)']
+    # MC2 = [ x['MC2'] if x['FT_mod'] > 0 else -1 for x in pars ] # useful to know if data is hypercomplex and how it should be or was processed
+    # personal convention : MC2=-1 if FT/iFT not performed (FnMODE/MC2 never interpretated within Topspin)
+
+    if dimP == 1: # 1D easy
+        files = ['1r', '1i']
+        hyper = [0] 
+    elif dimP == 2: # 2D...
+        if not axis_is_hyper[0]: #F1 is not hypercomplex
+            # whatever FT status, same files and hyper for QF or QF(no-frequency)
+            files = ['2rr', '2ii']
+            hyper = [0,] 
+        else: # F1 is hypercomplex after FT processing only
+            if FT_mod[0] == 0: # no FT ever done in F1
+                files = ['2rr', '2ir'] 
+                hyper = [0,] # F1 is not yet hypercomplex, and hyper dimension is interleaved (considered real)
+            else: # at least one FT (or FT+iFT) done in F1
+                files = ['2rr', '2ir', '2ri', '2ii'] # F2 complex is 2rr+ 1j* 2ir and 2ri + 1j*2ii
+                hyper = [0, 1] 
+
+    # for any dataset >=3 any processed data is always reads pure real (3rrr, 4rrrr, 5r, 6r, 7r, ... 9r)  only unless only direct dimension is FT (then reads direct dimension imaginary)
+    elif dimP == 3: # 3D... usually some parts are missing so read only 3rrr. 3iii is read only if no FT done in F1/F2
+        if (not axis_is_hyper[0]) and (not axis_is_hyper[1]): # (F1(QF)/F2(QF)
+            # whatever FT status, same files and hyper for QF or QF(no-frequency)
+            files = ['3rrr', '3iii']  # F3 complex is 3rrr + 1j*3iii
+            hyper = [0,] 
+
+        # F1(QF)/ F2(hypercomplex)
+        elif (not axis_is_hyper[0]) and (axis_is_hyper[1]):
+            if FT_mod[0] == 0 and FT_mod[1] == 0:   # (F1, F2, F3) = (no, no, FT)  (F3 always FT)
+                files = ['3rrr', '3iii'] # F3 complex is 3rrr + 1j*3iii
+                hyper = [0,] # F1, F2 are not yet hypercomplex, and hyper dimension is interleaved
+            else: # other cases : only real part read
+                files = ['3rrr', ] 
+                hyper = [0,] 
+            """
+            elif FT_mod[0] == 0 and FT_mod[1] != 0: # (F1, F2, F3) = (no, FT, FT)  (F3 always FT) 
+                files = [3rrr, 3rir, 3iii]  # F3 imaginary part is lost (need Hilbert transform) ? or is it 3iii ?
+                hyper = [0, x] # F1 is not yet hypercomplex, and F2 hyper dimension is interleaved
+            elif FT_mod[0] != 0 and FT_mod[1] == 0: # (F1, F2, F3) = (FT, no, FT)  (F3 always FT) 
+                files = ['3rrr', '3iii'] 
+                hyper = [0, ] 
+            elif FT_mod[0] != 0 and FT_mod[1] != 0: # (F1, F2, F3) = (FT, FT, FT)  (F3 always FT)
+                files = ['3rrr', '3rir'] # or ['3rrr', '3iii'] # 3iii if (tf3;tf2;tf1) or 3rir if (tf3;tf1;tf2)
+                hyper = [0, x] 
+            """
+
+        # F1(hypercomplex) / F2(QF)
+        elif (axis_is_hyper[0]) and (not axis_is_hyper[1]): 
+            if FT_mod[0] == 0 and FT_mod[1] == 0: # no FT in F1 and F2. F3 always FT
+                files = ['3rrr', '3iii'] # F3 complex is 3rrr + 1j*3iii
+                hyper = [0,] # F1 is not yet hypercomplex, and hyper dimension is interleaved
+            else:  # other cases : only real part read
+                files = ['3rrr', ] # F3 complex is 3rrr + 1j*3iii
+                hyper = [0,] # other cases not treated
+            """
+            elif FT_mod[0] == 0 and FT_mod[1] != 0: # no FT in F1 and FT in F2. F3 always FT
+                files = [3rrr, 3rri, 3iii]  # F3 imaginary part is lost (need Hilbert transform) ? or is it 3iii ?
+                hyper = [0, x] # F1 is not yet hypercomplex, and F2 hyper dimension is interleaved
+            elif FT_mod[0] != 0 and FT_mod[1] == 0: # FT in F1 and no FT in F2. F3 always FT
+                files = ['3rrr', '3rri´, '3iii']  # either 3rri if (tf3; tf2; tf1) or 3iii if (tf3; tf1; tf2) 
+                hyper = [0, x] 
+            """
+
+        # F1(hypercomplex)/ F2(hypercomplex)
+        elif (axis_is_hyper[0]) and (axis_is_hyper[1]): 
+            if FT_mod[0] == 0 and FT_mod[1] == 0: # no FT in F1 and F2. F3 always FT
+                files = ['3rrr', '3irr'] # F3 complex is 3rrr + 1j*3iii
+                hyper = [0,] # F1 is not yet hypercomplex, and hyper dimension is interleaved
+            else: # other cases : only real part read
+                files = ['3rrr'] # F3 complex is 3rrr + 1j*3iii
+                hyper = [0,] 
+
+            """
+            elif FT_mod[0] == 0 and FT_mod[1] != 0: # no FT in F1 and FT in F2. F3 always FT
+                files = [3rrr, 3rir]  # F3 imaginary part is lost (need Hilbert transform) ?
+                hyper = [0, x] # F1 is not yet hypercomplex, and F2 hyper dimension is interleaved
+            elif FT_mod[0] != 0 and FT_mod[1] == 0: # FT in F1 and no FT in F2. F3 always FT
+                files = ['3rrr', '3rri']  
+                hyper = [0, x] 
+            elif FT_mod[0] != 0 and FT_mod[1] == 0: # FT in F1 and no FT in F2. F3 always FT
+            else : # all FT done
+                files = ['3rrr', '3rri', '3rir']  # 3 files again...
+                hyper = [0, x] 
+            """
+
+    elif dimP == 4: # 4D... usually most parts are missing so read only 4rrrr except if only direct dimension processed. 
+                    # moreover topspin cannot process mixed QF/States processing in F1-F3
+                    # only 2 cases left
+        if True not in axis_is_hyper: #all QF
+            files = ['4rrrr', '4iiii']
+            hyper = [0,]
+        else: # in all other cases only reads 4rrrr
+            files = ['4rrrr', ]
+            hyper = [0,]
+            
+    elif dimP > 4: # 5D and on... same as 4D but file names changed to 5r/5i
+        if True not in axis_is_hyper: #all QF
+            files = [str(dimP)+'r', str(dimP)+'i']
+            hyper = [0,]
+        else: # in all other cases only reads nr with n= 5, 6, 7, 8, 9...
+            files = [str(dimP)+'r', ]
+            hyper = [0,]
+        
+    SW_p = [x['SW_p'] for x in pars]   # the spectrum spectral window in Hz if FT done, the acquisition spectral width in pseudo ppm (SWh/SFO1) otherwise
+    REF = [x['SF'] * 1e6 for x in pars]  # These are the reference frequencies in Hz (0 ppm)
+    OFFSET = [x['OFFSET'] for x in pars] # the first (left) point in ppm if FT done, ppm position of carrier (1e6*(SFO1-SF)/SF) otherwise
+    SFO1 = [(off/1e6*sf+sf) for off, sf in zip(OFFSET, REF)]   # SFO1 (in Hz) only if FT_mod == 0, meaningless otherwise
+    SW = [swp*sfo1/1e6 if ft==0 else swp for swp, sfo1, ft in zip(SW_p, SFO1, FT_mod)]  # The spectral window in Hz for all cases 
+    # calculate the frequency of the center of spectrum for all cases
+    FREQ = [ sfo1 if (ft == 0) else (ref*(1+offset/1e6)- sw/2.0) 
+                    for ref, offset, sw, sfo1, ft 
+                        in zip(REF, OFFSET, SW, SFO1, FT_mod) ]
     try:
-        DtypeP = [np.dtype(np.int32), np.dtype(np.float32), np.dtype(np.float64)][pars[0]['DTYPP']] #The byte orders that is used
-        DtypeP = DtypeP.newbyteorder(['L', 'B'][pars[0]['BYTORDP']])
+        DtypeP = [np.dtype(np.int32), np.dtype(np.float32), np.dtype(np.float64)][pars[-1]['DTYPP']] #The byte orders that is used
+        DtypeP = DtypeP.newbyteorder(['L', 'B'][pars[-1]['BYTORDP']])
     except KeyError:
+        print('Warning: using default byteorder 32bit Little endian')
         DtypeP = np.dtype(np.int32)         # When these parameters are not available the defaults are used
         DtypeP = DtypeP.newbyteorder('L')
     # The byte orders that is used as stored in BYTORDP proc parameter:
     #  '< or L' =little endian, '>' or 'B' = big endian
-    REF = []
-    for index, _ in enumerate(SIZE): #For each axis
-        pos = np.fft.fftshift(np.fft.fftfreq(SIZE[index], 1.0 / SW[index]))[-1] #Get last point of axis
-        pos2 = OFFSET[index] * 1e-6 * FREQ[index] #offset in Hz
-        REF.append(FREQ[index] + pos - pos2)
+    SCALE = 1
+    if (pars[-1]['DTYPP'] == 0) and ('NC_proc' in pars[-1]): # Set intensity scaling parameter if data stored as int32
+        SCALE = 2**pars[-1]['NC_proc']
     totsize = np.prod(SIZE)
-    dim = len(SIZE)
+    #dim = len(SIZE)
     DATA = []
-    files = [['1r','1i'], ['2rr', '2ir', '2ri', '2ii'], ['3rrr', '3irr', '3rir', '3iir', '3rri', '3iri', '3rii', '3iii']]
+
     counter = 0
-    for file in files[dim - 1]: # For all the files
-        if os.path.exists(Dir + os.path.sep + file):
-            with open(Dir + os.path.sep + file, "rb") as f:
-                raw = np.fromfile(f, DtypeP, totsize)
-                if counter % 2 == 0: # If even, data is real part
-                    DATA.append(np.flipud(raw))
-                else: # If odd, data is imag, and needs to be add to the previous
-                    DATA[-1] = DATA[-1] - 1j * np.flipud(raw)
-                counter += 1 # only advance counter when file is found
+    for file in files:
+        if os.path.exists(os.path.join(Dir, file)):
+            with open(os.path.join(Dir, file), "rb") as f:
+                raw = np.fromfile(f, DtypeP, totsize).astype(float)  # there could be overflow when working on int32
+
+            # Note that XDIM may have inconsistent value for 1D in old topspin 
+            # versions. Therefore XDIM processing should not be used for 1D spectra
+            if dimP > 1:
+                # unroll XDIMs for nD dataset with n>1
+                raw = raw.reshape(REST + XDIM)
+                source = [i for i in range(raw.ndim)]
+                destination = []
+                for i in range(raw.ndim):
+                    if i < dimP: #moving XDIM axis number i to 2*i 
+                        destination.append(2*i)
+                    else: #moving REST axis number i to 2*(i%dimP)+1
+                        destination.append(2*(i%dimP)+1)
+                raw = np.moveaxis(raw, source, destination)
+                raw = raw.reshape(SIZE)
+
+            #One should reverse the axes that are in frequency domain only
+            axis_to_flip_list = []
+            for i, f in enumerate(axis_is_freq):
+                if f:
+                    axis_to_flip_list.append(i) 
+            raw = np.flip(raw, axis=axis_to_flip_list) # reverse freq axes
+
+            if counter % 2 == 0: # If counter is even then data is real part
+                DATA.append(raw)
+            else: # If counter is odd, data is imag, and needs to be added to the previous
+                DATA[-1] = DATA[-1] + 1j * raw
+        counter += 1 
     del raw
-    hyper = np.array([0])
-    if dim == 2: # If 2D data has more than 1 part: hypercomplex along the first axis
-        if len(DATA) != 1:
-            hyper = np.array([0, 1])
-    if len(SIZE) == 2:
-        for index, _ in enumerate(DATA): # For each data set
-            # Reshape DATA to 4D data using the block information
-            # Twice concat along axis 1 constructs the regular x-y data
-            DATA[index] = np.reshape(DATA[index], [int(SIZE[1]/XDIM[1]), int(SIZE[0]/XDIM[0]), XDIM[1], XDIM[0]])
-            DATA[index] = np.concatenate(np.concatenate(DATA[index], 1), 1)
-    elif len(SIZE) == 3:
-        for index, _ in enumerate(DATA):
-            # The same as 2D, but now split to 6D data, and concat along 2
-            DATA[index] = np.reshape(DATA[index], [int(SIZE[2]/XDIM[2]), int(SIZE[1]/XDIM[1]), int(SIZE[0]/XDIM[0]), XDIM[2], XDIM[1], XDIM[0]])
-            DATA[index] = np.concatenate(np.concatenate(np.concatenate(DATA[index], 2), 2), 2)
-    spec = [True]
+    hyper = np.array(hyper)
+
     DATA = [x * SCALE for x in DATA]
-    masterData = sc.Spectrum(hc.HComplexData(DATA, hyper), (filePath, None), FREQ[-1::-1], SW[-1::-1], spec=spec*dim, ref=REF[-1::-1])
+    
+    masterData = sc.Spectrum(hc.HComplexData(DATA, hyper), (filePath, None), FREQ, SW, spec=axis_is_freq, ref=REF)
     masterData.addHistory("Bruker spectrum data loaded from " + filePath)
     #Try to load main acqus and get some additional pars
     try:
-        parsExtra = brukerTopspinGetPars(Dir + os.path.sep  + '..' + os.path.sep + '..'+ os.path.sep + 'acqus')
+        parsExtra = brukerTopspinGetPars(os.path.join(Dir, '..', '..', 'acqus'))
+        masterData.metaData['Loaded from '] = filePath
         masterData.metaData['# Scans'] = str(parsExtra['NS'])
         masterData.metaData['Receiver Gain'] = str(parsExtra['RG'])
         masterData.metaData['Experiment Name'] = parsExtra['PULPROG']
@@ -1568,11 +1947,12 @@ def loadChemFile(filePath):
     spec = [False]
     if sizeTD1 == 1:
         data = data[0][:]
-        masterData = sc.Spectrum(data, (filePath, None), [freq*1e6], [sw], specspec)
+        masterData = sc.Spectrum(data, (filePath, None), [freq*1e6], [sw], spec)
     else:
         masterData = sc.Spectrum(data, (filePath, None), [freq*1e6]*2, [sw1, sw], spec=spec*2)
     masterData.addHistory("Chemagnetics data loaded from " + filePath)
     try:
+        masterData.metaData['Loaded from '] = filePath
         if isinstance(pars['na'], list):
             masterData.metaData['# Scans'] = pars['na'][0]
         else:
@@ -1648,6 +2028,7 @@ def loadMagritek(filePath):
         ComplexData[0] *= 2
         masterData = sc.Spectrum(ComplexData, (filePath, None), [freq], [sw], spec=[False], ref=[ref])
     try:
+        masterData.metaData['Original dataset'] = filePath
         masterData.metaData['# Scans'] = H['nrScans']
         masterData.metaData['Acquisition Time [s]'] = str(int(H['nrPnts']) * float(H['dwellTime']) * 1e-6)
         masterData.metaData['Experiment Name'] = H['expName'].strip('"')
@@ -1985,7 +2366,11 @@ def saveASCIIFile(filePath, spectrum, axMult=1, delim = '\t'):
         splitdata[:, line * 2] = np.real(data[:, line])
         splitdata[:, line * 2 + 1] = np.imag(data[:, line])
     data = np.concatenate((axis, splitdata), axis=1)
-    np.savetxt(filePath, data, delimiter=delim)
+    if tmpData.ndim == 1:
+        np.savetxt(filePath, data, delimiter=delim)
+    else:
+        header = np.array2string(spectrum.xaxArray[0] * axMult, separator=",",threshold=np.inf, max_line_width=np.inf).strip('[]')
+        np.savetxt(filePath, data, delimiter=delim, header=header)
 
 def loadAscii(filePath, asciiInfo=None):
     """
